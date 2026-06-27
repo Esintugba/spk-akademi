@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0f172a" />
+  <rect x="72" y="72" width="1056" height="486" rx="28" fill="#111827" stroke="#1f2937" />
+  <rect x="120" y="140" width="120" height="120" rx="20" fill="#0f766e" />
+  <text x="180" y="218" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#ffffff">SPK</text>
+  <text x="300" y="205" font-family="Arial, sans-serif" font-size="64" font-weight="700" fill="#ffffff">SPK Akademi</text>
+  <text x="300" y="272" font-family="Arial, sans-serif" font-size="30" fill="#cbd5e1">
+    Lisans hazırlık, deneme sınavı ve ilerleme takibi
+  </text>
+  <rect x="120" y="360" width="280" height="118" rx="18" fill="#0f766e" opacity="0.16" />
+  <rect x="430" y="360" width="280" height="118" rx="18" fill="#2563eb" opacity="0.16" />
+  <rect x="740" y="360" width="280" height="118" rx="18" fill="#f59e0b" opacity="0.16" />
+  <text x="160" y="410" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff">Konu Bazlı Çalışma</text>
+  <text x="160" y="448" font-family="Arial, sans-serif" font-size="22" fill="#cbd5e1">Notlar, PDF ve test akışı</text>
+  <text x="470" y="410" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff">Deneme Sınavları</text>
+  <text x="470" y="448" font-family="Arial, sans-serif" font-size="22" fill="#cbd5e1">Süreli sınav ve otomatik sonuç</text>
+  <text x="780" y="410" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ffffff">İlerleme Takibi</text>
+  <text x="780" y="448" font-family="Arial, sans-serif" font-size="22" fill="#cbd5e1">Dashboard, istatistik ve tekrar</text>
+</svg>

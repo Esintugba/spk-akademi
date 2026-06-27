@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Review Master badge">
+  <circle cx="48" cy="48" r="42" fill="#7c3aed"/>
+  <path fill="#ede9fe" d="M26 25h31c7 0 13 6 13 13s-6 13-13 13H44l-14 14v-14h-4z"/>
+  <path fill="#6d28d9" d="M35 35h24v6H35zm0 12h16v6H35z"/>
+</svg>

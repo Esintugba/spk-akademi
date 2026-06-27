@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Ilk Adim badge">
+  <circle cx="48" cy="48" r="42" fill="#14b8a6"/>
+  <circle cx="48" cy="48" r="31" fill="#ccfbf1"/>
+  <path fill="#0f766e" d="M44 62 29 47l6-6 9 9 19-20 6 6z"/>
+</svg>

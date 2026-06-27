@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Seviye Avcisi badge">
+  <circle cx="48" cy="48" r="42" fill="#0f766e"/>
+  <path fill="#ccfbf1" d="M48 15 78 32v33L48 82 18 65V32z"/>
+  <path fill="#facc15" d="m48 27 7 14 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/>
+</svg>

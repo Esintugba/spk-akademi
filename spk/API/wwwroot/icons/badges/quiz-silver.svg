@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Soru Maratoncusu badge">
+  <circle cx="48" cy="48" r="42" fill="#475569"/>
+  <rect x="24" y="22" width="48" height="52" rx="9" fill="#e2e8f0"/>
+  <path fill="#334155" d="M35 35h26v6H35zm0 12h26v6H35zm0 12h19v6H35z"/>
+  <path fill="#94a3b8" d="M63 20v12H51V20z"/>
+</svg>

@@ -1,0 +1,106 @@
+name: ci-cd
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Client/package-lock.json
+
+      - name: Restore API packages
+        run: dotnet restore API/API.csproj
+
+      - name: Build API
+        run: dotnet build API/API.csproj --configuration Release --no-restore
+
+      - name: Test API
+        run: dotnet test spk.slnx --configuration Release --no-build
+
+      - name: Install client dependencies
+        working-directory: Client
+        run: npm ci
+
+      - name: Lint client
+        working-directory: Client
+        run: npm run lint
+
+      - name: Build client
+        working-directory: Client
+        run: npm run build
+
+      - name: Build API Docker image
+        run: docker build -f API/Dockerfile -t spk-api:${{ github.sha }} .
+
+      - name: Build frontend Docker image
+        run: docker build -f Client/Dockerfile -t spk-frontend:${{ github.sha }} .
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate staging deployment secrets
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.STAGING_DEPLOY_WEBHOOK_URL }}
+          JWT_KEY: ${{ secrets.STAGING_JWT_KEY }}
+          DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.STAGING_SMTP_PASSWORD }}
+        run: |
+          missing=0
+          for name in DEPLOY_WEBHOOK_URL JWT_KEY DB_PASSWORD SMTP_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required for staging deployment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Trigger staging deployment
+        run: curl -X POST "${{ secrets.STAGING_DEPLOY_WEBHOOK_URL }}"
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate production deployment secrets
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_URL }}
+          JWT_KEY: ${{ secrets.PRODUCTION_JWT_KEY }}
+          DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.PRODUCTION_SMTP_PASSWORD }}
+        run: |
+          missing=0
+          for name in DEPLOY_WEBHOOK_URL JWT_KEY DB_PASSWORD SMTP_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required for production deployment"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Trigger production deployment
+        run: curl -X POST "${{ secrets.PRODUCTION_DEPLOY_WEBHOOK_URL }}"

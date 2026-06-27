@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: API/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: spk-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      Database__Provider: Sqlite
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/data/spk.db}
+      Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
+      AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
+      Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:?Cors__AllowedOrigins__0 is required}
+      Seo__PublicBaseUrl: ${Seo__PublicBaseUrl:?Seo__PublicBaseUrl is required}
+      Email__Enabled: ${Email__Enabled:-false}
+      DataProtection__KeysPath: /keys
+      Serilog__WriteTo__1__Args__path: /logs/spk-.log
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./storage/data:/data
+      - ./storage/uploads:/app/wwwroot/uploads
+      - ./storage/imports:/app/imports
+      - ./storage/logs:/logs
+      - ./storage/data-protection:/keys

@@ -1,0 +1,12 @@
+.git
+.gitignore
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.env
+**/.DS_Store
+Docker/data
+storage
+logs
+imports

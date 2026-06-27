@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Gorev Rutini badge">
+  <circle cx="48" cy="48" r="42" fill="#15803d"/>
+  <rect x="22" y="23" width="52" height="50" rx="9" fill="#bbf7d0"/>
+  <path fill="#166534" d="M32 38h31v6H32zm0 12h22v6H32z"/>
+  <path fill="#facc15" d="m64 60 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+</svg>

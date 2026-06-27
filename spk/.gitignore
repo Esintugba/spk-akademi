@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.github/.env
+API/bin/
+API/obj/
+Client/dist/
+Client/node_modules/
+API/spk.db
+API/logs/
+logs/
+*.user
+*.suo
+*.db-shm
+*.db-wal
+Docker/data/

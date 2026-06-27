@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Seri Baslangici badge">
+  <circle cx="48" cy="48" r="42" fill="#fb923c"/>
+  <path fill="#fff7ed" d="M47 22c2 12 13 17 13 30 0 12-8 22-18 22S24 64 24 52c0-8 4-15 11-21 0 8 3 13 9 16 4-7 4-15 3-25z"/>
+  <path fill="#ea580c" d="M58 48h16v8H58z"/>
+</svg>
