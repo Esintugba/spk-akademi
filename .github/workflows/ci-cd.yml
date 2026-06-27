@@ -10,6 +10,10 @@ on:
       - main
       - staging
 
+permissions:
+  contents: read
+  packages: write
+  
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -51,8 +55,22 @@ jobs:
         working-directory: Client
         run: npm run build
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+         registry: ghcr.io
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build API Docker image
-        run: docker build -f API/Dockerfile -t spk-api:${{ github.sha }} .
+        run: |
+         docker build \
+         -f API/Dockerfile \
+         -t ghcr.io/${{ github.repository_owner }}/spk-akademi-api:${{ github.sha }} \
+         -t ghcr.io/${{ github.repository_owner }}/spk-akademi-api:latest \.
 
       - name: Build frontend Docker image
         run: docker build -f Client/Dockerfile -t spk-frontend:${{ github.sha }} .
