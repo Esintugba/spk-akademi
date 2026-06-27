@@ -14,3 +14,7 @@ logs/
 *.db-shm
 *.db-wal
 Docker/data/
+storage/data/
+storage/uploads/
+storage/logs/
+storage/data-protection/
