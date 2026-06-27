@@ -1,7 +1,7 @@
 FROM node:22-alpine AS client-build
 WORKDIR /src/Client
 COPY Client/package*.json ./
-RUN npm ci
+RUN npm install
 COPY Client/ ./
 ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
