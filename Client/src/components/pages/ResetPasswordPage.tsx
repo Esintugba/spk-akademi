@@ -40,17 +40,17 @@ export function ResetPasswordPage() {
     }
 
     setIsSubmitting(true)
-
+    
     try {
       await authApi.resetPassword({ email, newPassword, token })
       setIsComplete(true)
       setNewPassword('')
       setConfirmPassword('')
-    } catch {
-      
+    } catch (error) {
+      console.error(error)
     } finally {
       setIsSubmitting(false)
-    }
+  }
   }
 
   return (
