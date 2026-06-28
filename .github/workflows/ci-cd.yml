@@ -74,7 +74,6 @@ jobs:
           file: ./API/Dockerfile
           push: true
           tags: |
-            tags: |
               ghcr.io/esintugba/spk-akademi-api:latest
               ghcr.io/esintugba/spk-akademi-api:${{ github.sha }}
           cache-from: type=gha
