@@ -202,3 +202,5 @@ Gerekli secrets:
 - Reverse proxy arkasinda `X-Forwarded-*` headerlari ile calisir.
 - Static assetler uzun sure cache'lenir, `index.html` cache'lenmez.
 - Serilog loglari `logs/` altina gunluk rolling file olarak yazilir.
+
+Test Auto Deploy

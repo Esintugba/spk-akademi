@@ -19,8 +19,8 @@ jobs:
       - name: Deploy to Oracle
         uses: appleboy/ssh-action@v1.2.2
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           command_timeout: 30m
           script: |
