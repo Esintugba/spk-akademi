@@ -13,7 +13,7 @@ export function BrandMark({ subtitle, variant = 'dark', sx }: BrandMarkProps) {
   const isLight = variant === 'light'
 
   return (
-    <Box sx={[{ display: 'flex', alignItems: 'center', gap: 1.5 }, ...(Array.isArray(sx) ? sx : [sx])]}>
+    <Box sx={[{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}>
       <Box
         aria-hidden
         sx={{
@@ -28,13 +28,15 @@ export function BrandMark({ subtitle, variant = 'dark', sx }: BrandMarkProps) {
           fontWeight: 800,
           height: 42,
           justifyContent: 'center',
+          flex: '0 0 auto',
           width: 42,
         }}
       >
         SPK
       </Box>
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         <Typography
+          noWrap
           sx={{
             color: isLight ? '#f8fafc' : 'text.primary',
             fontSize: 18,
@@ -46,6 +48,7 @@ export function BrandMark({ subtitle, variant = 'dark', sx }: BrandMarkProps) {
         </Typography>
         {subtitle && (
           <Typography
+            noWrap
             sx={{
               color: isLight ? '#94a3b8' : 'text.secondary',
               fontSize: 12,

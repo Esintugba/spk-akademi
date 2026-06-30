@@ -40,9 +40,28 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
           html: {
             backgroundColor: theme.palette.background.default,
             colorScheme: mode,
+            overflowX: 'hidden',
           },
           body: {
             backgroundColor: theme.palette.background.default,
+            overflowX: 'hidden',
+            width: '100%',
+          },
+          '#root': {
+            maxWidth: '100%',
+            overflowX: 'hidden',
+          },
+          '*, *::before, *::after': {
+            boxSizing: 'border-box',
+          },
+          img: {
+            maxWidth: '100%',
+          },
+          '.MuiContainer-root, .MuiPaper-root, .MuiCard-root, .MuiStack-root, .MuiBox-root': {
+            minWidth: 0,
+          },
+          '.MuiTypography-root': {
+            overflowWrap: 'anywhere',
           },
         }}
       />

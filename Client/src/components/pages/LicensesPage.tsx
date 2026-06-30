@@ -348,7 +348,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
         <DialogTitle>Lisans detayı</DialogTitle>
         <DialogContent>
           {detailLicense && (
-            <Stack divider={<Divider flexItem />} spacing={1.5} sx={{ minWidth: 360 }}>
+            <Stack divider={<Divider flexItem />} spacing={1.5} sx={{ minWidth: { sm: 360, xs: 0 }, width: '100%' }}>
               <Typography><strong>Ad:</strong> {detailLicense.name}</Typography>
               <Typography><strong>Kısa kod:</strong> {detailLicense.slug}</Typography>
               <Typography><strong>Kısa açıklama:</strong> {detailLicense.shortDescription || 'Yok'}</Typography>

@@ -57,6 +57,8 @@ export function createAppTheme(mode: PaletteMode, compactView = false) {
         styleOverrides: {
           root: {
             borderRadius: 8,
+            maxWidth: '100%',
+            minWidth: 0,
             whiteSpace: 'nowrap',
           },
         },

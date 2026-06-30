@@ -283,7 +283,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
         <DialogTitle>Ders detayı</DialogTitle>
         <DialogContent>
           {detailCourse && (
-            <Stack spacing={1} sx={{ minWidth: 360 }}>
+            <Stack spacing={1} sx={{ minWidth: { sm: 360, xs: 0 }, width: '100%' }}>
               <Typography><strong>Ders:</strong> {detailCourse.name}</Typography>
               <Typography><strong>Lisans:</strong> {getLicenseName(detailCourse.licenseId)}</Typography>
               <Typography><strong>Kısa kod:</strong> {detailCourse.slug}</Typography>

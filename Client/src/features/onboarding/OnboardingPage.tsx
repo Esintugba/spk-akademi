@@ -197,7 +197,7 @@ export function OnboardingPage() {
                             {plan.shortDescription || plan.description || 'Bu paket icin aciklama yakinda eklenecek.'}
                           </Typography>
                         </Box>
-                        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))', xs: '1fr' } }}>
                           <MiniMetric label="Ders" value={plan.scope.courseCount} />
                           <MiniMetric label="Konu" value={plan.scope.topicCount} />
                           <MiniMetric label="Soru" value={plan.scope.questionCount} />

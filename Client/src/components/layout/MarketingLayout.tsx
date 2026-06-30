@@ -76,8 +76,8 @@ export function MarketingLayout() {
         }}
       >
         <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ gap: 2, minHeight: 76 }}>
-            <BrandMark subtitle="Sermaye piyasası lisans hazırlık sistemi" sx={{ flexGrow: 1 }} />
+          <Toolbar disableGutters sx={{ gap: { sm: 2, xs: 1 }, minHeight: { sm: 76, xs: 68 }, minWidth: 0 }}>
+            <BrandMark subtitle="Sermaye piyasası lisans hazırlık sistemi" sx={{ flexGrow: 1, minWidth: 0 }} />
 
             <Stack direction="row" spacing={0.5} sx={{ display: { lg: 'flex', xs: 'none' } }}>
               {navLinks.map((link) => (
@@ -124,7 +124,7 @@ export function MarketingLayout() {
       </AppBar>
 
       <Drawer anchor="right" onClose={() => setIsMenuOpen(false)} open={isMenuOpen}>
-        <Box sx={{ p: 2, width: 320 }}>
+        <Box sx={{ p: 2, width: 'min(320px, 100vw)' }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography sx={{ fontWeight: 900 }}>Menü</Typography>
             <IconButton onClick={() => setIsMenuOpen(false)}>

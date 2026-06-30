@@ -60,11 +60,11 @@ export function LandingPage() {
           </>
         }
         sideContent={
-          <Paper sx={{ borderRadius: 5, p: 3.25 }} variant="outlined">
+          <Paper sx={{ borderRadius: 3, p: { sm: 3.25, xs: 2 } }} variant="outlined">
             <Typography color="primary.main" sx={{ fontWeight: 800 }}>
               Çalışma akışı
             </Typography>
-            <Typography sx={{ fontSize: 30, fontWeight: 900, mt: 1.5 }}>
+            <Typography sx={{ fontSize: { sm: 30, xs: 23 }, fontWeight: 900, mt: 1.5 }}>
               Dağınık kaynaklardan tek bir çalışma paneline
             </Typography>
             <Stack spacing={1.4} sx={{ mt: 3 }}>
@@ -75,7 +75,7 @@ export function LandingPage() {
                 </Stack>
               ))}
             </Stack>
-            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'repeat(3, 1fr)', mt: 3 }}>
+            <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))', xs: '1fr' }, mt: 3 }}>
               {[
                 { label: 'Aktif modül', value: '3' },
                 { label: 'Public sayfa', value: 'Modern' },

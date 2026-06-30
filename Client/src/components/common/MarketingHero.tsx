@@ -18,15 +18,16 @@ export function MarketingHero({
   sideContent,
 }: MarketingHeroProps) {
   return (
-    <Box component="section" sx={{ px: { md: 3, xs: 2 }, pt: { md: 4, xs: 2.5 } }}>
-      <Container maxWidth="xl">
+    <Box component="section" sx={{ px: { md: 3, xs: 1.5 }, pt: { md: 4, xs: 2 } }}>
+      <Container maxWidth="xl" sx={{ px: { xs: '0 !important', sm: 3 } }}>
         <Box
           sx={{
             border: '1px solid rgba(148,163,184,0.18)',
             borderRadius: 3,
             overflow: 'hidden',
-            p: { md: 5, xs: 2.5 },
+            p: { md: 5, sm: 3, xs: 2 },
             position: 'relative',
+            width: '100%',
           }}
         >
           <Box
@@ -42,10 +43,12 @@ export function MarketingHero({
               display: 'grid',
               gap: { md: 4, xs: 3 },
               gridTemplateColumns: sideContent ? { lg: 'minmax(0, 1.15fr) minmax(320px, 0.85fr)', xs: '1fr' } : '1fr',
+              minWidth: 0,
               position: 'relative',
+              width: '100%',
             }}
           >
-            <Stack spacing={2.25} sx={{ maxWidth: 840 }}>
+            <Stack spacing={2.25} sx={{ maxWidth: 840, minWidth: 0, width: '100%' }}>
               <Chip
                 icon={<AutoAwesomeOutlinedIcon />}
                 label={eyebrow}
@@ -54,21 +57,30 @@ export function MarketingHero({
                   bgcolor: 'rgba(37,99,235,0.08)',
                   color: 'primary.main',
                   fontWeight: 700,
+                  maxWidth: '100%',
+                  '& .MuiChip-label': {
+                    overflowWrap: 'anywhere',
+                    whiteSpace: 'normal',
+                  },
                 }}
               />
-              <Typography component="h1" sx={{ fontSize: { md: 50, sm: 42, xs: 32 }, fontWeight: 900, lineHeight: 1.08 }}>
+              <Typography component="h1" sx={{ fontSize: { md: 50, sm: 42, xs: 29 }, fontWeight: 900, lineHeight: 1.1 }}>
                 {title}
               </Typography>
               <Typography color="text.secondary" sx={{ fontSize: { md: 18, xs: 16 }, lineHeight: 1.9, maxWidth: 760 }}>
                 {description}
               </Typography>
               {actions && (
-                <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5}>
+                <Stack
+                  direction={{ sm: 'row', xs: 'column' }}
+                  spacing={1.5}
+                  sx={{ '& .MuiButton-root': { minWidth: 0, width: { sm: 'auto', xs: '100%' } } }}
+                >
                   {actions}
                 </Stack>
               )}
             </Stack>
-            {sideContent}
+            {sideContent && <Box sx={{ minWidth: 0, width: '100%' }}>{sideContent}</Box>}
           </Box>
         </Box>
       </Container>

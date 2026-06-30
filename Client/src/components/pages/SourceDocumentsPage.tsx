@@ -245,7 +245,7 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
         <DialogTitle>Kaynak detayı</DialogTitle>
         <DialogContent>
           {detailDocument && (
-            <Stack spacing={1} sx={{ minWidth: 360 }}>
+            <Stack spacing={1} sx={{ minWidth: { sm: 360, xs: 0 }, width: '100%' }}>
               <Typography><strong>Ders:</strong> {getCourseName(detailDocument.courseId)}</Typography>
               <Typography><strong>Dosya:</strong> {detailDocument.fileName}</Typography>
               <Typography><strong>Kaynak:</strong> {detailDocument.sourceName}</Typography>

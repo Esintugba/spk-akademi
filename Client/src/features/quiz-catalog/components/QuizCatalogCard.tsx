@@ -48,7 +48,7 @@ export function QuizCatalogCard({ quiz, isStarting = false, onOpen, onPrimaryAct
           {quiz.description || 'Bu deneme için açıklama henüz eklenmedi.'}
         </Typography>
 
-        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))', xs: 'repeat(2, minmax(0, 1fr))' } }}>
           <Stack spacing={0.25}>
             <AccessTimeOutlinedIcon color="action" fontSize="small" />
             <Typography sx={{ fontWeight: 800 }} variant="body2">

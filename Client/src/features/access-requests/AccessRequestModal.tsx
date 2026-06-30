@@ -101,7 +101,7 @@ export function AccessRequestModal() {
             </Box>
 
             {scope && (
-              <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+              <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))', xs: '1fr' } }}>
                 <ScopeMetric label="Ders" value={scope.courseCount} />
                 <ScopeMetric label="Konu" value={scope.topicCount} />
                 <ScopeMetric label="Soru" value={scope.questionCount} />
