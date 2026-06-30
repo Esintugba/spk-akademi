@@ -1,11 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material'
@@ -25,7 +29,16 @@ const MY_REQUESTS_KEY = ['access-requests', 'my'] as const
 
 export function AccessRequestModal() {
   const queryClient = useQueryClient()
-  const { open, planId, planName, closeModal } = useAccessRequestStore()
+  const {
+    closeModal,
+    licenses,
+    open,
+    planDescription,
+    planId,
+    planName,
+    requestedLicenseName,
+    scope,
+  } = useAccessRequestStore()
 
   const { register, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -40,12 +53,12 @@ export function AccessRequestModal() {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY })
-      toast.success('Erişim talebiniz gönderildi.')
+      toast.success('Erisim talebiniz gonderildi.')
       reset()
       closeModal()
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Başvuru gönderilemedi.')
+      toast.error(error.message || 'Basvuru gonderilemedi.')
     },
   })
 
@@ -64,29 +77,103 @@ export function AccessRequestModal() {
           mutation.mutate(values)
         })}
       >
-        <DialogTitle>Erişim talebi gönder</DialogTitle>
+        <DialogTitle>Erisim talebini onayla</DialogTitle>
         <DialogContent>
-          <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
-            Plan: <strong>{planName}</strong>
-          </Typography>
-          <TextField
-            fullWidth
-            label="Mesajınız (opsiyonel)"
-            rows={4}
-            multiline
-            placeholder="SPK Düzey 1 sınavına hazırlanıyorum, beta erişimi talep ediyorum."
-            {...register('message')}
-            error={Boolean(formState.errors.message)}
-            helperText={formState.errors.message?.message}
-          />
+          <Stack spacing={2.25}>
+            <Box>
+              <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
+                Talep edilen paket
+              </Typography>
+              <Typography sx={{ fontSize: 24, fontWeight: 900 }}>{planName}</Typography>
+              {planDescription && (
+                <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                  {planDescription}
+                </Typography>
+              )}
+              {requestedLicenseName && (
+                <Chip
+                  color="primary"
+                  label={`Secilen lisans: ${requestedLicenseName}`}
+                  size="small"
+                  sx={{ fontWeight: 700, mt: 1.25 }}
+                />
+              )}
+            </Box>
+
+            {scope && (
+              <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+                <ScopeMetric label="Ders" value={scope.courseCount} />
+                <ScopeMetric label="Konu" value={scope.topicCount} />
+                <ScopeMetric label="Soru" value={scope.questionCount} />
+              </Box>
+            )}
+
+            {licenses.length > 0 && (
+              <Box>
+                <Typography sx={{ fontWeight: 850, mb: 1 }}>Bu talep su lisanslari kapsar</Typography>
+                <Stack spacing={1}>
+                  {licenses.slice(0, 8).map((license) => (
+                    <Box
+                      key={license.id}
+                      sx={{
+                        border: '1px solid rgba(148,163,184,0.22)',
+                        borderRadius: 2,
+                        p: 1.25,
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 800 }}>{license.name}</Typography>
+                      {(license.courseCount || license.topicCount || license.questionCount) && (
+                        <Typography color="text.secondary" variant="body2">
+                          {license.courseCount ?? 0} ders · {license.topicCount ?? 0} konu · {formatNumber(license.questionCount ?? 0)} soru
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                  {licenses.length > 8 && (
+                    <Typography color="text.secondary" variant="body2">
+                      +{licenses.length - 8} lisans daha
+                    </Typography>
+                  )}
+                </Stack>
+              </Box>
+            )}
+
+            <Divider />
+
+            <TextField
+              error={Boolean(formState.errors.message)}
+              fullWidth
+              helperText={formState.errors.message?.message}
+              label="Mesajiniz (opsiyonel)"
+              multiline
+              placeholder="Hangi sinava hazirlandiginizi veya talep nedeninizi kisaca yazabilirsiniz."
+              rows={4}
+              {...register('message')}
+            />
+          </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>İptal</Button>
+          <Button onClick={onClose}>Iptal</Button>
           <Button disabled={mutation.isPending || !planId} type="submit" variant="contained">
-            {mutation.isPending ? 'Gönderiliyor…' : 'Başvuru gönder'}
+            {mutation.isPending ? 'Gonderiliyor...' : 'Bu paket icin basvuru gonder'}
           </Button>
         </DialogActions>
       </form>
     </Dialog>
   )
+}
+
+function ScopeMetric({ label, value }: { label: string; value?: number }) {
+  return (
+    <Box sx={{ bgcolor: 'rgba(15,23,42,0.035)', borderRadius: 2, p: 1.25 }}>
+      <Typography sx={{ fontSize: 18, fontWeight: 900 }}>{formatNumber(value ?? 0)}</Typography>
+      <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 700 }}>
+        {label}
+      </Typography>
+    </Box>
+  )
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('tr-TR').format(value)
 }

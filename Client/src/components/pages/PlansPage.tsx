@@ -241,7 +241,13 @@ export function PlansPage() {
                       <Button
                         disabled={hasPending}
                         fullWidth
-                        onClick={() => openModal(plan.id, plan.name)}
+                        onClick={() => openModal({
+                          licenses: plan.licenses,
+                          planDescription: plan.shortDescription || plan.description,
+                          planId: plan.id,
+                          planName: plan.name,
+                          scope: plan.scope,
+                        })}
                         variant="contained"
                       >
                         {hasPending ? 'Başvuru inceleniyor' : 'Erişim Talep Et'}

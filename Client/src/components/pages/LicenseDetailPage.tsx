@@ -67,6 +67,7 @@ export function LicenseDetailPage() {
   const includedPlans = (plansQuery.data ?? []).filter((plan) =>
     plan.licenses.some((planLicense) => planLicense.id === license.id),
   )
+  const requestPlan = includedPlans.find((plan) => !plan.hasAccess) ?? includedPlans[0]
   const schema = [
     courseSchema({
       name: license.name,
@@ -133,7 +134,18 @@ export function LicenseDetailPage() {
               Eğitime Git
             </Button>
           ) : isAuthenticated ? (
-            <Button onClick={() => openModal(license.id, license.name)} variant="contained">
+            <Button
+              disabled={!requestPlan}
+              onClick={() => requestPlan && openModal({
+                licenses: requestPlan.licenses,
+                planDescription: requestPlan.shortDescription || requestPlan.description,
+                planId: requestPlan.id,
+                planName: requestPlan.name,
+                requestedLicenseName: license.name,
+                scope: requestPlan.scope,
+              })}
+              variant="contained"
+            >
               Erişim Talep Et
             </Button>
           ) : (

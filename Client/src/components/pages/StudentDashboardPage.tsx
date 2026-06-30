@@ -48,6 +48,7 @@ import {
 import { api } from '../../shared/api'
 import { ActiveQuizSessionsPanel } from '../../features/quiz-session/ActiveQuizSessionsPanel'
 import { EmptyState } from '../common/EmptyState'
+import { AccessRequestModal } from '../../features/access-requests/AccessRequestModal'
 import { DashboardAccessBanner } from '../../features/onboarding/DashboardAccessBanner'
 import { gamificationApi, onboardingApi, studyPlanApi, supportTicketsApi } from '../../shared/api'
 
@@ -200,6 +201,7 @@ export function StudentDashboardPage() {
   if (accessibleLicenses.length === 0 && !hasFullAccess && !hasDemoAccess) {
     return (
       <Stack spacing={3}>
+        <AccessRequestModal />
         <DashboardAccessBanner />
         <EmptyState
           title="Henüz aktif erişimin yok"
@@ -214,6 +216,7 @@ export function StudentDashboardPage() {
 
   return (
     <Stack spacing={4}>
+      <AccessRequestModal />
       <DashboardAccessBanner />
       {error && <Alert severity="error">{error}</Alert>}
 

@@ -35,7 +35,11 @@ export function DashboardAccessBanner() {
         action={
           <Stack direction="row" spacing={1}>
             <Chip color="success" label="Demo Erişim" size="small" sx={{ fontWeight: 700 }} />
-            <Button onClick={() => demo && openAccessRequest(demo.id, demo.name)} size="small" variant="outlined">
+            <Button
+              onClick={() => demo && openAccessRequest({ planId: demo.id, planName: demo.name })}
+              size="small"
+              variant="outlined"
+            >
               Erişim Talep Et
             </Button>
           </Stack>
