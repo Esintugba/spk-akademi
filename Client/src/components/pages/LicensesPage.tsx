@@ -4,7 +4,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, IconButton, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel, IconButton, InputAdornment, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import type { License } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
@@ -17,7 +17,17 @@ interface LicensesPageProps {
   onChanged: () => Promise<void>
 }
 
-const emptyForm = { description: '', name: '', slug: '' }
+const emptyForm = {
+  description: '',
+  displayOrder: 0,
+  estimatedStudyHours: 0,
+  iconUrl: '',
+  isActive: true,
+  isFeatured: false,
+  name: '',
+  shortDescription: '',
+  slug: '',
+}
 
 export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
   const [form, setForm] = useState(emptyForm)
@@ -39,7 +49,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
     }
 
     return licenses.filter((license) =>
-      [license.name, license.slug, license.description ?? '']
+      [license.name, license.slug, license.description ?? '', license.shortDescription ?? '', license.iconUrl ?? '']
         .join(' ')
         .toLocaleLowerCase('tr-TR')
         .includes(term),
@@ -56,7 +66,13 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
     setEditingLicense(license)
     setForm({
       description: license.description ?? '',
+      displayOrder: license.displayOrder,
+      estimatedStudyHours: license.estimatedStudyHours,
+      iconUrl: license.iconUrl ?? '',
+      isActive: license.isActive,
+      isFeatured: license.isFeatured,
       name: license.name,
+      shortDescription: license.shortDescription ?? '',
       slug: license.slug,
     })
     setFieldError('')
@@ -69,6 +85,14 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
 
     if (!/^[a-z0-9-]+$/i.test(form.slug.trim())) {
       return 'Kısa kod sadece harf, rakam ve tire içermeli.'
+    }
+
+    if (!Number.isFinite(form.displayOrder) || form.displayOrder < 0) {
+      return 'Sıralama 0 veya daha büyük olmalı.'
+    }
+
+    if (!Number.isFinite(form.estimatedStudyHours) || form.estimatedStudyHours < 0) {
+      return 'Tahmini çalışma saati 0 veya daha büyük olmalı.'
     }
 
     return ''
@@ -90,6 +114,12 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
       name: form.name.trim(),
       slug: form.slug.trim(),
       description: form.description.trim() || null,
+      shortDescription: form.shortDescription.trim() || null,
+      iconUrl: form.iconUrl.trim() || null,
+      displayOrder: form.displayOrder,
+      estimatedStudyHours: form.estimatedStudyHours,
+      isFeatured: form.isFeatured,
+      isActive: form.isActive,
     }
 
     try {
@@ -153,6 +183,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
         <AdminSurface title={editingLicense ? 'Lisansı düzenle' : 'Yeni lisans ekle'} description="Kısa kod alanını URL ve paket eşleşmeleri için temiz tutun.">
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2}>
+              {fieldError && <ErrorBanner message={fieldError} />}
               <TextField
                 error={Boolean(fieldError && form.name.trim().length < 3)}
                 fullWidth
@@ -173,12 +204,55 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
               />
               <TextField
                 fullWidth
+                label="Kısa açıklama"
+                rows={2}
+                multiline
+                value={form.shortDescription}
+                onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
+              />
+              <TextField
+                fullWidth
                 label="Açıklama"
                 rows={4}
                 multiline
                 value={form.description}
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               />
+              <TextField
+                fullWidth
+                helperText="Public lisans detayında görsel olarak kullanılabilir. Örn. /icons/licenses/duzey-1.svg"
+                label="İkon URL"
+                value={form.iconUrl}
+                onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
+              />
+              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Sıralama"
+                  type="number"
+                  value={form.displayOrder}
+                  onChange={(event) => setForm((current) => ({ ...current, displayOrder: Number(event.target.value) }))}
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Tahmini çalışma saati"
+                  type="number"
+                  value={form.estimatedStudyHours}
+                  onChange={(event) => setForm((current) => ({ ...current, estimatedStudyHours: Number(event.target.value) }))}
+                  slotProps={{ htmlInput: { min: 0 } }}
+                />
+              </Stack>
+              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+                <FormControlLabel
+                  control={<Checkbox checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} />}
+                  label="Öne çıkar"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} />}
+                  label="Aktif katalogda göster"
+                />
+              </Stack>
               <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
                 <Button disabled={isSaving} type="submit" variant="contained">
                   {isSaving ? 'Kaydediliyor' : editingLicense ? 'Değişiklikleri kaydet' : 'Lisans ekle'}
@@ -228,11 +302,15 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
                       <Box>
                         <Typography sx={{ fontSize: 18, fontWeight: 900 }}>{license.name}</Typography>
                         <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                          {license.description || 'Açıklama girilmedi'}
+                          {license.shortDescription || license.description || 'Açıklama girilmedi'}
                         </Typography>
                         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
                           <Chip label={license.slug} size="small" />
                           <Chip color="primary" label={`${license.courseCount} ders`} size="small" />
+                          <Chip color={license.isActive ? 'success' : 'default'} label={license.isActive ? 'Aktif' : 'Pasif'} size="small" />
+                          {license.isFeatured && <Chip color="warning" label="Öne çıkan" size="small" />}
+                          <Chip label={`Sıra ${license.displayOrder}`} size="small" variant="outlined" />
+                          <Chip label={`${license.estimatedStudyHours} saat`} size="small" variant="outlined" />
                         </Stack>
                       </Box>
                       <Stack direction="row" spacing={0.5}>
@@ -273,6 +351,12 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
             <Stack divider={<Divider flexItem />} spacing={1.5} sx={{ minWidth: 360 }}>
               <Typography><strong>Ad:</strong> {detailLicense.name}</Typography>
               <Typography><strong>Kısa kod:</strong> {detailLicense.slug}</Typography>
+              <Typography><strong>Kısa açıklama:</strong> {detailLicense.shortDescription || 'Yok'}</Typography>
+              <Typography><strong>İkon URL:</strong> {detailLicense.iconUrl || 'Yok'}</Typography>
+              <Typography><strong>Sıralama:</strong> {detailLicense.displayOrder}</Typography>
+              <Typography><strong>Tahmini çalışma:</strong> {detailLicense.estimatedStudyHours} saat</Typography>
+              <Typography><strong>Katalog durumu:</strong> {detailLicense.isActive ? 'Aktif' : 'Pasif'}</Typography>
+              <Typography><strong>Öne çıkan:</strong> {detailLicense.isFeatured ? 'Evet' : 'Hayır'}</Typography>
               <Typography><strong>Ders sayısı:</strong> {detailLicense.courseCount}</Typography>
               <Typography>{detailLicense.description || 'Açıklama girilmedi.'}</Typography>
             </Stack>
