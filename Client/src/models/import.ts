@@ -17,6 +17,29 @@ export enum DuplicateMatchType {
   PossibleDuplicate = 3,
 }
 
+export enum DuplicateImportAction {
+  Skip = 1,
+  Overwrite = 2,
+  CreateNew = 3,
+}
+
+export interface QuestionImportRow {
+  rowNumber: number
+  questionText: string
+  optionA?: string | null
+  optionB?: string | null
+  optionC?: string | null
+  optionD?: string | null
+  optionE?: string | null
+  correctOption: string
+  explanation?: string | null
+  topic: string
+  course: string
+  difficulty?: string | null
+  examYear?: number | null
+  examType?: string | null
+}
+
 export interface ImportErrorItem {
   rowNumber: number
   columnName: string | null
@@ -33,11 +56,18 @@ export interface DuplicateMatch {
   matchType: DuplicateMatchType
 }
 
+export interface DuplicateImportDecision {
+  rowNumber: number
+  matchedQuestionId?: string | null
+  action: DuplicateImportAction
+}
+
 export interface ImportPreview {
   totalRows: number
   validRows: number
   invalidRows: number
   duplicateRows: number
+  rows: QuestionImportRow[]
   errors: ImportErrorItem[]
   duplicates: DuplicateMatch[]
   missingCourses: string[]

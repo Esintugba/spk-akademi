@@ -18,6 +18,7 @@ public interface IQuestionImportService
     Task<ImportJobDto> CreateQuestionImportJobAsync(
         IFormFile file,
         string adminUserId,
+        IReadOnlyList<DuplicateImportDecisionDto>? duplicateDecisions = null,
         CancellationToken cancellationToken = default);
 
     Task<ImportJobDto?> GetJobAsync(Guid jobId, CancellationToken cancellationToken = default);
@@ -52,6 +53,7 @@ public class QuestionImportService(
     public async Task<ImportJobDto> CreateQuestionImportJobAsync(
         IFormFile file,
         string adminUserId,
+        IReadOnlyList<DuplicateImportDecisionDto>? duplicateDecisions = null,
         CancellationToken cancellationToken = default)
     {
         ValidateQuestionFile(file);
@@ -63,6 +65,15 @@ public class QuestionImportService(
         await using (var target = File.Create(storedPath))
         {
             await file.CopyToAsync(target, cancellationToken);
+        }
+
+        if (duplicateDecisions is { Count: > 0 })
+        {
+            var decisionsPath = GetDecisionsPath(storedPath);
+            await File.WriteAllTextAsync(
+                decisionsPath,
+                JsonSerializer.Serialize(new ImportJobOptions(duplicateDecisions)),
+                cancellationToken);
         }
 
         var job = new ImportJob
@@ -104,11 +115,25 @@ public class QuestionImportService(
             var formFile = new FormFile(fileStream, 0, fileStream.Length, "file", job.FileName);
             var rows = await parser.ParseQuestionRowsAsync(formFile, cancellationToken);
             var preview = await validationService.ValidateQuestionsAsync(rows, cancellationToken);
+            var duplicateDecisions = await ReadDuplicateDecisionsAsync(job.StoredFilePath, cancellationToken);
             job.TotalRows = rows.Count;
 
             var invalidRows = preview.Errors.Select(x => x.RowNumber).ToHashSet();
-            var duplicateRows = preview.Duplicates.Select(x => x.RowNumber).Where(x => x.HasValue).Select(x => x!.Value).ToHashSet();
-            var importRows = rows.Where(x => !invalidRows.Contains(x.RowNumber) && !duplicateRows.Contains(x.RowNumber)).ToList();
+            var duplicateByRow = preview.Duplicates
+                .Where(x => x.RowNumber.HasValue)
+                .GroupBy(x => x.RowNumber!.Value)
+                .ToDictionary(x => x.Key, x => x.OrderByDescending(match => match.SimilarityScore).First());
+            var importRows = rows
+                .Where(x => !invalidRows.Contains(x.RowNumber))
+                .Where(x => !duplicateByRow.ContainsKey(x.RowNumber) || ResolveDuplicateAction(x.RowNumber, duplicateDecisions) == DuplicateImportAction.CreateNew)
+                .ToList();
+            var overwriteRows = rows
+                .Where(x => !invalidRows.Contains(x.RowNumber))
+                .Where(x => duplicateByRow.ContainsKey(x.RowNumber) && ResolveDuplicateAction(x.RowNumber, duplicateDecisions) == DuplicateImportAction.Overwrite)
+                .ToList();
+            var skippedDuplicateRows = duplicateByRow.Keys
+                .Where(rowNumber => !invalidRows.Contains(rowNumber) && ResolveDuplicateAction(rowNumber, duplicateDecisions) == DuplicateImportAction.Skip)
+                .ToHashSet();
 
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
             var topics = await context.Topics.Include(x => x.Course).ToListAsync(cancellationToken);
@@ -141,17 +166,59 @@ public class QuestionImportService(
                 await context.SaveChangesAsync(cancellationToken);
             }
 
+            foreach (var row in overwriteRows)
+            {
+                var duplicate = duplicateByRow[row.RowNumber];
+                var decision = duplicateDecisions.FirstOrDefault(x => x.RowNumber == row.RowNumber);
+                var targetQuestionId = decision?.MatchedQuestionId ?? duplicate.MatchedQuestionId;
+                var question = await context.Questions
+                    .Include(x => x.Options)
+                    .FirstOrDefaultAsync(x => x.Id == targetQuestionId, cancellationToken);
+
+                if (question is null)
+                {
+                    skippedDuplicateRows.Add(row.RowNumber);
+                    continue;
+                }
+
+                var topic = topics.First(x =>
+                    string.Equals(x.Title, row.Topic.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(x.Course!.Name, row.Course.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                question.TopicId = topic.Id;
+                question.Text = row.QuestionText.Trim();
+                question.Difficulty = ParseDifficulty(row.Difficulty);
+                question.Type = QuestionType.Concept;
+                question.Explanation = row.Explanation?.Trim() ?? string.Empty;
+                question.IsPastExamQuestion = row.ExamYear.HasValue || !string.IsNullOrWhiteSpace(row.ExamType);
+                question.ExamYear = row.ExamYear;
+                question.ExamType = ParseExamType(row.ExamType);
+                question.ReviewStatus = ReviewStatus.PendingReview;
+                question.AccessLevel = ContentAccessLevel.Premium;
+                question.UpdatedAt = DateTime.UtcNow;
+
+                context.QuestionOptions.RemoveRange(question.Options);
+                question.Options = BuildOptions(row);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+
             await transaction.CommitAsync(cancellationToken);
 
-            job.SuccessfulRows = importRows.Count;
-            job.FailedRows = rows.Count - importRows.Count;
+            job.SuccessfulRows = importRows.Count + overwriteRows.Count - skippedDuplicateRows.Count(row => overwriteRows.Any(x => x.RowNumber == row));
+            job.FailedRows = rows.Count - job.SuccessfulRows;
             job.Status = job.FailedRows == 0 ? ImportJobStatus.Completed : ImportJobStatus.PartiallyCompleted;
             job.CompletedAt = DateTime.UtcNow;
             job.Summary = JsonSerializer.Serialize(new
             {
                 preview.ValidRows,
                 preview.InvalidRows,
-                preview.DuplicateRows
+                preview.DuplicateRows,
+                DuplicateActions = new
+                {
+                    Skipped = skippedDuplicateRows.Count,
+                    CreatedNew = importRows.Count(x => duplicateByRow.ContainsKey(x.RowNumber)),
+                    Overwritten = overwriteRows.Count - skippedDuplicateRows.Count(row => overwriteRows.Any(x => x.RowNumber == row))
+                }
             });
 
             foreach (var error in preview.Errors)
@@ -167,6 +234,11 @@ public class QuestionImportService(
 
             foreach (var duplicate in preview.Duplicates)
             {
+                if (!duplicate.RowNumber.HasValue || !skippedDuplicateRows.Contains(duplicate.RowNumber.Value))
+                {
+                    continue;
+                }
+
                 job.Errors.Add(new ImportError
                 {
                     RowNumber = duplicate.RowNumber ?? 0,
@@ -235,6 +307,36 @@ public class QuestionImportService(
     private static ExamType? ParseExamType(string? value) =>
         Enum.TryParse<ExamType>(value, true, out var examType) ? examType : null;
 
+    private static async Task<IReadOnlyList<DuplicateImportDecisionDto>> ReadDuplicateDecisionsAsync(
+        string storedFilePath,
+        CancellationToken cancellationToken)
+    {
+        var decisionsPath = GetDecisionsPath(storedFilePath);
+        if (!File.Exists(decisionsPath))
+        {
+            return [];
+        }
+
+        try
+        {
+            var json = await File.ReadAllTextAsync(decisionsPath, cancellationToken);
+            return JsonSerializer.Deserialize<ImportJobOptions>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })?.DuplicateDecisions ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static string GetDecisionsPath(string storedFilePath) => $"{storedFilePath}.duplicate-decisions.json";
+
+    private static DuplicateImportAction ResolveDuplicateAction(
+        int rowNumber,
+        IReadOnlyList<DuplicateImportDecisionDto> decisions) =>
+        decisions.FirstOrDefault(x => x.RowNumber == rowNumber)?.Action ?? DuplicateImportAction.Skip;
+
     private static ImportJobDto ToDto(ImportJob job) =>
         new(
             job.Id,
@@ -253,4 +355,6 @@ public class QuestionImportService(
                 .OrderBy(x => x.RowNumber)
                 .Select(x => new ImportErrorDto(x.RowNumber, x.ColumnName, x.ErrorMessage, x.RawData))
                 .ToList());
+
+    private sealed record ImportJobOptions(IReadOnlyList<DuplicateImportDecisionDto> DuplicateDecisions);
 }

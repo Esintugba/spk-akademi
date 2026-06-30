@@ -38,6 +38,7 @@ public record ImportPreviewDto(
     int ValidRows,
     int InvalidRows,
     int DuplicateRows,
+    IReadOnlyList<QuestionImportRowDto> Rows,
     IReadOnlyList<ImportErrorDto> Errors,
     IReadOnlyList<DuplicateMatchDto> Duplicates,
     IReadOnlyList<string> MissingCourses,
@@ -60,6 +61,22 @@ public record ImportJobDto(
 
 public record DuplicateCheckRequestDto(
     IReadOnlyList<QuestionImportRowDto> Rows);
+
+public enum DuplicateImportAction
+{
+    Skip = 1,
+    Overwrite = 2,
+    CreateNew = 3
+}
+
+public record DuplicateImportDecisionDto(
+    int RowNumber,
+    Guid? MatchedQuestionId,
+    DuplicateImportAction Action);
+
+public record ImportQuestionsRequestDto(
+    IFormFile File,
+    string? DuplicateActionsJson);
 
 public record ImportMaterialRequestDto(
     Guid CourseId,

@@ -20,7 +20,7 @@ import {
 } from '@mui/material'
 import { useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
-import { DuplicateMatchType, ImportJobStatus, type ImportPreview } from '../../models/import'
+import { DuplicateImportAction, DuplicateMatchType, ImportJobStatus, type DuplicateImportDecision, type ImportPreview } from '../../models/import'
 import { importApi } from '../../shared/api'
 
 const statusLabels: Record<ImportJobStatus, string> = {
@@ -37,29 +37,52 @@ const duplicateLabels: Record<DuplicateMatchType, string> = {
   [DuplicateMatchType.PossibleDuplicate]: 'Possible',
 }
 
+const duplicateActionLabels: Record<DuplicateImportAction, string> = {
+  [DuplicateImportAction.Skip]: 'Skip',
+  [DuplicateImportAction.Overwrite]: 'Overwrite',
+  [DuplicateImportAction.CreateNew]: 'Create new',
+}
+
 export function AdminImportPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+  const [duplicateDecisionsByRow, setDuplicateDecisionsByRow] = useState<Record<number, DuplicateImportDecision>>({})
 
   const canStartImport = !!file && !!preview && preview.invalidRows === 0
+  const duplicateDecisions = useMemo(
+    () => buildDuplicateDecisions(preview?.duplicates ?? [], duplicateDecisionsByRow),
+    [duplicateDecisionsByRow, preview?.duplicates],
+  )
 
   const previewMutation = useMutation({
     mutationFn: importApi.previewQuestions,
     onSuccess: (data) => {
       setPreview(data)
+      setDuplicateDecisionsByRow({})
       toast.success('Import preview hazırlandı.')
     },
     onError: (error: Error) => toast.error(error.message || 'Preview oluşturulamadı.'),
   })
 
   const importMutation = useMutation({
-    mutationFn: importApi.importQuestions,
+    mutationFn: ({ nextFile, decisions }: { nextFile: File; decisions: DuplicateImportDecision[] }) =>
+      importApi.importQuestions(nextFile, decisions),
     onSuccess: (job) => {
       setJobId(job.id)
       toast.success('Import job başlatıldı.')
     },
     onError: (error: Error) => toast.error(error.message || 'Import başlatılamadı.'),
+  })
+
+  const duplicateCheckMutation = useMutation({
+    mutationFn: importApi.duplicateCheck,
+    onSuccess: (data) => {
+      setPreview(data)
+      setDuplicateDecisionsByRow({})
+      toast.success('Duplicate kontrolü yenilendi.')
+    },
+    onError: (error: Error) => toast.error(error.message || 'Duplicate kontrolü yenilenemedi.'),
   })
 
   const jobQuery = useQuery({
@@ -89,6 +112,22 @@ export function AdminImportPage() {
     setFile(nextFile)
     setPreview(null)
     setJobId(null)
+    setDuplicateDecisionsByRow({})
+  }
+
+  function setDuplicateAction(duplicate: ImportPreview['duplicates'][number], action: DuplicateImportAction) {
+    if (duplicate.rowNumber == null) {
+      return
+    }
+
+    setDuplicateDecisionsByRow((current) => ({
+      ...current,
+      [duplicate.rowNumber as number]: {
+        rowNumber: duplicate.rowNumber as number,
+        matchedQuestionId: duplicate.matchedQuestionId,
+        action,
+      },
+    }))
   }
 
   return (
@@ -147,15 +186,23 @@ export function AdminImportPage() {
         </Button>
         <Button
           disabled={!canStartImport || importMutation.isPending}
-          onClick={() => file && importMutation.mutate(file)}
+          onClick={() => file && importMutation.mutate({ nextFile: file, decisions: duplicateDecisions })}
           startIcon={<PlayArrowOutlinedIcon />}
           variant="outlined"
         >
           Importu Başlat
         </Button>
+        <Button
+          disabled={!preview?.rows.length || duplicateCheckMutation.isPending}
+          onClick={() => preview?.rows && duplicateCheckMutation.mutate(preview.rows)}
+          startIcon={<SearchOutlinedIcon />}
+          variant="text"
+        >
+          Duplicate tekrar kontrol
+        </Button>
       </Stack>
 
-      {(previewMutation.isPending || importMutation.isPending) && <LinearProgress />}
+      {(previewMutation.isPending || importMutation.isPending || duplicateCheckMutation.isPending) && <LinearProgress />}
 
       {preview && (
         <Stack spacing={2}>
@@ -166,6 +213,12 @@ export function AdminImportPage() {
             <Metric label="Duplicate" value={preview.duplicateRows} />
           </Box>
 
+          {preview.duplicates.length > 0 && (
+            <Alert severity="info">
+              Duplicate satırlar varsayılan olarak importta atlanır. Create new seçilenler yeni soru olarak eklenir; Overwrite seçilenler eşleşen mevcut soruyu günceller.
+            </Alert>
+          )}
+
           {(preview.missingCourses.length > 0 || preview.missingTopics.length > 0) && (
             <Alert severity="warning">
               Eksik dersler: {preview.missingCourses.join(', ') || '-'} | Eksik konular: {preview.missingTopics.join(', ') || '-'}
@@ -173,7 +226,11 @@ export function AdminImportPage() {
           )}
 
           <ErrorTable errors={preview.errors} />
-          <DuplicateTable duplicates={preview.duplicates} />
+          <DuplicateTable
+            decisions={duplicateDecisionsByRow}
+            duplicates={preview.duplicates}
+            onActionChange={setDuplicateAction}
+          />
         </Stack>
       )}
 
@@ -236,7 +293,15 @@ function ErrorTable({ errors }: { errors: ImportPreview['errors'] }) {
   )
 }
 
-function DuplicateTable({ duplicates }: { duplicates: ImportPreview['duplicates'] }) {
+function DuplicateTable({
+  decisions,
+  duplicates,
+  onActionChange,
+}: {
+  decisions: Record<number, DuplicateImportDecision>
+  duplicates: ImportPreview['duplicates']
+  onActionChange: (duplicate: ImportPreview['duplicates'][number], action: DuplicateImportAction) => void
+}) {
   if (duplicates.length === 0) {
     return <Alert severity="success">Duplicate aday bulunmadı.</Alert>
   }
@@ -263,9 +328,22 @@ function DuplicateTable({ duplicates }: { duplicates: ImportPreview['duplicates'
               <TableCell>{Math.round(duplicate.similarityScore * 100)}%</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1}>
-                  <Button size="small">Skip</Button>
-                  <Button size="small">Overwrite</Button>
-                  <Button size="small">Create new</Button>
+                  {Object.values(DuplicateImportAction).filter((value) => typeof value === 'number').map((action) => {
+                    const selectedAction = duplicate.rowNumber == null
+                      ? DuplicateImportAction.Skip
+                      : decisions[duplicate.rowNumber]?.action ?? DuplicateImportAction.Skip
+
+                    return (
+                      <Button
+                        key={action}
+                        size="small"
+                        variant={selectedAction === action ? 'contained' : 'outlined'}
+                        onClick={() => onActionChange(duplicate, action as DuplicateImportAction)}
+                      >
+                        {duplicateActionLabels[action as DuplicateImportAction]}
+                      </Button>
+                    )
+                  })}
                 </Stack>
               </TableCell>
             </TableRow>
@@ -274,4 +352,28 @@ function DuplicateTable({ duplicates }: { duplicates: ImportPreview['duplicates'
       </Table>
     </TableContainer>
   )
+}
+
+function buildDuplicateDecisions(
+  duplicates: ImportPreview['duplicates'],
+  decisions: Record<number, DuplicateImportDecision>,
+): DuplicateImportDecision[] {
+  const byRow = new Map<number, ImportPreview['duplicates'][number]>()
+
+  for (const duplicate of duplicates) {
+    if (duplicate.rowNumber == null) {
+      continue
+    }
+
+    const current = byRow.get(duplicate.rowNumber)
+    if (!current || duplicate.similarityScore > current.similarityScore) {
+      byRow.set(duplicate.rowNumber, duplicate)
+    }
+  }
+
+  return Array.from(byRow.values()).map((duplicate) => ({
+    rowNumber: duplicate.rowNumber as number,
+    matchedQuestionId: decisions[duplicate.rowNumber as number]?.matchedQuestionId ?? duplicate.matchedQuestionId,
+    action: decisions[duplicate.rowNumber as number]?.action ?? DuplicateImportAction.Skip,
+  }))
 }

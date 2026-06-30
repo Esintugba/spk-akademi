@@ -72,6 +72,7 @@ public class ImportValidationService(
             Math.Max(0, rows.Count - invalidRows - duplicates.Select(x => x.RowNumber).Distinct().Count()),
             invalidRows,
             duplicates.Select(x => x.RowNumber).Where(x => x.HasValue).Distinct().Count(),
+            rows,
             errors,
             duplicates,
             missingCourses.Where(x => !string.IsNullOrWhiteSpace(x)).OrderBy(x => x).ToList(),

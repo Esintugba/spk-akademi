@@ -1,6 +1,7 @@
 using API.Dtos;
 using API.Entities;
 using API.Services;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ public class AdminImportController(
     [HttpPost("questions")]
     [RequestSizeLimit(MaxQuestionImportSizeInBytes)]
     public async Task<ActionResult<ImportJobDto>> ImportQuestions(
-        IFormFile file,
+        [FromForm] ImportQuestionsRequestDto dto,
         CancellationToken cancellationToken)
     {
         var adminId = userManager.GetUserId(User);
@@ -39,7 +40,22 @@ public class AdminImportController(
             return Unauthorized();
         }
 
-        var job = await questionImportService.CreateQuestionImportJobAsync(file, adminId, cancellationToken);
+        IReadOnlyList<DuplicateImportDecisionDto>? duplicateDecisions = null;
+        if (!string.IsNullOrWhiteSpace(dto.DuplicateActionsJson))
+        {
+            try
+            {
+                duplicateDecisions = JsonSerializer.Deserialize<IReadOnlyList<DuplicateImportDecisionDto>>(
+                    dto.DuplicateActionsJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException)
+            {
+                return BadRequest(new { message = "Duplicate aksiyon verisi geÃ§ersiz." });
+            }
+        }
+
+        var job = await questionImportService.CreateQuestionImportJobAsync(dto.File, adminId, duplicateDecisions, cancellationToken);
         return AcceptedAtAction(nameof(GetJob), new { jobId = job.Id }, job);
     }
 
