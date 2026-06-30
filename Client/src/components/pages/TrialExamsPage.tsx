@@ -3,7 +3,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import { ContentAccessLevel, ReviewStatus, type CreateTrialExam, type License, type Question, type TrialExamSummary } from '../../models'
+import { ContentAccessLevel, QuestionDifficulty, ReviewStatus, type CreateTrialExam, type License, type Question, type TrialExamSummary } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminSurface } from '../common/AdminSurface'
@@ -26,9 +26,24 @@ const initialForm: CreateTrialExam = {
   questionCount: 10,
   isFree: true,
   isPublished: false,
+  isFeatured: false,
+  difficultyLevel: QuestionDifficulty.Medium,
+  tags: '',
+  popularityScore: 0,
   reviewStatus: ReviewStatus.Draft,
   accessLevel: ContentAccessLevel.Free,
   questionIds: [],
+}
+
+function difficultyLabel(value: QuestionDifficulty) {
+  switch (value) {
+    case QuestionDifficulty.Easy:
+      return 'Kolay'
+    case QuestionDifficulty.Hard:
+      return 'Zor'
+    default:
+      return 'Orta'
+  }
 }
 
 export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: TrialExamsPageProps) {
@@ -66,6 +81,10 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
         questionCount: exam.questionCount,
         isFree: exam.isFree,
         isPublished: exam.isPublished,
+        isFeatured: exam.isFeatured,
+        difficultyLevel: exam.difficultyLevel,
+        tags: exam.tags ?? '',
+        popularityScore: exam.popularityScore,
         reviewStatus: exam.reviewStatus,
         accessLevel: exam.accessLevel,
         questionIds: exam.questionIds,
@@ -84,6 +103,21 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
 
     if (!form.title.trim() || !form.slug.trim()) {
       setError('Başlık ve slug zorunludur.')
+      return
+    }
+
+    if (!Number.isFinite(form.durationMinutes) || form.durationMinutes <= 0) {
+      setError('Süre sıfırdan büyük olmalıdır.')
+      return
+    }
+
+    if (!Number.isFinite(form.questionCount) || form.questionCount <= 0) {
+      setError('Soru sayısı sıfırdan büyük olmalıdır.')
+      return
+    }
+
+    if (!Number.isFinite(form.popularityScore) || form.popularityScore < 0) {
+      setError('Popülerlik skoru 0 veya daha büyük olmalıdır.')
       return
     }
 
@@ -157,6 +191,12 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
                   <Chip label={`${exam.assignedQuestionCount} atanmış soru`} />
                   <Chip color={exam.isFree ? 'success' : 'default'} label={exam.isFree ? 'Ücretsiz' : 'Özel'} />
                   <Chip color={exam.isPublished ? 'primary' : 'default'} label={exam.isPublished ? 'Yayında' : 'Taslak'} />
+                  {exam.isFeatured && <Chip color="warning" label="Öne çıkan" />}
+                  <Chip label={difficultyLabel(exam.difficultyLevel)} variant="outlined" />
+                  <Chip label={`Popülerlik ${exam.popularityScore}`} variant="outlined" />
+                  {exam.tags?.split(',').map((tag) => tag.trim()).filter(Boolean).slice(0, 3).map((tag) => (
+                    <Chip key={tag} label={tag} size="small" variant="outlined" />
+                  ))}
                 </Stack>
               </Box>
             ))}
@@ -177,12 +217,28 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
                   <MenuItem value="">Genel</MenuItem>
                   {licenses.map((license) => <MenuItem key={license.id} value={license.id}>{license.name}</MenuItem>)}
                 </TextField>
-                <TextField fullWidth label="Süre" type="number" value={form.durationMinutes} onChange={(event) => setForm((current) => ({ ...current, durationMinutes: Number(event.target.value) }))} />
-                <TextField fullWidth label="Soru sayısı" type="number" value={form.questionCount} onChange={(event) => setForm((current) => ({ ...current, questionCount: Number(event.target.value) }))} />
+                <TextField fullWidth label="Süre" type="number" value={form.durationMinutes} slotProps={{ htmlInput: { min: 1 } }} onChange={(event) => setForm((current) => ({ ...current, durationMinutes: Number(event.target.value) }))} />
+                <TextField fullWidth label="Soru sayısı" type="number" value={form.questionCount} slotProps={{ htmlInput: { min: 1 } }} onChange={(event) => setForm((current) => ({ ...current, questionCount: Number(event.target.value) }))} />
               </Stack>
-              <Stack direction="row" spacing={2}>
+              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+                <TextField fullWidth label="Zorluk" select value={form.difficultyLevel} onChange={(event) => setForm((current) => ({ ...current, difficultyLevel: Number(event.target.value) as QuestionDifficulty }))}>
+                  <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
+                  <MenuItem value={QuestionDifficulty.Medium}>Orta</MenuItem>
+                  <MenuItem value={QuestionDifficulty.Hard}>Zor</MenuItem>
+                </TextField>
+                <TextField fullWidth label="Popülerlik skoru" type="number" value={form.popularityScore} slotProps={{ htmlInput: { min: 0, step: 0.1 } }} onChange={(event) => setForm((current) => ({ ...current, popularityScore: Number(event.target.value) }))} />
+              </Stack>
+              <TextField
+                fullWidth
+                helperText="Virgülle ayır. Öğrenci kataloğunda arama ve etiket gösterimi için kullanılır."
+                label="Etiketler"
+                value={form.tags ?? ''}
+                onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
+              />
+              <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>
                 <FormControlLabel control={<Checkbox checked={form.isFree} onChange={(event) => setForm((current) => ({ ...current, isFree: event.target.checked }))} />} label="Ücretsiz" />
                 <FormControlLabel control={<Checkbox checked={form.isPublished} onChange={(event) => setForm((current) => ({ ...current, isPublished: event.target.checked }))} />} label="Yayında" />
+                <FormControlLabel control={<Checkbox checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} />} label="Öne çıkar" />
               </Stack>
               <TextField fullWidth helperText="Yalnızca onaylı sorular listelenir." label="Sorular" select slotProps={{ select: { multiple: true } }} value={form.questionIds} onChange={(event) => {
                 const value = event.target.value

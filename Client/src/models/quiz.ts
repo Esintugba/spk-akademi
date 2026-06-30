@@ -77,6 +77,10 @@ export interface TrialExamSummary {
   questionCount: number
   isFree: boolean
   isPublished: boolean
+  isFeatured: boolean
+  difficultyLevel: QuestionDifficulty
+  tags?: string | null
+  popularityScore: number
   assignedQuestionCount: number
   reviewStatus: ReviewStatus
   accessLevel: ContentAccessLevel
@@ -98,6 +102,10 @@ export interface CreateTrialExam {
   questionCount: number
   isFree: boolean
   isPublished: boolean
+  isFeatured: boolean
+  difficultyLevel: QuestionDifficulty
+  tags?: string | null
+  popularityScore: number
   reviewStatus: ReviewStatus
   accessLevel: ContentAccessLevel
   questionIds: string[]
