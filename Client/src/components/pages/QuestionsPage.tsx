@@ -4,8 +4,8 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
-import { Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
-import { ContentAccessLevel, QuestionDifficulty, QuestionType, ReviewStatus, TopicType, type CreateQuestionOption, type Question, type Topic } from '../../models'
+import { Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
+import { ContentAccessLevel, ExamSession, ExamType, QuestionDifficulty, QuestionType, ReviewStatus, TopicType, type CreateQuestionOption, type Question, type Topic } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminSurface } from '../common/AdminSurface'
@@ -25,6 +25,8 @@ const defaultOptions: CreateQuestionOption[] = [
   { label: 'D', text: '', isCorrect: false },
 ]
 
+const minPastExamYear = 1990
+
 export function QuestionsPage({ questions, topics, onChanged }: QuestionsPageProps) {
   const [topicId, setTopicId] = useState('')
   const [text, setText] = useState('')
@@ -33,6 +35,10 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   const [sourceText, setSourceText] = useState('')
   const [difficulty, setDifficulty] = useState<QuestionDifficulty>(QuestionDifficulty.Medium)
   const [type, setType] = useState<QuestionType>(QuestionType.Concept)
+  const [isPastExamQuestion, setIsPastExamQuestion] = useState(false)
+  const [examYear, setExamYear] = useState('')
+  const [examType, setExamType] = useState<ExamType | ''>('')
+  const [examSession, setExamSession] = useState<ExamSession | ''>('')
   const [options, setOptions] = useState<CreateQuestionOption[]>(defaultOptions)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [detailQuestion, setDetailQuestion] = useState<Question | null>(null)
@@ -40,6 +46,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   const [topicFilter, setTopicFilter] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [reviewStatusFilter, setReviewStatusFilter] = useState('')
+  const [pastExamFilter, setPastExamFilter] = useState('')
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
@@ -54,16 +61,28 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
       const matchesTopic = !topicFilter || question.topicId === topicFilter
       const matchesDifficulty = !difficultyFilter || question.difficulty === Number(difficultyFilter)
       const matchesReviewStatus = !reviewStatusFilter || question.reviewStatus === Number(reviewStatusFilter)
+      const matchesPastExam =
+        !pastExamFilter ||
+        (pastExamFilter === 'past' && question.isPastExamQuestion) ||
+        (pastExamFilter === 'standard' && !question.isPastExamQuestion)
       const matchesSearch =
         !term ||
-        [question.text, question.explanation, question.sourceReference ?? '', topic?.title ?? '']
+        [
+          question.text,
+          question.explanation,
+          question.sourceReference ?? '',
+          topic?.title ?? '',
+          question.examYear?.toString() ?? '',
+          question.examType != null ? ExamType[question.examType] : '',
+          question.examSession != null ? ExamSession[question.examSession] : '',
+        ]
           .join(' ')
           .toLocaleLowerCase('tr-TR')
           .includes(term)
 
-      return matchesTopic && matchesDifficulty && matchesReviewStatus && matchesSearch
+      return matchesTopic && matchesDifficulty && matchesReviewStatus && matchesPastExam && matchesSearch
     })
-  }, [difficultyFilter, questions, reviewStatusFilter, search, topicFilter, topics])
+  }, [difficultyFilter, pastExamFilter, questions, reviewStatusFilter, search, topicFilter, topics])
 
   const subTopics = useMemo(
     () => topics.filter((topic) => topic.type === TopicType.SubTopic || topic.parentTopicId),
@@ -72,6 +91,14 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
 
   function getTopicTitle(id: string) {
     return topics.find((topic) => topic.id === id)?.title ?? 'Konu bulunamadı'
+  }
+
+  function getPastExamLabel(question: Question) {
+    const parts: string[] = []
+    if (question.examYear) parts.push(String(question.examYear))
+    if (question.examType != null) parts.push(ExamType[question.examType])
+    if (question.examSession != null) parts.push(ExamSession[question.examSession])
+    return parts.join(' ') || 'Sınav bilgisi yok'
   }
 
   function updateOption(index: number, value: string) {
@@ -90,6 +117,10 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setSourceText('')
     setDifficulty(QuestionDifficulty.Medium)
     setType(QuestionType.Concept)
+    setIsPastExamQuestion(false)
+    setExamYear('')
+    setExamType('')
+    setExamSession('')
     setOptions(defaultOptions)
     setEditingQuestion(null)
     setFieldError('')
@@ -104,14 +135,25 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setSourceText(question.sourceText ?? '')
     setDifficulty(question.difficulty)
     setType(question.type)
+    setIsPastExamQuestion(question.isPastExamQuestion)
+    setExamYear(question.examYear?.toString() ?? '')
+    setExamType(question.examType ?? '')
+    setExamSession(question.examSession ?? '')
     setOptions(question.options.map((option) => ({ label: option.label, text: option.text, isCorrect: option.isCorrect })))
     setFieldError('')
   }
 
   function validateForm() {
+    const currentYear = new Date().getUTCFullYear()
+    const parsedExamYear = Number(examYear)
+
     if (!topicId) return 'Alt konu seçmelisin.'
     if (text.trim().length < 10) return 'Soru metni en az 10 karakter olmalı.'
     if (explanation.trim().length < 10) return 'Açıklama en az 10 karakter olmalı.'
+    if (isPastExamQuestion && (!Number.isInteger(parsedExamYear) || parsedExamYear < minPastExamYear || parsedExamYear > currentYear)) {
+      return `Çıkmış soru yılı ${minPastExamYear}-${currentYear} arasında olmalı.`
+    }
+    if (isPastExamQuestion && examType === '') return 'Çıkmış soru için sınav türü seçmelisin.'
     if (options.some((option) => option.text.trim().length < 1)) return 'Tüm şıklar doldurulmalı.'
     if (options.filter((option) => option.isCorrect).length !== 1) return 'Tam olarak bir doğru şık seçilmeli.'
     return ''
@@ -128,16 +170,19 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     }
 
     setIsSaving(true)
+    const parsedExamYear = Number(examYear)
+    const selectedExamType = isPastExamQuestion && examType !== '' ? examType : null
+    const selectedExamSession = isPastExamQuestion && examSession !== '' ? examSession : null
     const payload = {
       topicId,
       text: text.trim(),
       difficulty,
       type,
       explanation: explanation.trim(),
-      isPastExamQuestion: editingQuestion?.isPastExamQuestion ?? false,
-      examYear: editingQuestion?.examYear ?? null,
-      examType: editingQuestion?.examType ?? null,
-      examSession: editingQuestion?.examSession ?? null,
+      isPastExamQuestion,
+      examYear: isPastExamQuestion ? parsedExamYear : null,
+      examType: selectedExamType,
+      examSession: selectedExamSession,
       sourceReference: sourceReference.trim() || null,
       sourceText: sourceText.trim() || null,
       isAiGenerated: true,
@@ -205,6 +250,51 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                   <MenuItem value={QuestionType.Interpretation}>Yorum</MenuItem>
                 </TextField>
               </Stack>
+              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2 }}>
+                <Stack spacing={2}>
+                  <FormControlLabel
+                    control={<Switch checked={isPastExamQuestion} onChange={(event) => setIsPastExamQuestion(event.target.checked)} />}
+                    label="Çıkmış soru"
+                  />
+                  {isPastExamQuestion && (
+                    <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+                      <TextField
+                        fullWidth
+                        label="Sınav yılı"
+                        required
+                        type="number"
+                        value={examYear}
+                        onChange={(event) => setExamYear(event.target.value)}
+                        slotProps={{ htmlInput: { min: minPastExamYear, max: new Date().getUTCFullYear() } }}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Sınav türü"
+                        required
+                        select
+                        value={examType}
+                        onChange={(event) => setExamType(Number(event.target.value) as ExamType)}
+                      >
+                        {Object.values(ExamType).filter((value) => typeof value === 'number').map((value) => (
+                          <MenuItem key={value} value={value}>{ExamType[value as ExamType]}</MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField
+                        fullWidth
+                        label="Oturum"
+                        select
+                        value={examSession}
+                        onChange={(event) => setExamSession(event.target.value === '' ? '' : Number(event.target.value) as ExamSession)}
+                      >
+                        <MenuItem value="">Opsiyonel</MenuItem>
+                        {Object.values(ExamSession).filter((value) => typeof value === 'number').map((value) => (
+                          <MenuItem key={value} value={value}>{ExamSession[value as ExamSession]}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Stack>
+                  )}
+                </Stack>
+              </Box>
               <TextField fullWidth label="Soru metni" rows={4} multiline required value={text} onChange={(event) => setText(event.target.value)} />
               <Stack spacing={1.5}>
                 {options.map((option, index) => (
@@ -250,6 +340,11 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                 <MenuItem value={ReviewStatus.Approved}>Approved</MenuItem>
                 <MenuItem value={ReviewStatus.Rejected}>Rejected</MenuItem>
               </TextField>
+              <TextField fullWidth label="Soru kaynağı" select value={pastExamFilter} onChange={(event) => setPastExamFilter(event.target.value)}>
+                <MenuItem value="">Tümü</MenuItem>
+                <MenuItem value="past">Çıkmış sorular</MenuItem>
+                <MenuItem value="standard">Standart sorular</MenuItem>
+              </TextField>
             </Stack>
 
             <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
@@ -263,6 +358,8 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                           <Chip color="primary" label={`${question.options.length} şık`} size="small" />
                           <Chip label={getTopicTitle(question.topicId)} size="small" />
+                          {question.isPastExamQuestion && <Chip color="warning" label="Çıkmış Soru" size="small" />}
+                          {question.isPastExamQuestion && <Chip label={getPastExamLabel(question)} size="small" variant="outlined" />}
                         </Stack>
                         <Stack direction="row" spacing={0.5}>
                           <Tooltip title="Detay"><IconButton onClick={() => setDetailQuestion(question)}><InfoOutlinedIcon /></IconButton></Tooltip>
@@ -288,6 +385,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
           {detailQuestion && (
             <Stack spacing={1.5}>
               <Typography><strong>Konu:</strong> {getTopicTitle(detailQuestion.topicId)}</Typography>
+              {detailQuestion.isPastExamQuestion && <Typography><strong>Çıkmış soru:</strong> {getPastExamLabel(detailQuestion)}</Typography>}
               <Typography sx={{ whiteSpace: 'pre-wrap' }}>{detailQuestion.text}</Typography>
               <Stack spacing={1}>
                 {detailQuestion.options.map((option) => (

@@ -13,6 +13,13 @@ services:
       Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:?Cors__AllowedOrigins__0 is required}
       Seo__PublicBaseUrl: ${Seo__PublicBaseUrl:?Seo__PublicBaseUrl is required}
       Email__Enabled: ${Email__Enabled:-false}
+      Email__FromAddress: ${Email__FromAddress}
+      Email__FromName: ${Email__FromName}
+      Email__SmtpHost: ${Email__SmtpHost}
+      Email__SmtpPort: ${Email__SmtpPort}
+      Email__SmtpUser: ${Email__SmtpUser}
+      Email__SmtpPassword: ${Email__SmtpPassword}
+      Email__UseSsl: ${Email__UseSsl}
       DataProtection__KeysPath: /keys
       Serilog__WriteTo__1__Args__path: /logs/spk-.log
     ports:
@@ -23,3 +30,4 @@ services:
       - ./storage/imports:/app/imports
       - ./storage/logs:/logs
       - ./storage/data-protection:/keys
+      
