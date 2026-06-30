@@ -8,20 +8,26 @@ import {
   Button,
   Chip,
   LinearProgress,
+  MenuItem,
   Paper,
   Stack,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Tabs,
+  TextField,
   Typography,
 } from '@mui/material'
 import { useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
-import { DuplicateImportAction, DuplicateMatchType, ImportJobStatus, type DuplicateImportDecision, type ImportPreview } from '../../models/import'
-import { importApi } from '../../shared/api'
+import { DuplicateImportAction, DuplicateMatchType, ImportJobStatus, type DuplicateImportDecision, type ImportPreview, type MaterialImportResult } from '../../models/import'
+import { coursesApi, importApi } from '../../shared/api'
+
+type ImportMode = 'questions' | 'materials'
 
 const statusLabels: Record<ImportJobStatus, string> = {
   [ImportJobStatus.Pending]: 'Bekliyor',
@@ -44,16 +50,27 @@ const duplicateActionLabels: Record<DuplicateImportAction, string> = {
 }
 
 export function AdminImportPage() {
+  const [importMode, setImportMode] = useState<ImportMode>('questions')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [duplicateDecisionsByRow, setDuplicateDecisionsByRow] = useState<Record<number, DuplicateImportDecision>>({})
+  const [materialCourseId, setMaterialCourseId] = useState('')
+  const [materialTitle, setMaterialTitle] = useState('')
+  const [materialSourceName, setMaterialSourceName] = useState('Bulk import')
+  const [materialFile, setMaterialFile] = useState<File | null>(null)
+  const [materialResult, setMaterialResult] = useState<MaterialImportResult | null>(null)
 
   const canStartImport = !!file && !!preview && preview.invalidRows === 0
   const duplicateDecisions = useMemo(
     () => buildDuplicateDecisions(preview?.duplicates ?? [], duplicateDecisionsByRow),
     [duplicateDecisionsByRow, preview?.duplicates],
   )
+
+  const coursesQuery = useQuery({
+    queryKey: ['courses', 'admin-import'],
+    queryFn: () => coursesApi.getAll(),
+  })
 
   const previewMutation = useMutation({
     mutationFn: importApi.previewQuestions,
@@ -83,6 +100,15 @@ export function AdminImportPage() {
       toast.success('Duplicate kontrolü yenilendi.')
     },
     onError: (error: Error) => toast.error(error.message || 'Duplicate kontrolü yenilenemedi.'),
+  })
+
+  const materialImportMutation = useMutation({
+    mutationFn: importApi.importMaterials,
+    onSuccess: (result) => {
+      setMaterialResult(result)
+      toast.success(`${result.importedFiles} materyal import edildi.`)
+    },
+    onError: (error: Error) => toast.error(error.message || 'Materyal import baslatilamadi.'),
   })
 
   const jobQuery = useQuery({
@@ -130,6 +156,32 @@ export function AdminImportPage() {
     }))
   }
 
+  function handleMaterialFile(nextFile: File | undefined) {
+    if (!nextFile) {
+      return
+    }
+
+    setMaterialFile(nextFile)
+    setMaterialResult(null)
+    if (!materialTitle && nextFile.name.toLocaleLowerCase('tr-TR').endsWith('.pdf')) {
+      setMaterialTitle(nextFile.name.replace(/\.[^.]+$/, ''))
+    }
+  }
+
+  function startMaterialImport() {
+    if (!materialCourseId || !materialFile) {
+      toast.error('Ders ve PDF/ZIP dosyasi secmelisin.')
+      return
+    }
+
+    materialImportMutation.mutate({
+      courseId: materialCourseId,
+      title: materialTitle,
+      sourceName: materialSourceName,
+      file: materialFile,
+    })
+  }
+
   return (
     <Stack spacing={3}>
       <Box>
@@ -141,6 +193,19 @@ export function AdminImportPage() {
         </Typography>
       </Box>
 
+      <Paper sx={{ borderRadius: 2 }} variant="outlined">
+        <Tabs
+          onChange={(_, value: ImportMode) => setImportMode(value)}
+          value={importMode}
+          variant="fullWidth"
+        >
+          <Tab label="Soru import" value="questions" />
+          <Tab label="Materyal import" value="materials" />
+        </Tabs>
+      </Paper>
+
+      {importMode === 'questions' && (
+        <>
       <Paper
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
@@ -249,6 +314,104 @@ export function AdminImportPage() {
           </Stack>
         </Paper>
       )}
+        </>
+      )}
+
+      {importMode === 'materials' && (
+        <Stack spacing={2}>
+          <Paper
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              handleMaterialFile(event.dataTransfer.files[0])
+            }}
+            sx={{
+              alignItems: 'center',
+              border: '1px dashed rgba(37,99,235,0.45)',
+              borderRadius: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              p: 4,
+              textAlign: 'center',
+            }}
+            variant="outlined"
+          >
+            <CloudUploadOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
+            <Typography sx={{ fontWeight: 800 }}>
+              {materialFile ? materialFile.name : 'PDF veya ZIP dosyasini buraya surukleyin'}
+            </Typography>
+            <Typography color="text.secondary" variant="body2">
+              PDF tek kaynak olarak, ZIP ise icindeki PDF dosyalari toplu kaynak olarak import edilir. Maksimum 50 MB.
+            </Typography>
+            <Button component="label" variant="outlined">
+              PDF/ZIP sec
+              <input
+                accept=".pdf,.zip,application/pdf,application/zip"
+                hidden
+                onChange={(event) => handleMaterialFile(event.target.files?.[0])}
+                type="file"
+              />
+            </Button>
+          </Paper>
+
+          <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
+            <Stack spacing={2}>
+              {coursesQuery.isError && <Alert severity="error">Ders listesi yuklenemedi.</Alert>}
+              <TextField
+                disabled={coursesQuery.isLoading}
+                fullWidth
+                label="Ders"
+                onChange={(event) => setMaterialCourseId(event.target.value)}
+                required
+                select
+                value={materialCourseId}
+              >
+                {(coursesQuery.data ?? []).map((course) => (
+                  <MenuItem key={course.id} value={course.id}>
+                    {course.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                helperText="ZIP importta her PDF kendi dosya adi ile baslik alir."
+                label="Baslik"
+                onChange={(event) => setMaterialTitle(event.target.value)}
+                value={materialTitle}
+              />
+              <TextField
+                fullWidth
+                label="Kaynak adi"
+                onChange={(event) => setMaterialSourceName(event.target.value)}
+                value={materialSourceName}
+              />
+              <Button
+                disabled={!materialCourseId || !materialFile || materialImportMutation.isPending}
+                onClick={startMaterialImport}
+                startIcon={<PlayArrowOutlinedIcon />}
+                variant="contained"
+              >
+                Materyal import baslat
+              </Button>
+            </Stack>
+          </Paper>
+
+          {materialImportMutation.isPending && <LinearProgress />}
+
+          {materialResult && (
+            <Stack spacing={2}>
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: 'repeat(1, 1fr)' } }}>
+                <Metric label="Toplam dosya" value={materialResult.totalFiles} />
+                <Metric label="Import edilen" value={materialResult.importedFiles} />
+                <Metric label="Hata" value={materialResult.failedFiles} />
+              </Box>
+              <MaterialDocumentsTable documents={materialResult.documents} />
+              {materialResult.errors.length > 0 && <ErrorTable errors={materialResult.errors} />}
+            </Stack>
+          )}
+        </Stack>
+      )}
     </Stack>
   )
 }
@@ -285,6 +448,37 @@ function ErrorTable({ errors }: { errors: ImportPreview['errors'] }) {
               <TableCell>{error.rowNumber}</TableCell>
               <TableCell>{error.columnName || '-'}</TableCell>
               <TableCell>{error.errorMessage}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function MaterialDocumentsTable({ documents }: { documents: MaterialImportResult['documents'] }) {
+  if (documents.length === 0) {
+    return <Alert severity="info">Import edilen materyal yok.</Alert>
+  }
+
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Baslik</TableCell>
+            <TableCell>Dosya</TableCell>
+            <TableCell>Sayfa</TableCell>
+            <TableCell>Kaynak</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {documents.slice(0, 100).map((document) => (
+            <TableRow key={document.id}>
+              <TableCell>{document.title}</TableCell>
+              <TableCell>{document.fileName}</TableCell>
+              <TableCell>{document.pageCount}</TableCell>
+              <TableCell>{document.sourceName}</TableCell>
             </TableRow>
           ))}
         </TableBody>

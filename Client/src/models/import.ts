@@ -1,3 +1,5 @@
+import type { SourceDocument } from './sourceDocument'
+
 export enum ImportType {
   Questions = 1,
   Materials = 2,
@@ -87,5 +89,20 @@ export interface ImportJob {
   createdByUserId: string
   errorReportUrl: string | null
   summary: string | null
+  errors: ImportErrorItem[]
+}
+
+export interface MaterialImportPayload {
+  courseId: string
+  title?: string
+  sourceName?: string
+  file: File
+}
+
+export interface MaterialImportResult {
+  totalFiles: number
+  importedFiles: number
+  failedFiles: number
+  documents: SourceDocument[]
   errors: ImportErrorItem[]
 }
