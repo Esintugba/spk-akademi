@@ -11,6 +11,7 @@ import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
+import { isValidShortCode, shortCodeHelperText } from '../../utils/shortCode'
 
 interface TopicsPageProps {
   courses: Course[]
@@ -25,7 +26,7 @@ const emptyForm = {
   examNotes: '',
   formulas: '',
   importantPoints: '',
-  order: 1,
+  order: '1',
   parentTopicId: '',
   slug: '',
   summary: '',
@@ -96,7 +97,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
   }, [editingTopic, form.courseId, getDescendantIds, topics])
 
   function resetForm() {
-    setForm({ ...emptyForm, order: Math.max(1, topics.length + 1) })
+    setForm({ ...emptyForm, order: String(Math.max(1, topics.length + 1)) })
     setEditingTopic(null)
     setFieldError('')
   }
@@ -110,7 +111,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       examNotes: topic.examNotes ?? '',
       formulas: topic.formulas ?? '',
       importantPoints: topic.importantPoints ?? '',
-      order: topic.order,
+      order: String(topic.order),
       parentTopicId: topic.parentTopicId ?? '',
       slug: topic.slug,
       summary: topic.summary ?? '',
@@ -121,12 +122,14 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
   }
 
   function validateForm() {
+    const parsedOrder = Number(form.order)
+
     if (!form.courseId) return 'Ders seçmelisin.'
     if (form.type === TopicType.SubTopic && !form.parentTopicId) return 'Alt konu için ana konu seçmelisin.'
     if (form.type === TopicType.SubTopic && !availableParentTopics.some((topic) => topic.id === form.parentTopicId)) return 'Geçerli bir ana konu seçmelisin.'
     if (form.title.trim().length < 3) return 'Başlık en az 3 karakter olmalı.'
-    if (!/^[a-z0-9-]+$/i.test(form.slug.trim())) return 'Kısa kod sadece harf, rakam ve tire içermeli.'
-    if (!Number.isFinite(form.order) || form.order < 1) return 'Sıra 1 veya daha büyük olmalı.'
+    if (!isValidShortCode(form.slug)) return shortCodeHelperText
+    if (!Number.isInteger(parsedOrder) || parsedOrder < 1) return 'Sıra 1 veya daha büyük olmalı.'
     return ''
   }
 
@@ -147,7 +150,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       type: form.type,
       title: form.title.trim(),
       slug: form.slug.trim(),
-      order: form.order,
+      order: Number(form.order),
       summary: form.summary.trim() || null,
       importantPoints: form.importantPoints.trim() || null,
       commonMistakes: form.commonMistakes.trim() || null,
@@ -225,7 +228,13 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
               <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
                 <TextField fullWidth label="Kısa kod" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
-                <TextField fullWidth slotProps={{ htmlInput: { min: 1 } }} label="Sıra" type="number" value={form.order} onChange={(event) => setForm((current) => ({ ...current, order: Number(event.target.value) }))} />
+                <TextField
+                  fullWidth
+                  label="Sıra"
+                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
+                  value={form.order}
+                  onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
+                />
               </Stack>
               <TextField fullWidth label={summaryLabel} rows={3} multiline value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} />
               <TextField fullWidth label={importantPointsLabel} rows={3} multiline value={form.importantPoints} onChange={(event) => setForm((current) => ({ ...current, importantPoints: event.target.value }))} />
@@ -332,4 +341,8 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       </Dialog>
     </Stack>
   )
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
 }

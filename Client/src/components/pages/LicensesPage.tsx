@@ -11,6 +11,7 @@ import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
+import { isValidShortCode, shortCodeHelperText } from '../../utils/shortCode'
 
 interface LicensesPageProps {
   licenses: License[]
@@ -19,8 +20,8 @@ interface LicensesPageProps {
 
 const emptyForm = {
   description: '',
-  displayOrder: 0,
-  estimatedStudyHours: 0,
+  displayOrder: '0',
+  estimatedStudyHours: '0',
   iconUrl: '',
   isActive: true,
   isFeatured: false,
@@ -66,8 +67,8 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
     setEditingLicense(license)
     setForm({
       description: license.description ?? '',
-      displayOrder: license.displayOrder,
-      estimatedStudyHours: license.estimatedStudyHours,
+      displayOrder: String(license.displayOrder),
+      estimatedStudyHours: String(license.estimatedStudyHours),
       iconUrl: license.iconUrl ?? '',
       isActive: license.isActive,
       isFeatured: license.isFeatured,
@@ -79,19 +80,22 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
   }
 
   function validateForm() {
+    const parsedDisplayOrder = Number(form.displayOrder)
+    const parsedEstimatedStudyHours = Number(form.estimatedStudyHours)
+
     if (form.name.trim().length < 3) {
       return 'Lisans adı en az 3 karakter olmalı.'
     }
 
-    if (!/^[a-z0-9-]+$/i.test(form.slug.trim())) {
-      return 'Kısa kod sadece harf, rakam ve tire içermeli.'
+    if (!isValidShortCode(form.slug)) {
+      return shortCodeHelperText
     }
 
-    if (!Number.isFinite(form.displayOrder) || form.displayOrder < 0) {
+    if (!Number.isInteger(parsedDisplayOrder) || parsedDisplayOrder < 0) {
       return 'Sıralama 0 veya daha büyük olmalı.'
     }
 
-    if (!Number.isFinite(form.estimatedStudyHours) || form.estimatedStudyHours < 0) {
+    if (!Number.isInteger(parsedEstimatedStudyHours) || parsedEstimatedStudyHours < 0) {
       return 'Tahmini çalışma saati 0 veya daha büyük olmalı.'
     }
 
@@ -116,8 +120,8 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
       description: form.description.trim() || null,
       shortDescription: form.shortDescription.trim() || null,
       iconUrl: form.iconUrl.trim() || null,
-      displayOrder: form.displayOrder,
-      estimatedStudyHours: form.estimatedStudyHours,
+      displayOrder: Number(form.displayOrder),
+      estimatedStudyHours: Number(form.estimatedStudyHours),
       isFeatured: form.isFeatured,
       isActive: form.isActive,
     }
@@ -194,9 +198,9 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
                 onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
               />
               <TextField
-                error={Boolean(fieldError && !/^[a-z0-9-]+$/i.test(form.slug.trim()))}
+                error={Boolean(fieldError && !isValidShortCode(form.slug))}
                 fullWidth
-                helperText={fieldError && !/^[a-z0-9-]+$/i.test(form.slug.trim()) ? fieldError : 'Örn. duzey-1'}
+                helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. duzey.1'}
                 label="Kısa kod"
                 required
                 value={form.slug}
@@ -229,18 +233,16 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
                 <TextField
                   fullWidth
                   label="Sıralama"
-                  type="number"
                   value={form.displayOrder}
-                  onChange={(event) => setForm((current) => ({ ...current, displayOrder: Number(event.target.value) }))}
-                  slotProps={{ htmlInput: { min: 0 } }}
+                  onChange={(event) => setForm((current) => ({ ...current, displayOrder: onlyDigits(event.target.value) }))}
+                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
                 />
                 <TextField
                   fullWidth
                   label="Tahmini çalışma saati"
-                  type="number"
                   value={form.estimatedStudyHours}
-                  onChange={(event) => setForm((current) => ({ ...current, estimatedStudyHours: Number(event.target.value) }))}
-                  slotProps={{ htmlInput: { min: 0 } }}
+                  onChange={(event) => setForm((current) => ({ ...current, estimatedStudyHours: onlyDigits(event.target.value) }))}
+                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
                 />
               </Stack>
               <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
@@ -380,4 +382,8 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
       </Dialog>
     </Stack>
   )
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
 }

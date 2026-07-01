@@ -262,10 +262,9 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                         fullWidth
                         label="Sınav yılı"
                         required
-                        type="number"
                         value={examYear}
-                        onChange={(event) => setExamYear(event.target.value)}
-                        slotProps={{ htmlInput: { min: minPastExamYear, max: new Date().getUTCFullYear() } }}
+                        onChange={(event) => setExamYear(onlyDigits(event.target.value))}
+                        slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 4, pattern: '[0-9]*' } }}
                       />
                       <TextField
                         fullWidth
@@ -411,4 +410,8 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
       </Dialog>
     </Stack>
   )
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
 }

@@ -11,6 +11,7 @@ import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
+import { isValidShortCode, shortCodeHelperText } from '../../utils/shortCode'
 
 interface CoursesPageProps {
   courses: Course[]
@@ -18,7 +19,7 @@ interface CoursesPageProps {
   onChanged: () => Promise<void>
 }
 
-const emptyForm = { description: '', licenseId: '', name: '', order: 1, slug: '' }
+const emptyForm = { description: '', licenseId: '', name: '', order: '1', slug: '' }
 
 export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) {
   const [form, setForm] = useState(emptyForm)
@@ -55,7 +56,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
   }
 
   function resetForm() {
-    setForm({ ...emptyForm, order: Math.max(1, courses.length + 1) })
+    setForm({ ...emptyForm, order: String(Math.max(1, courses.length + 1)) })
     setEditingCourse(null)
     setFieldError('')
   }
@@ -66,17 +67,19 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
       description: course.description ?? '',
       licenseId: course.licenseId,
       name: course.name,
-      order: course.order,
+      order: String(course.order),
       slug: course.slug,
     })
     setFieldError('')
   }
 
   function validateForm() {
+    const parsedOrder = Number(form.order)
+
     if (!form.licenseId) return 'Lisans seçmelisin.'
     if (form.name.trim().length < 3) return 'Ders adı en az 3 karakter olmalı.'
-    if (!/^[a-z0-9-]+$/i.test(form.slug.trim())) return 'Kısa kod sadece harf, rakam ve tire içermeli.'
-    if (!Number.isFinite(form.order) || form.order < 1) return 'Sıra 1 veya daha büyük olmalı.'
+    if (!isValidShortCode(form.slug)) return shortCodeHelperText
+    if (!Number.isInteger(parsedOrder) || parsedOrder < 1) return 'Sıra 1 veya daha büyük olmalı.'
     return ''
   }
 
@@ -97,7 +100,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
       name: form.name.trim(),
       slug: form.slug.trim(),
       description: form.description.trim() || null,
-      order: form.order,
+      order: Number(form.order),
     }
 
     try {
@@ -178,7 +181,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
                 <TextField
                   fullWidth
-                  helperText={fieldError && !/^[a-z0-9-]+$/i.test(form.slug.trim()) ? fieldError : 'Örn. finansal-piyasalar'}
+                  helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. finansal.piyasalar_1'}
                   label="Kısa kod"
                   required
                   value={form.slug}
@@ -186,12 +189,11 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
                 />
                 <TextField
                   fullWidth
-                  helperText={fieldError && form.order < 1 ? fieldError : 'Öğrenci tarafındaki görünüm sırası'}
+                  helperText={fieldError && (!Number.isInteger(Number(form.order)) || Number(form.order) < 1) ? fieldError : 'Öğrenci tarafındaki görünüm sırası'}
                   label="Sıra"
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  type="number"
+                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
                   value={form.order}
-                  onChange={(event) => setForm((current) => ({ ...current, order: Number(event.target.value) }))}
+                  onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
                 />
               </Stack>
               <TextField
@@ -305,4 +307,8 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
       </Dialog>
     </Stack>
   )
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
 }
