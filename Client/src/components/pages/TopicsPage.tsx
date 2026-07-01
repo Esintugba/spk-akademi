@@ -282,15 +282,15 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
                   <Box key={topic.id} sx={{ border: '1px solid rgba(148,163,184,0.18)', borderRadius: 3, minWidth: 0, p: 2.25 }}>
                     <Stack direction="row" sx={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
                       <Chip color={topic.type === TopicType.SubTopic ? 'default' : 'primary'} label={topic.type === TopicType.SubTopic ? `${topic.order}. alt konu` : `${topic.order}. ana konu`} size="small" />
-                      <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
-                        <Tooltip title="Detay"><IconButton onClick={() => setDetailTopic(topic)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Düzenle"><IconButton onClick={() => startEdit(topic)}><EditOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Sil"><IconButton color="error" disabled={busyId === topic.id} onClick={() => setDeleteTarget(topic)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                      <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
+                        <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailTopic(topic)}><InfoOutlinedIcon /></IconButton></Tooltip>
+                        <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(topic)}><EditOutlinedIcon /></IconButton></Tooltip>
+                        <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === topic.id} onClick={() => setDeleteTarget(topic)}><DeleteOutlineIcon /></IconButton></Tooltip>
                       </Stack>
                     </Stack>
                     <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere', pl: topic.parentTopicId ? 2 : 0 }}>{topic.title}</Typography>
                     <Typography color="text.secondary" sx={{ mt: 1 }}>{topic.summary || 'Kısa özet henüz girilmedi.'}</Typography>
-                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.75 }}>
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.75, minWidth: 0, '& .MuiChip-root': { maxWidth: '100%' }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}>
                       <Chip label={getCourseName(topic.courseId)} size="small" />
                       {topic.parentTopicTitle && <Chip label={`Ana konu: ${topic.parentTopicTitle}`} size="small" variant="outlined" />}
                       {(topic.subTopicCount ?? 0) > 0 && <Chip label={`${topic.subTopicCount} alt konu`} size="small" variant="outlined" />}

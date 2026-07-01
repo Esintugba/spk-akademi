@@ -247,25 +247,44 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
                 <EmptyState title="Ders yok" description="Filtreyi temizleyebilir veya yeni ders ekleyebilirsin." />
               ) : (
                 filteredCourses.slice(0, visibleCount).map((course) => (
-                  <Box key={course.id} sx={{ border: '1px solid rgba(148,163,184,0.18)', borderRadius: 3, p: 2.25 }}>
-                    <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography sx={{ fontSize: 18, fontWeight: 900 }}>
+                  <Box key={course.id} sx={{ border: '1px solid rgba(148,163,184,0.18)', borderRadius: 3, overflow: 'hidden', p: 2.25, minWidth: 0 }}>
+                    <Stack
+                      direction={{ sm: 'row', xs: 'column' }}
+                      spacing={2}
+                      sx={{ alignItems: { sm: 'flex-start', xs: 'stretch' }, justifyContent: 'space-between', minWidth: 0 }}
+                    >
+                      <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 18, fontWeight: 900, lineHeight: 1.25, overflowWrap: 'anywhere' }}>
                           {course.order}. {course.name}
                         </Typography>
-                        <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                        <Typography color="text.secondary" sx={{ mt: 0.75, overflowWrap: 'anywhere' }}>
                           {course.description || 'Açıklama girilmedi'}
                         </Typography>
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          sx={{
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            mt: 1.5,
+                            minWidth: 0,
+                            '& .MuiChip-root': { maxWidth: '100%' },
+                            '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+                          }}
+                        >
                           <Chip label={getLicenseName(course.licenseId)} size="small" />
                           <Chip color="primary" label={`${course.topicCount} konu`} size="small" />
                           <Chip label={course.slug} size="small" />
                         </Stack>
                       </Box>
-                      <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Detay"><IconButton onClick={() => setDetailCourse(course)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Düzenle"><IconButton onClick={() => startEdit(course)}><EditOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Sil"><IconButton color="error" disabled={busyId === course.id} onClick={() => setDeleteTarget(course)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ alignSelf: { sm: 'flex-start', xs: 'flex-end' }, flex: '0 0 auto', flexWrap: 'nowrap', justifyContent: 'flex-end' }}
+                      >
+                        <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailCourse(course)}><InfoOutlinedIcon /></IconButton></Tooltip>
+                        <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(course)}><EditOutlinedIcon /></IconButton></Tooltip>
+                        <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === course.id} onClick={() => setDeleteTarget(course)}><DeleteOutlineIcon /></IconButton></Tooltip>
                       </Stack>
                     </Stack>
                   </Box>

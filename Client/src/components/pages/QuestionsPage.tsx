@@ -351,23 +351,23 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                 <EmptyState title="Soru yok" description="Filtreleri temizleyebilir veya soru ekleyebilirsin." />
               ) : (
                 filteredQuestions.map((question) => (
-                  <Card key={question.id} sx={{ borderRadius: 3 }} variant="outlined">
-                    <CardContent>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  <Card key={question.id} sx={{ borderRadius: 3, minWidth: 0, overflow: 'hidden' }} variant="outlined">
+                    <CardContent sx={{ minWidth: 0 }}>
+                      <Stack direction="row" sx={{ alignItems: 'flex-start', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
+                        <Stack direction="row" spacing={1} sx={{ flex: '1 1 auto', flexWrap: 'wrap', gap: 1, minWidth: 0, '& .MuiChip-root': { maxWidth: '100%' }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}>
                           <Chip color="primary" label={`${question.options.length} şık`} size="small" />
                           <Chip label={getTopicTitle(question.topicId)} size="small" />
                           {question.isPastExamQuestion && <Chip color="warning" label="Çıkmış Soru" size="small" />}
                           {question.isPastExamQuestion && <Chip label={getPastExamLabel(question)} size="small" variant="outlined" />}
                         </Stack>
-                        <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Detay"><IconButton onClick={() => setDetailQuestion(question)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Düzenle"><IconButton onClick={() => startEdit(question)}><EditOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Sil"><IconButton color="error" disabled={busyId === question.id} onClick={() => setDeleteTarget(question)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                        <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
+                          <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailQuestion(question)}><InfoOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(question)}><EditOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === question.id} onClick={() => setDeleteTarget(question)}><DeleteOutlineIcon /></IconButton></Tooltip>
                         </Stack>
                       </Stack>
-                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5 }}>{question.text}</Typography>
-                      <Typography color="text.secondary" sx={{ mt: 1 }}>{question.explanation}</Typography>
+                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere' }}>{question.text}</Typography>
+                      <Typography color="text.secondary" sx={{ mt: 1, overflowWrap: 'anywhere' }}>{question.explanation}</Typography>
                       <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">{question.sourceReference || 'Kaynak belirtilmedi'}</Typography>
                     </CardContent>
                   </Card>

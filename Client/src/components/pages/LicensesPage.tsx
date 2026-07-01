@@ -297,16 +297,33 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
                     sx={{
                       border: '1px solid rgba(148,163,184,0.18)',
                       borderRadius: 3,
+                      overflow: 'hidden',
                       p: 2.25,
+                      minWidth: 0,
                     }}
                   >
-                    <Stack direction={{ sm: 'row', xs: 'column' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography sx={{ fontSize: 18, fontWeight: 900 }}>{license.name}</Typography>
-                        <Typography color="text.secondary" sx={{ mt: 0.75 }}>
+                    <Stack
+                      direction={{ sm: 'row', xs: 'column' }}
+                      spacing={2}
+                      sx={{ alignItems: { sm: 'flex-start', xs: 'stretch' }, justifyContent: 'space-between', minWidth: 0 }}
+                    >
+                      <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 18, fontWeight: 900, lineHeight: 1.25, overflowWrap: 'anywhere' }}>{license.name}</Typography>
+                        <Typography color="text.secondary" sx={{ mt: 0.75, overflowWrap: 'anywhere' }}>
                           {license.shortDescription || license.description || 'Açıklama girilmedi'}
                         </Typography>
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          sx={{
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            mt: 1.5,
+                            minWidth: 0,
+                            '& .MuiChip-root': { maxWidth: '100%' },
+                            '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+                          }}
+                        >
                           <Chip label={license.slug} size="small" />
                           <Chip color="primary" label={`${license.courseCount} ders`} size="small" />
                           <Chip color={license.isActive ? 'success' : 'default'} label={license.isActive ? 'Aktif' : 'Pasif'} size="small" />
@@ -315,19 +332,23 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
                           <Chip label={`${license.estimatedStudyHours} saat`} size="small" variant="outlined" />
                         </Stack>
                       </Box>
-                      <Stack direction="row" spacing={0.5}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{ alignSelf: { sm: 'flex-start', xs: 'flex-end' }, flex: '0 0 auto', flexWrap: 'nowrap', justifyContent: 'flex-end' }}
+                      >
                         <Tooltip title="Detay">
-                          <IconButton onClick={() => setDetailLicense(license)}>
+                          <IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailLicense(license)}>
                             <InfoOutlinedIcon />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Düzenle">
-                          <IconButton onClick={() => startEdit(license)}>
+                          <IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(license)}>
                             <EditOutlinedIcon />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Sil">
-                          <IconButton color="error" disabled={busyId === license.id} onClick={() => setDeleteTarget(license)}>
+                          <IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === license.id} onClick={() => setDeleteTarget(license)}>
                             <DeleteOutlineIcon />
                           </IconButton>
                         </Tooltip>

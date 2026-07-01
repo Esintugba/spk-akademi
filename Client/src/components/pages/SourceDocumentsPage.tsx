@@ -204,25 +204,42 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
                 <EmptyState title="Kaynak yok" description="Bir ders seçip ilk PDF kaynağını yükleyebilirsin." />
               ) : (
                 filteredDocuments.slice(0, visibleCount).map((document) => (
-                  <Card key={document.id} sx={{ borderRadius: 3 }} variant="outlined">
-                    <CardContent>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                        <Typography color="primary" sx={{ fontWeight: 800 }} variant="body2">{document.pageCount || 0} sayfa</Typography>
-                        <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Detay"><IconButton onClick={() => setDetailDocument(document)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="PDF"><IconButton disabled={busyId === document.id} onClick={() => void handlePdf(document)}><PictureAsPdfOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Metin"><IconButton disabled={busyId === document.id} onClick={() => handleText(document)}><TextSnippetOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Sil"><IconButton color="error" disabled={busyId === document.id} onClick={() => handleDelete(document)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                  <Card key={document.id} sx={{ borderRadius: 3, display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }} variant="outlined">
+                    <CardContent sx={{ display: 'flex', flexDirection: 'column', minHeight: 280, minWidth: 0, width: '100%' }}>
+                      <Stack direction="row" sx={{ alignItems: 'center', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
+                        <Typography color="primary" sx={{ flex: '1 1 auto', fontWeight: 900, lineHeight: 1.2, minWidth: 0, whiteSpace: 'nowrap' }} variant="body2">{document.pageCount || 0} sayfa</Typography>
+                        <Stack
+                          direction="row"
+                          spacing={0.25}
+                          sx={{
+                            alignItems: 'center',
+                            border: '1px solid rgba(148,163,184,0.22)',
+                            borderRadius: 2,
+                            flex: '0 0 auto',
+                            flexWrap: 'nowrap',
+                            p: 0.25,
+                          }}
+                        >
+                          <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} onClick={() => setDetailDocument(document)}><InfoOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="PDF"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} disabled={busyId === document.id} onClick={() => void handlePdf(document)}><PictureAsPdfOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Metin"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} disabled={busyId === document.id} onClick={() => handleText(document)}><TextSnippetOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} color="error" disabled={busyId === document.id} onClick={() => handleDelete(document)}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
                         </Stack>
                       </Stack>
-                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5 }}>{document.title}</Typography>
-                      <Typography color="text.secondary" sx={{ mt: 1 }}>{document.fileName}</Typography>
-                      <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">{getCourseName(document.courseId)} · {document.sourceName}</Typography>
+                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere' }}>{document.title}</Typography>
+                      <Typography color="text.secondary" sx={{ mt: 1, overflowWrap: 'anywhere' }}>{document.fileName}</Typography>
+                      <Typography color="text.secondary" sx={{ mb: 2, mt: 2, overflowWrap: 'anywhere' }} variant="body2">{getCourseName(document.courseId)} · {document.sourceName}</Typography>
                       <Button
                         fullWidth
                         onClick={() => void handlePdf(document)}
                         startIcon={<PictureAsPdfOutlinedIcon />}
-                        sx={{ mt: 2 }}
+                        sx={{
+                          borderRadius: 2,
+                          fontWeight: 900,
+                          minHeight: 44,
+                          mt: 'auto',
+                          '& .MuiButton-startIcon': { mr: 1 },
+                        }}
                         variant="outlined"
                       >
                         PDF görüntüle

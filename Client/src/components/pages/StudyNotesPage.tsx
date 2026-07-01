@@ -176,18 +176,18 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
                 <EmptyState title="Not yok" description="Filtreleri temizleyebilir veya çalışma notu ekleyebilirsin." />
               ) : (
                 filteredNotes.map((note) => (
-                  <Card key={note.id} sx={{ borderRadius: 3 }} variant="outlined">
-                    <CardContent>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                        <Chip color={note.isAiGenerated ? 'warning' : 'primary'} label={note.isAiGenerated ? 'AI kaynaklı taslak' : 'Manuel not'} size="small" />
-                        <Stack direction="row" spacing={0.5}>
-                          <Tooltip title="Detay"><IconButton onClick={() => setDetailNote(note)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Düzenle"><IconButton onClick={() => startEdit(note)}><EditOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Sil"><IconButton color="error" disabled={busyId === note.id} onClick={() => setDeleteTarget(note)}><DeleteOutlineIcon /></IconButton></Tooltip>
+                  <Card key={note.id} sx={{ borderRadius: 3, minWidth: 0, overflow: 'hidden' }} variant="outlined">
+                    <CardContent sx={{ minWidth: 0 }}>
+                      <Stack direction="row" sx={{ alignItems: 'flex-start', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
+                        <Chip color={note.isAiGenerated ? 'warning' : 'primary'} label={note.isAiGenerated ? 'AI kaynaklı taslak' : 'Manuel not'} size="small" sx={{ maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }} />
+                        <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
+                          <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailNote(note)}><InfoOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(note)}><EditOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === note.id} onClick={() => setDeleteTarget(note)}><DeleteOutlineIcon /></IconButton></Tooltip>
                         </Stack>
                       </Stack>
-                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5 }}>{note.title}</Typography>
-                      <Typography color="text.secondary" sx={{ mt: 1 }}>{note.content}</Typography>
+                      <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere' }}>{note.title}</Typography>
+                      <Typography color="text.secondary" sx={{ mt: 1, overflowWrap: 'anywhere' }}>{note.content}</Typography>
                       <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">{getTopicTitle(note.topicId)} · {note.sourceReference || 'Kaynak belirtilmedi'}</Typography>
                     </CardContent>
                   </Card>
