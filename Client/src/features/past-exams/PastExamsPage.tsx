@@ -300,7 +300,12 @@ export function PastExamsPage() {
             </Alert>
           )}
 
-          <Button disabled={startQuizMutation.isPending} sx={{ alignSelf: 'flex-start', minWidth: 240 }} type="submit" variant="contained">
+          <Button
+            disabled={startQuizMutation.isPending}
+            sx={{ alignSelf: { sm: 'flex-start', xs: 'stretch' }, minWidth: { sm: 240, xs: 0 } }}
+            type="submit"
+            variant="contained"
+          >
             {startQuizMutation.isPending ? 'Oluşturuluyor…' : 'Çıkmış Sorulardan Test Oluştur'}
           </Button>
 

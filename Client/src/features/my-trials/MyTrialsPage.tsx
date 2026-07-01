@@ -152,7 +152,7 @@ export function MyTrialsPage() {
         title="Erişebildiğin Denemeler"
         description="Ücretsiz ve lisanslı denemelerini tek ekrandan yönet. Devam eden oturumları süre dolmadan tamamla."
         sideContent={
-          <FormControl fullWidth size="small" sx={{ minWidth: 200 }}>
+          <FormControl fullWidth size="small" sx={{ minWidth: { sm: 200, xs: 0 } }}>
             <InputLabel id="trial-filter-label">Filtre</InputLabel>
             <Select
               label="Filtre"

@@ -74,7 +74,7 @@ export function QuizCatalogPage({ courses, licenses, topics }: QuizCatalogPagePr
         title={licenseId ? 'Lisansa Ait Denemeler' : 'Deneme Keşfi'}
         description="Lisansına göre erişebildiğin denemeleri keşfet, filtrele ve son durumunu takip et."
         sideContent={
-          <FormControl fullWidth size="small" sx={{ alignSelf: 'center', minWidth: 220 }}>
+          <FormControl fullWidth size="small" sx={{ alignSelf: 'center', minWidth: { sm: 220, xs: 0 } }}>
             <InputLabel>Sıralama</InputLabel>
             <Select
               label="Sıralama"
