@@ -83,7 +83,7 @@ export function DashboardPage() {
         }
       />
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: 'repeat(7, minmax(0, 1fr))', md: 'repeat(3, 1fr)', xs: '1fr' } }}>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xl: 'repeat(4, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
         <Kpi label="Toplam Kullanıcı" value={dashboard.stats.totalUsers} icon={<GroupOutlinedIcon />} />
         <Kpi label="Aktif Öğrenci" value={dashboard.stats.activeStudents} icon={<SchoolOutlinedIcon />} />
         <Kpi label="Aktif Lisans" value={dashboard.stats.activeLicenses} icon={<AdminPanelSettingsOutlinedIcon />} />
@@ -93,7 +93,7 @@ export function DashboardPage() {
         <Kpi label="Haftalık Kayıt" value={dashboard.stats.thisWeekNewUsers} icon={<GroupOutlinedIcon />} />
       </Box>
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(4, 1fr)', xs: '1fr' } }}>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: 'repeat(4, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
         <AdminMetricCard detail="Acik/islemde/kullanici bekleyen" icon={<SupportAgentOutlinedIcon />} label="Bekleyen Talepler" value={formatNumber(dashboard.supportTickets.pendingTickets)} />
         <AdminMetricCard detail="Henuz admin atanmamis" icon={<SupportAgentOutlinedIcon />} label="Atanmamis Talepler" value={formatNumber(dashboard.supportTickets.unassignedTickets)} />
         <AdminMetricCard detail="Bugun olusturulan" icon={<SupportAgentOutlinedIcon />} label="Bugun Acilan" value={formatNumber(dashboard.supportTickets.openedToday)} />
@@ -164,8 +164,24 @@ function PendingActionsPanel({ dashboard }: { dashboard: AdminDashboard }) {
     <AdminSurface title="İşlem Bekleyen Öğeler" description="Adminin ilk bakışta aksiyon alması gereken operasyon kalemleri.">
       <Stack spacing={1.25}>
         {items.map((item) => (
-          <Button component={RouterLink} key={item.label} sx={{ justifyContent: 'space-between', px: 2, py: 1.4 }} to={item.path} variant="outlined">
-            <span>{item.label}</span>
+          <Button
+            component={RouterLink}
+            key={item.label}
+            sx={{
+              gap: 1,
+              justifyContent: 'space-between',
+              minHeight: 48,
+              px: 2,
+              py: 1.2,
+              textAlign: 'left',
+              whiteSpace: 'normal',
+            }}
+            to={item.path}
+            variant="outlined"
+          >
+            <Box component="span" sx={{ minWidth: 0 }}>
+              {item.label}
+            </Box>
             <Chip color={item.value > 0 ? 'warning' : 'success'} label={formatNumber(item.value)} size="small" />
           </Button>
         ))}
@@ -318,8 +334,15 @@ function CompactList({ actionLabel, actionPath, emptyText, icon, items, title }:
 
 function MiniRow({ label, to, tone = 'default', value }: { label: string; to: string; tone?: 'default' | 'warning'; value: number }) {
   return (
-    <Button component={RouterLink} sx={{ justifyContent: 'space-between' }} to={to} variant="text">
-      <span>{label}</span>
+    <Button
+      component={RouterLink}
+      sx={{ gap: 1, justifyContent: 'space-between', textAlign: 'left', whiteSpace: 'normal' }}
+      to={to}
+      variant="text"
+    >
+      <Box component="span" sx={{ minWidth: 0 }}>
+        {label}
+      </Box>
       <Chip color={value > 0 ? (tone === 'warning' ? 'warning' : 'primary') : 'default'} label={formatNumber(value)} size="small" />
     </Button>
   )

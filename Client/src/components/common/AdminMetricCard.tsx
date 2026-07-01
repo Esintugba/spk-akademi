@@ -13,16 +13,17 @@ export function AdminMetricCard({ label, value, detail, icon }: AdminMetricCardP
     <Paper
       sx={{
         borderRadius: 4,
+        minWidth: 0,
         p: 2.5,
       }}
       variant="outlined"
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <Box>
+        <Box sx={{ minWidth: 0 }}>
           <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 700 }}>
             {label}
           </Typography>
-          <Typography sx={{ fontSize: 30, fontWeight: 900, mt: 1 }}>{value}</Typography>
+          <Typography sx={{ fontSize: { sm: 30, xs: 26 }, fontWeight: 900, mt: 1 }}>{value}</Typography>
           <Typography color="text.secondary" sx={{ fontSize: 12, mt: 1.25 }}>
             {detail}
           </Typography>
@@ -34,6 +35,7 @@ export function AdminMetricCard({ label, value, detail, icon }: AdminMetricCardP
             borderRadius: 3,
             color: '#1d4ed8',
             display: 'flex',
+            flex: '0 0 auto',
             height: 48,
             justifyContent: 'center',
             width: 48,

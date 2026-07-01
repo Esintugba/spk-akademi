@@ -642,41 +642,60 @@ function AdaptivePlanCard({
     .reduce((total, task) => total + Math.max(0, task.targetQuestions), 0)
 
   return (
-    <Paper sx={{ borderRadius: 3, p: { md: 3, xs: 2.5 } }} variant="outlined">
-      <Stack direction={{ lg: 'row', xs: 'column' }} spacing={3} sx={{ justifyContent: 'space-between' }}>
+    <Paper sx={{ borderRadius: 3, overflow: 'hidden', p: { md: 3, xs: 2 } }} variant="outlined">
+      <Box
+        sx={{
+          display: 'grid',
+          gap: { md: 3, xs: 2 },
+          gridTemplateColumns: { xl: 'minmax(0, 1.05fr) minmax(320px, 0.95fr)', xs: '1fr' },
+          minWidth: 0,
+        }}
+      >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
             <TrackChangesOutlinedIcon color="primary" />
-            <Typography sx={{ fontSize: 24, fontWeight: 900 }}>Bugünün Planı</Typography>
+            <Typography sx={{ fontSize: { sm: 24, xs: 21 }, fontWeight: 900 }}>Bugünün Planı</Typography>
             <Chip color="primary" label={`%${Math.round(Number(plan?.completionRate ?? 0))}`} size="small" />
           </Stack>
-          <Typography color="text.secondary" sx={{ mt: 1 }}>
+          <Typography color="text.secondary" sx={{ lineHeight: 1.65, mt: 1 }}>
             {plan?.summary || 'Plan üretmek için aktif konu, tekrar veya quiz verisi bekleniyor.'}
           </Typography>
 
-          <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { sm: 'repeat(4, 1fr)', xs: 'repeat(2, 1fr)' }, mt: 2.5 }}>
+          <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { lg: 'repeat(4, minmax(0, 1fr))', xs: 'repeat(2, minmax(0, 1fr))' }, mt: 2.5 }}>
             <PlanMetric label="Tekrar" value={String(reviewQuestionCount)} />
             <PlanMetric label="Konu" value={String(topicCount)} />
             <PlanMetric label="Soru" value={String(questionCount)} />
             <PlanMetric label="Süre" value={`${plan?.estimatedMinutes ?? 0} dk`} />
           </Box>
 
-          <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ mt: 2.5 }}>
-            <Chip label={`Sınavaya kalan: ${plan?.daysUntilExam ?? 0} gün`} />
-            <Chip color="primary" label={`Tahmini tamamlama: %${Math.round(Number(plan?.estimatedTargetCompletionRate ?? 0))}`} />
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', mt: 2.5 }}>
+            <Chip label={`Sınavaya kalan: ${plan?.daysUntilExam ?? 0} gün`} sx={{ maxWidth: '100%' }} />
+            <Chip color="primary" label={`Tahmini tamamlama: %${Math.round(Number(plan?.estimatedTargetCompletionRate ?? 0))}`} sx={{ maxWidth: '100%' }} />
           </Stack>
 
           {plan?.riskyTopics?.length ? (
             <Stack spacing={1} sx={{ mt: 2.5 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 900 }}>Riskli Alt Konular</Typography>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', minWidth: 0 }}>
                 {plan.riskyTopics.slice(0, 4).map((topic) => (
                   <Chip
                     component={RouterLink}
                     key={topic.topicId}
                     label={`${topic.mainTopicTitle ? `${topic.mainTopicTitle} > ` : ''}${topic.topicTitle} - %${Math.round(topic.successRate)}`}
                     size="small"
-                    sx={{ fontWeight: 700 }}
+                    sx={{
+                      alignItems: 'flex-start',
+                      fontWeight: 700,
+                      height: 'auto',
+                      maxWidth: '100%',
+                      py: 0.35,
+                      '& .MuiChip-label': {
+                        display: 'block',
+                        overflow: 'visible',
+                        overflowWrap: 'anywhere',
+                        whiteSpace: 'normal',
+                      },
+                    }}
                     to={`/study/${topic.topicId}`}
                     variant="outlined"
                     clickable
@@ -715,7 +734,7 @@ function AdaptivePlanCard({
             </Stack>
           ) : null}
         </Box>
-      </Stack>
+      </Box>
     </Paper>
   )
 }
@@ -770,7 +789,7 @@ function PlanTaskRow({
             </Typography>
           </Box>
         </Stack>
-        <Stack direction="row" spacing={1}>
+        <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ flexShrink: 0, '& .MuiButton-root': { width: { sm: 'auto', xs: '100%' } } }}>
           <Button component={RouterLink} size="small" to={task.actionUrl || '/my-courses'} variant="outlined">
             Başla
           </Button>
