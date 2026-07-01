@@ -8,6 +8,7 @@ import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import { Box, Button, Container, Paper, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { useLocalization } from '../../shared/localization'
 import { MarketingHero } from '../common/MarketingHero'
 import { MarketingSectionHeading } from '../common/MarketingSectionHeading'
 
@@ -43,35 +44,37 @@ const highlights = [
 ]
 
 export function LandingPage() {
+  const { t } = useLocalization()
+
   return (
     <Box sx={{ pb: { md: 8, xs: 5 } }}>
       <MarketingHero
-        eyebrow="SPK Lisans Hazırlık Platformu"
-        title="SPK hazırlığını tek sistemde planla, çalış ve ölç."
-        description="Ders notları, kaynak PDF'ler, onaylı soru bankası, ücretsiz deneme sınavları ve öğrenci odaklı panel deneyimiyle sınav hazırlığını dağınık araçlardan çıkarıp tek akışta topla."
+        eyebrow={t('SPK Lisans Hazırlık Platformu')}
+        title={t('SPK hazırlığını tek sistemde planla, çalış ve ölç.')}
+        description={t("Ders notları, kaynak PDF'ler, onaylı soru bankası, ücretsiz deneme sınavları ve öğrenci odaklı panel deneyimiyle sınav hazırlığını dağınık araçlardan çıkarıp tek akışta topla.")}
         actions={
           <>
             <Button component={RouterLink} endIcon={<ArrowForwardOutlinedIcon />} size="large" to="/register" variant="contained">
-              Ücretsiz başla
+              {t('Ücretsiz başla')}
             </Button>
             <Button component={RouterLink} size="large" to="/free-trial" variant="outlined">
-              Ücretsiz denemeyi aç
+              {t('Ücretsiz denemeyi aç')}
             </Button>
           </>
         }
         sideContent={
           <Paper sx={{ borderRadius: 3, p: { sm: 3.25, xs: 2 } }} variant="outlined">
             <Typography color="primary.main" sx={{ fontWeight: 800 }}>
-              Çalışma akışı
+              {t('Çalışma akışı')}
             </Typography>
             <Typography sx={{ fontSize: { sm: 30, xs: 23 }, fontWeight: 900, mt: 1.5 }}>
-              Dağınık kaynaklardan tek bir çalışma paneline
+              {t('Dağınık kaynaklardan tek bir çalışma paneline')}
             </Typography>
             <Stack spacing={1.4} sx={{ mt: 3 }}>
               {steps.map((step) => (
                 <Stack direction="row" key={step} spacing={1.25} sx={{ alignItems: 'center' }}>
                   <CheckCircleOutlineOutlinedIcon color="primary" fontSize="small" />
-                  <Typography>{step}</Typography>
+                  <Typography>{t(step)}</Typography>
                 </Stack>
               ))}
             </Stack>
@@ -82,9 +85,9 @@ export function LandingPage() {
                 { label: 'Deneme akışı', value: 'Süreli' },
               ].map((stat) => (
                 <Paper key={stat.label} sx={{ borderRadius: 3, p: 2, textAlign: 'center' }} variant="outlined">
-                  <Typography sx={{ fontSize: 22, fontWeight: 900 }}>{stat.value}</Typography>
+                  <Typography sx={{ fontSize: 22, fontWeight: 900 }}>{t(stat.value)}</Typography>
                   <Typography color="text.secondary" sx={{ fontSize: 12 }}>
-                    {stat.label}
+                    {t(stat.label)}
                   </Typography>
                 </Paper>
               ))}
@@ -98,9 +101,9 @@ export function LandingPage() {
           {features.map((feature) => (
             <Paper key={feature.title} sx={{ borderRadius: 4, p: 3 }} variant="outlined">
               <Box sx={{ color: 'primary.main', mb: 2 }}>{feature.icon}</Box>
-              <Typography sx={{ fontSize: 22, fontWeight: 900 }}>{feature.title}</Typography>
+              <Typography sx={{ fontSize: 22, fontWeight: 900 }}>{t(feature.title)}</Typography>
               <Typography color="text.secondary" sx={{ lineHeight: 1.8, mt: 1.25 }}>
-                {feature.description}
+                {t(feature.description)}
               </Typography>
             </Paper>
           ))}
@@ -109,15 +112,15 @@ export function LandingPage() {
         <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { lg: '1.05fr 0.95fr', xs: '1fr' }, mt: { md: 8, xs: 5 } }}>
           <Paper sx={{ borderRadius: 5, p: { md: 4, xs: 3 } }} variant="outlined">
             <MarketingSectionHeading
-              eyebrow="Öğrenci deneyimi"
-              title="Sadece içerik değil, çalışma momentumunu koruyan bir panel."
-              description="Benim Programım, derslerim, konu çalışma ekranı, raporlar, deneme geçmişi ve profil güvenliği ile günlük kullanıma uygun sade ama güçlü bir deneyim sunar."
+              eyebrow={t('Öğrenci deneyimi')}
+              title={t('Sadece içerik değil, çalışma momentumunu koruyan bir panel.')}
+              description={t('Benim Programım, derslerim, konu çalışma ekranı, raporlar, deneme geçmişi ve profil güvenliği ile günlük kullanıma uygun sade ama güçlü bir deneyim sunar.')}
             />
             <Stack spacing={1.25}>
               {highlights.map((item) => (
                 <Stack direction="row" key={item} spacing={1.2} sx={{ alignItems: 'center' }}>
                   <CheckCircleOutlineOutlinedIcon color="primary" fontSize="small" />
-                  <Typography>{item}</Typography>
+                  <Typography>{t(item)}</Typography>
                 </Stack>
               ))}
             </Stack>
@@ -128,10 +131,10 @@ export function LandingPage() {
               <Box sx={{ bgcolor: 'rgba(37,99,235,0.08)', borderRadius: 2, color: 'primary.main', p: 1 }}>
                 <WorkspacePremiumOutlinedIcon />
               </Box>
-              <Typography sx={{ fontWeight: 900 }}>Ürün omurgası</Typography>
+              <Typography sx={{ fontWeight: 900 }}>{t('Ürün omurgası')}</Typography>
             </Stack>
             <Typography color="text.secondary" sx={{ lineHeight: 1.85 }}>
-              Lisans, ders, konu, not, PDF, soru ve erişim katmanları aynı veri modeli içinde çalışır. Bu sayede arama, filtreleme, entitlement ve moderasyon akışı sistem genelinde tutarlı kalır.
+              {t('Lisans, ders, konu, not, PDF, soru ve erişim katmanları aynı veri modeli içinde çalışır. Bu sayede arama, filtreleme, entitlement ve moderasyon akışı sistem genelinde tutarlı kalır.')}
             </Typography>
             <Box sx={{ display: 'grid', gap: 1.25, gridTemplateColumns: { sm: 'repeat(2, 1fr)', xs: '1fr' }, mt: 3 }}>
               {[
@@ -143,7 +146,7 @@ export function LandingPage() {
                 <Paper key={item.label} sx={{ borderRadius: 3, p: 2 }} variant="outlined">
                   <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Box sx={{ color: 'primary.main' }}>{item.icon}</Box>
-                    <Typography sx={{ fontWeight: 700 }}>{item.label}</Typography>
+                    <Typography sx={{ fontWeight: 700 }}>{t(item.label)}</Typography>
                   </Stack>
                 </Paper>
               ))}

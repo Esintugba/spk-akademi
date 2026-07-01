@@ -43,7 +43,7 @@ export function AdminLayout() {
   const drawerContent = (
     <Stack sx={{ height: '100%' }}>
       <Toolbar sx={{ minHeight: 92, px: 3 }}>
-        <BrandMark subtitle="Admin operasyon merkezi" variant="light" />
+        <BrandMark subtitle="Admin operasyon merkezi" to="/" variant="light" />
       </Toolbar>
 
       <NavLinks />
@@ -104,7 +104,12 @@ export function AdminLayout() {
           <IconButton edge="start" onClick={() => setMobileOpen(true)}>
             <MenuRoundedIcon />
           </IconButton>
-          <Typography sx={{ fontSize: 18, fontWeight: 900, ml: 1 }}>Admin Paneli</Typography>
+          <Typography noWrap sx={{ flex: 1, fontSize: 18, fontWeight: 900, ml: 1 }}>
+            Admin Paneli
+          </Typography>
+          <IconButton aria-label="Çıkış" color="inherit" onClick={handleLogout}>
+            <LogoutOutlinedIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 

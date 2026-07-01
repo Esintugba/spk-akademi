@@ -23,7 +23,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { cloneElement, useEffect, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router'
 import { toast } from 'react-toastify'
 import type { AppOutletContext } from '../../App'
@@ -58,10 +58,11 @@ function isItemActive(pathname: string, item: StudentNavItem) {
 
 type StudentNavigationContentProps = {
   collapsed: boolean
+  footer?: ReactNode
   onNavigate?: () => void
 }
 
-function StudentNavigationContent({ collapsed, onNavigate }: StudentNavigationContentProps) {
+function StudentNavigationContent({ collapsed, footer, onNavigate }: StudentNavigationContentProps) {
   const location = useLocation()
   const { t } = useLocalization()
 
@@ -72,6 +73,8 @@ function StudentNavigationContent({ collapsed, onNavigate }: StudentNavigationCo
           <Tooltip title="SPK Akademi" placement="right">
             <Box
               aria-label="SPK Akademi"
+              component={NavLink}
+              onClick={onNavigate}
               sx={{
                 alignItems: 'center',
                 background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
@@ -82,14 +85,16 @@ function StudentNavigationContent({ collapsed, onNavigate }: StudentNavigationCo
                 fontWeight: 900,
                 height: 42,
                 justifyContent: 'center',
+                textDecoration: 'none',
                 width: 42,
               }}
+              to="/"
             >
               SPK
             </Box>
           </Tooltip>
         ) : (
-          <BrandMark subtitle={t('Öğrenci çalışma merkezi')} variant="light" />
+          <BrandMark subtitle={t('Öğrenci çalışma merkezi')} to="/" variant="light" />
         )}
       </Toolbar>
 
@@ -188,6 +193,7 @@ function StudentNavigationContent({ collapsed, onNavigate }: StudentNavigationCo
           </Box>
         ))}
       </Box>
+      {footer}
     </Stack>
   )
 }
@@ -244,17 +250,24 @@ export function StudentLayout() {
               {t('Ders, test ve tekrar merkezi')}
             </Typography>
           </Box>
-          <Avatar
-            sx={{
-              background: 'linear-gradient(135deg, #14b8a6 0%, #2563eb 100%)',
-              fontSize: 14,
-              fontWeight: 900,
-              height: 36,
-              width: 36,
-            }}
-          >
-            {userInitial}
-          </Avatar>
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', flexShrink: 0 }}>
+            <Tooltip title={t('Çıkış')}>
+              <IconButton aria-label={t('Çıkış')} color="inherit" onClick={handleLogout}>
+                <LogoutOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+            <Avatar
+              sx={{
+                background: 'linear-gradient(135deg, #14b8a6 0%, #2563eb 100%)',
+                fontSize: 14,
+                fontWeight: 900,
+                height: 36,
+                width: 36,
+              }}
+            >
+              {userInitial}
+            </Avatar>
+          </Stack>
         </Toolbar>
       </AppBar>
 
@@ -327,7 +340,34 @@ export function StudentLayout() {
         sx={{ display: { md: 'none', xs: 'block' } }}
         variant="temporary"
       >
-        <StudentNavigationContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+        <StudentNavigationContent
+          collapsed={false}
+          footer={
+            <Box sx={{ borderTop: '1px solid rgba(148,163,184,0.14)', p: 2 }}>
+              <Stack spacing={1.25}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography noWrap sx={{ color: '#f8fafc', fontSize: 13, fontWeight: 900 }}>
+                    {displayName}
+                  </Typography>
+                  <Typography noWrap sx={{ color: '#94a3b8', fontSize: 12 }}>
+                    {t('Öğrenci hesabı')}
+                  </Typography>
+                </Box>
+                <Button
+                  color="inherit"
+                  fullWidth
+                  onClick={handleLogout}
+                  startIcon={<LogoutOutlinedIcon />}
+                  sx={{ borderColor: 'rgba(203,213,225,0.34)', justifyContent: 'flex-start' }}
+                  variant="outlined"
+                >
+                  {t('Çıkış')}
+                </Button>
+              </Stack>
+            </Box>
+          }
+          onNavigate={() => setMobileOpen(false)}
+        />
       </Drawer>
 
       <Box

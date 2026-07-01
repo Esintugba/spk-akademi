@@ -1,19 +1,22 @@
 import { Box, Typography } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material/styles'
+import { Link as RouterLink } from 'react-router'
 import { useBranding } from './useBranding'
 
 interface BrandMarkProps {
+  ariaLabel?: string
   subtitle?: string
+  to?: string
   variant?: 'light' | 'dark'
   sx?: SxProps<Theme>
 }
 
-export function BrandMark({ subtitle, variant = 'dark', sx }: BrandMarkProps) {
+export function BrandMark({ ariaLabel, subtitle, to, variant = 'dark', sx }: BrandMarkProps) {
   const { appName, shortName } = useBranding()
   const isLight = variant === 'light'
 
-  return (
-    <Box sx={[{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}>
+  const content = (
+    <>
       <Box
         aria-hidden
         sx={{
@@ -61,10 +64,46 @@ export function BrandMark({ subtitle, variant = 'dark', sx }: BrandMarkProps) {
         )}
         {!subtitle && shortName !== appName && (
           <Typography color="text.secondary" variant="caption">
-            {shortName}
-          </Typography>
-        )}
+          {shortName}
+        </Typography>
+      )}
       </Box>
+    </>
+  )
+
+  const rootSx = [
+    {
+      alignItems: 'center',
+      color: 'inherit',
+      display: 'flex',
+      gap: 1.5,
+      minWidth: 0,
+      textDecoration: 'none',
+    },
+    to
+      ? {
+          cursor: 'pointer',
+          '&:focus-visible': {
+            borderRadius: 2,
+            outline: '3px solid rgba(37,99,235,0.35)',
+            outlineOffset: 4,
+          },
+        }
+      : null,
+    ...(Array.isArray(sx) ? sx : [sx]),
+  ]
+
+  if (to) {
+    return (
+      <Box aria-label={ariaLabel ?? appName} component={RouterLink} sx={rootSx} to={to}>
+        {content}
+      </Box>
+    )
+  }
+
+  return (
+    <Box sx={rootSx}>
+      {content}
     </Box>
   )
 }

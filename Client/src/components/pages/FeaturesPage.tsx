@@ -7,6 +7,7 @@ import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined'
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined'
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined'
 import { Box, Container, Paper, Stack, Typography } from '@mui/material'
+import { useLocalization } from '../../shared/localization'
 import { MarketingHero } from '../common/MarketingHero'
 import { MarketingSectionHeading } from '../common/MarketingSectionHeading'
 import { iconTileSx, marketingCardSx, marketingGridSx, marketingPageSx, marketingSectionSx } from '../common/marketingStyles'
@@ -69,33 +70,35 @@ const upcomingFeatures = [
 ]
 
 export function FeaturesPage() {
+  const { t } = useLocalization()
+
   return (
     <Box sx={marketingPageSx}>
       <MarketingHero
-        eyebrow="Platform Özellikleri"
-        title="İçerik, test, yetkilendirme ve öğrenci deneyimini tek ürün mimarisinde topla."
-        description="Public pazarlama sitesi, öğrenci dashboard’u ve admin paneli birbirinden ayrılır; veri katmanı ise ortak ve sürdürülebilir kalır."
+        eyebrow={t('Platform Özellikleri')}
+        title={t('İçerik, test, yetkilendirme ve öğrenci deneyimini tek ürün mimarisinde topla.')}
+        description={t('Public pazarlama sitesi, öğrenci dashboard’u ve admin paneli birbirinden ayrılır; veri katmanı ise ortak ve sürdürülebilir kalır.')}
       />
 
       <Container maxWidth="xl" sx={marketingSectionSx}>
         <MarketingSectionHeading
-          eyebrow="Yetkinlikler"
-          title="Platformun omurgasını oluşturan modüller"
-          description="Her modül tek başına değil, diğerleriyle birlikte anlamlı bir çalışma akışı kuracak şekilde tasarlandı."
+          eyebrow={t('Yetkinlikler')}
+          title={t('Platformun omurgasını oluşturan modüller')}
+          description={t('Her modül tek başına değil, diğerleriyle birlikte anlamlı bir çalışma akışı kuracak şekilde tasarlandı.')}
         />
         <Box sx={marketingGridSx}>
           {featureGroups.map((feature) => (
             <Paper key={feature.title} sx={{ ...marketingCardSx, display: 'flex', flexDirection: 'column' }} variant="outlined">
               <Box sx={iconTileSx}>{feature.icon}</Box>
-              <Typography sx={{ fontSize: 21, fontWeight: 900, lineHeight: 1.2, mt: 2 }}>{feature.title}</Typography>
+              <Typography sx={{ fontSize: 21, fontWeight: 900, lineHeight: 1.2, mt: 2 }}>{t(feature.title)}</Typography>
               <Typography color="text.secondary" sx={{ lineHeight: 1.7, mt: 1.25 }}>
-                {feature.description}
+                {t(feature.description)}
               </Typography>
               <Stack spacing={1} sx={{ mt: 'auto', pt: 2.5 }}>
                 {feature.items.map((item) => (
                   <Stack direction="row" key={item} spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
                     <CheckCircleOutlineOutlinedIcon color="primary" fontSize="small" sx={{ flexShrink: 0 }} />
-                    <Typography noWrap variant="body2">{item}</Typography>
+                    <Typography noWrap variant="body2">{t(item)}</Typography>
                   </Stack>
                 ))}
               </Stack>
@@ -105,17 +108,17 @@ export function FeaturesPage() {
 
         <Box sx={marketingSectionSx}>
           <MarketingSectionHeading
-            eyebrow="Yakında"
-            title="Planlanan AI özellikleri"
-            description="Bu başlıklar ürün yol haritasında yer alır; şu an sistem içinde aktif üretim servisi olarak çalışmaz."
+            eyebrow={t('Yakında')}
+            title={t('Planlanan AI özellikleri')}
+            description={t('Bu başlıklar ürün yol haritasında yer alır; şu an sistem içinde aktif üretim servisi olarak çalışmaz.')}
           />
           <Box sx={marketingGridSx}>
             {upcomingFeatures.map((feature) => (
               <Paper key={feature.title} sx={marketingCardSx} variant="outlined">
                 <Box sx={iconTileSx}>{feature.icon}</Box>
-                <Typography sx={{ fontSize: 21, fontWeight: 900, lineHeight: 1.2, mt: 2 }}>{feature.title}</Typography>
+                <Typography sx={{ fontSize: 21, fontWeight: 900, lineHeight: 1.2, mt: 2 }}>{t(feature.title)}</Typography>
                 <Typography color="text.secondary" sx={{ lineHeight: 1.8, mt: 1.25 }}>
-                  {feature.description}
+                  {t(feature.description)}
                 </Typography>
               </Paper>
             ))}
