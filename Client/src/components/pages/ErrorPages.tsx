@@ -2,6 +2,7 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded'
 import { Button } from '@mui/material'
 import { Link as RouterLink, isRouteErrorResponse, useRouteError } from 'react-router'
+import { useLocalization } from '../../shared/localization'
 import { ErrorStatePage, LoginAction } from '../common/ErrorStatePage'
 
 export function NotFoundPage() {
@@ -17,6 +18,8 @@ export function NotFoundPage() {
 }
 
 export function ForbiddenPage() {
+  const { t } = useLocalization()
+
   return (
     <ErrorStatePage
       code="403"
@@ -25,7 +28,7 @@ export function ForbiddenPage() {
       primaryAction={<LoginAction />}
       secondaryAction={
         <Button component={RouterLink} to="/plans" variant="outlined">
-          Paketleri incele
+          {t('Paketleri incele')}
         </Button>
       }
       title="Bu sayfaya erişim izniniz yok."
@@ -35,6 +38,8 @@ export function ForbiddenPage() {
 }
 
 export function ServerErrorPage() {
+  const { t } = useLocalization()
+
   return (
     <ErrorStatePage
       code="500"
@@ -42,12 +47,12 @@ export function ServerErrorPage() {
       eyebrow="Sistem hatası"
       primaryAction={
         <Button onClick={() => window.location.reload()} startIcon={<RefreshRoundedIcon />} variant="contained">
-          Sayfayı yenile
+          {t('Sayfayı yenile')}
         </Button>
       }
       secondaryAction={
         <Button component={RouterLink} startIcon={<HomeOutlinedIcon />} to="/" variant="outlined">
-          Ana sayfa
+          {t('Ana sayfa')}
         </Button>
       }
       title="Şu anda bu işlemi tamamlayamadık."
@@ -57,13 +62,15 @@ export function ServerErrorPage() {
 }
 
 export function DataErrorPage() {
+  const { t } = useLocalization()
+
   return (
     <ErrorStatePage
       description="Bu ekran için gerekli veriler alınamadı. Bağlantı veya oturum sürenizle ilgili geçici bir problem olabilir."
       eyebrow="Veri yüklenemedi"
       primaryAction={
         <Button onClick={() => window.location.reload()} startIcon={<RefreshRoundedIcon />} variant="contained">
-          Tekrar dene
+          {t('Tekrar dene')}
         </Button>
       }
       title="Sayfa verileri yüklenemedi."
@@ -74,6 +81,7 @@ export function DataErrorPage() {
 
 export function RouteErrorPage() {
   const error = useRouteError()
+  const { t } = useLocalization()
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) return <NotFoundPage />
@@ -90,7 +98,7 @@ export function RouteErrorPage() {
       eyebrow="Beklenmeyen hata"
       primaryAction={
         <Button onClick={() => window.location.reload()} startIcon={<RefreshRoundedIcon />} variant="contained">
-          Sayfayı yenile
+          {t('Sayfayı yenile')}
         </Button>
       }
       title="Bir şey yolunda gitmedi."

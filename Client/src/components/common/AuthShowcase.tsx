@@ -3,6 +3,7 @@ import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import { Box, Chip, Paper, Stack, Typography } from '@mui/material'
 import { useBranding } from '../../shared/branding/useBranding'
+import { useLocalization } from '../../shared/localization'
 
 const items = [
   {
@@ -24,6 +25,7 @@ const items = [
 
 export function AuthShowcase({ title, description }: { title: string; description: string }) {
   const { appName } = useBranding()
+  const { t } = useLocalization()
 
   return (
     <Paper
@@ -54,10 +56,10 @@ export function AuthShowcase({ title, description }: { title: string; descriptio
           }}
         />
         <Typography sx={{ fontSize: { md: 34, xs: 28 }, fontWeight: 900, lineHeight: 1.08 }}>
-          {title}
+          {t(title)}
         </Typography>
         <Typography color="text.secondary" sx={{ lineHeight: 1.85 }}>
-          {description}
+          {t(description)}
         </Typography>
         <Stack spacing={1.5}>
           {items.map((item) => (
@@ -87,9 +89,9 @@ export function AuthShowcase({ title, description }: { title: string; descriptio
                 {item.icon}
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 800 }}>{item.title}</Typography>
+                <Typography sx={{ fontWeight: 800 }}>{t(item.title)}</Typography>
                 <Typography color="text.secondary" sx={{ fontSize: 14, mt: 0.5 }}>
-                  {item.description}
+                  {t(item.description)}
                 </Typography>
               </Box>
             </Stack>

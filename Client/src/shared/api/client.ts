@@ -125,20 +125,20 @@ axiosInstance.interceptors.response.use(
 
     const responseData = error.response?.data
     const status = error.response?.status
-    const message = responseData?.message || responseData?.title || error.message || 'Istek basarisiz oldu.'
+    const message = responseData?.message || responseData?.title || error.message || 'İstek başarısız oldu.'
 
     if (status === 400) {
-      toast.error(message || 'Gecersiz istek.')
+      toast.error(message || 'Geçersiz istek.')
     } else if (status === 401 && !isRefreshRequest) {
       clearStoredUser()
       notifyInvalidAuth()
-      toast.error('Bu islem icin giris yapman gerekiyor.', { toastId: 'api-auth-required' })
+      toast.error('Bu işlem için giriş yapman gerekiyor.', { toastId: 'api-auth-required' })
     } else if (status === 403) {
-      toast.error('Bu islem icin yetkin yok.', { toastId: 'api-forbidden' })
+      toast.error('Bu işlem için yetkin yok.', { toastId: 'api-forbidden' })
     } else if (status === 404) {
-      toast.error('Istenen kaynak bulunamadi.')
+      toast.error('İstenen kaynak bulunamadı.')
     } else if (status && status >= 500) {
-      toast.error(message || 'Sunucuda beklenmeyen bir hata olustu.')
+      toast.error(message || 'Sunucuda beklenmeyen bir hata oluştu.')
     } else if (!isRefreshRequest) {
       toast.error(message)
     }

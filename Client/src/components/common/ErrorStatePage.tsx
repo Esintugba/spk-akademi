@@ -13,6 +13,8 @@ import { Link as RouterLink, useNavigate } from 'react-router'
 import { BrandMark } from '../../shared/branding/BrandMark'
 import { useBranding } from '../../shared/branding/useBranding'
 import { SeoHead } from '../../seo/SeoHead'
+import { useLocalization } from '../../shared/localization'
+import { LanguageSwitch } from './LanguageSwitch'
 
 type ErrorVariant = 'notFound' | 'forbidden' | 'server' | 'data' | 'generic'
 
@@ -47,18 +49,24 @@ export function ErrorStatePage({
 }: ErrorStatePageProps) {
   const navigate = useNavigate()
   const { supportEmail } = useBranding()
+  const { t } = useLocalization()
   const meta = variantMeta[variant]
+  const translatedTitle = t(title)
+  const translatedDescription = t(description)
 
   return (
     <Box sx={{ bgcolor: '#f7f9fb', minHeight: '100vh' }}>
-      <SeoHead description={description} noIndex title={title} />
+      <SeoHead description={translatedDescription} noIndex title={translatedTitle} />
       <Container maxWidth="lg" sx={{ py: { md: 5, xs: 2 }, px: { xs: 1.5, sm: 3 } }}>
         <Stack spacing={{ md: 4, xs: 2.5 }}>
           <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-            <BrandMark subtitle="Sermaye piyasası lisans hazırlık sistemi" to="/" />
-            <Button component={RouterLink} startIcon={<HomeOutlinedIcon />} to="/" variant="text">
-              Ana Sayfa
-            </Button>
+            <BrandMark subtitle={t('Sermaye piyasası lisans hazırlık sistemi')} to="/" />
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
+              <LanguageSwitch />
+              <Button component={RouterLink} startIcon={<HomeOutlinedIcon />} sx={{ display: { sm: 'inline-flex', xs: 'none' } }} to="/" variant="text">
+                {t('Ana Sayfa')}
+              </Button>
+            </Stack>
           </Stack>
 
           <Paper
@@ -99,7 +107,7 @@ export function ErrorStatePage({
                 </Box>
                 <Box>
                   <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 900, letterSpacing: 0, textTransform: 'uppercase' }}>
-                    {eyebrow}
+                    {t(eyebrow)}
                   </Typography>
                   {code && (
                     <Typography sx={{ color: meta.tone, fontSize: { md: 76, xs: 48 }, fontWeight: 950, lineHeight: 1, mt: 1 }}>
@@ -111,10 +119,10 @@ export function ErrorStatePage({
 
               <Stack spacing={2.25} sx={{ justifyContent: 'center', minWidth: 0 }}>
                 <Typography component="h1" sx={{ fontSize: { md: 42, xs: 28 }, fontWeight: 950, lineHeight: 1.08 }}>
-                  {title}
+                  {translatedTitle}
                 </Typography>
                 <Typography color="text.secondary" sx={{ fontSize: { md: 18, xs: 16 }, lineHeight: 1.8, maxWidth: 720 }}>
-                  {description}
+                  {translatedDescription}
                 </Typography>
                 {details && (
                   <Box
@@ -126,7 +134,7 @@ export function ErrorStatePage({
                     }}
                   >
                     <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }} variant="body2">
-                      {details}
+                      {t(details)}
                     </Typography>
                   </Box>
                 )}
@@ -134,12 +142,12 @@ export function ErrorStatePage({
                 <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25} sx={{ pt: 0.5 }}>
                   {primaryAction ?? (
                     <Button component={RouterLink} startIcon={<HomeOutlinedIcon />} to="/" variant="contained">
-                      Ana sayfaya dön
+                      {t('Ana sayfaya dön')}
                     </Button>
                   )}
                   {secondaryAction ?? (
                     <Button onClick={() => navigate(-1)} startIcon={<ArrowBackRoundedIcon />} variant="outlined">
-                      Önceki sayfa
+                      {t('Önceki sayfa')}
                     </Button>
                   )}
                 </Stack>
@@ -161,7 +169,7 @@ export function ErrorStatePage({
             >
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <SupportAgentOutlinedIcon fontSize="small" />
-                <Typography variant="body2">Sorun devam ederse destek ekibine iletin.</Typography>
+                <Typography variant="body2">{t('Sorun devam ederse destek ekibine iletin.')}</Typography>
               </Stack>
               <Link color="#e2e8f0" href={`mailto:${supportEmail}`} sx={{ alignItems: 'center', display: 'inline-flex', gap: 0.75 }} underline="hover">
                 <MailOutlineRoundedIcon fontSize="small" />
@@ -176,9 +184,11 @@ export function ErrorStatePage({
 }
 
 export function LoginAction() {
+  const { t } = useLocalization()
+
   return (
     <Button component={RouterLink} startIcon={<LoginOutlinedIcon />} to="/login" variant="contained">
-      Giriş yap
+      {t('Giriş yap')}
     </Button>
   )
 }

@@ -293,6 +293,87 @@ const english: Record<string, string> = {
   'Akıllı quiz önerileri': 'Smart quiz recommendations',
   'İlerleme ve yanlış soru geçmişine göre kişiselleştirilmiş quiz önerileri eklenecek.':
     'Personalized quiz recommendations based on progress and mistake history will be added.',
+  'Çalışma paneline güvenle geri dön.': 'Return to your study dashboard securely.',
+  'Kaldığın konu, aktif denemen ve lisans erişimlerin seni girişten sonra bekliyor.':
+    'Your current topic, active mock exams and license access will be waiting after sign-in.',
+  'SPK çalışma paneline devam etmek için hesabınla giriş yap.': 'Sign in to continue to your SPK study dashboard.',
+  Şifre: 'Password',
+  'Giriş yapılıyor': 'Signing in',
+  'Giriş yap': 'Sign in',
+  'Şifremi Unuttum': 'Forgot Password',
+  'Hesabın yok mu? Kayıt ol': "Don't have an account? Sign up",
+  'Kişisel Çalışma alanını birkaç adımda oluştur.': 'Create your personal study workspace in a few steps.',
+  'Kayıt olduktan sonra erişimlerin, ücretsiz deneme akışların ve öğrenci panelin tek hesapta toplanır.':
+    'After registration, your access, free mock exams and student dashboard are collected under one account.',
+  'Kayıt Ol': 'Sign Up',
+  'Kayıt ol': 'Sign up',
+  'Kişisel SPK çalışma alanın için yeni hesap oluştur.': 'Create a new account for your personal SPK study workspace.',
+  'Şifreler aynı olmalı.': 'Passwords must match.',
+  'KVKK Aydınlatma Metnini okuduğunu onaylamalısın.': 'You must confirm that you have read the KVKK notice.',
+  'En az 6 karakter, büyük harf, küçük harf ve rakam içermeli.':
+    'Use at least 6 characters with uppercase, lowercase and a number.',
+  'Şifre tekrar': 'Confirm password',
+  'KVKK Aydınlatma Metnini': 'KVKK Notice',
+  'okudum.': 'read and accepted.',
+  'Ticari elektronik ileti almak istiyorum.': 'I want to receive commercial electronic messages.',
+  'Kayıt oluşturuluyor': 'Creating account',
+  'Zaten hesabım var': 'I already have an account',
+  'E-posta adresi sistemde kayıtlıysa şifre sıfırlama bağlantısı gönderildi.':
+    'If the email address is registered, a password reset link has been sent.',
+  'Hesabına yeniden erişim al.': 'Regain access to your account.',
+  'Kayıtlı e-posta adresine tek kullanımlık şifre yenileme bağlantısı gönderilir.':
+    'A one-time password reset link will be sent to your registered email address.',
+  'Hesabına bağlı e-posta adresini yaz.': 'Enter the email address connected to your account.',
+  Gönderiliyor: 'Sending',
+  'Bağlantı gönder': 'Send link',
+  'Giriş sayfasına dön': 'Return to sign in',
+  'Yeni şifreni belirle.': 'Set your new password.',
+  'E-postadaki bağlantıyı doğruladıktan sonra hesabın yeni şifresiyle açılabilir.':
+    'After verifying the link in your email, your account can be opened with the new password.',
+  'Şifreyi Yenile': 'Reset Password',
+  'Şifreyi yenile': 'Reset password',
+  'Hesabınız için yeni ve güçlü bir şifre seçin.': 'Choose a new and strong password for your account.',
+  'Şifre sıfırlama bağlantısı eksik veya geçersiz.': 'The password reset link is missing or invalid.',
+  'Şifren yenilendi. Yeni şifrenle giriş yapabilirsin.': 'Your password has been reset. You can sign in with your new password.',
+  Yenileniyor: 'Resetting',
+  'Konu, test ve tekrar ritmini aynı panelde görün.': 'See your topic, quiz and review rhythm in one dashboard.',
+  'Güvenli hesap': 'Secure account',
+  'JWT, rol tabanlı erişim ve oturum yönetimi hazır.': 'JWT, role-based access and session management are ready.',
+  'Lisans bazlı çalışma': 'License-based study',
+  'Erişimin olan lisanslara göre kişiselleşen deneyim.': 'A personalized experience based on your licensed access.',
+  'Sayfa durumu': 'Page status',
+  'Sayfa bulunamadı': 'Page not found',
+  'Bu bağlantı artık geçerli görünmüyor.': 'This link no longer appears to be valid.',
+  'Aradığınız sayfa taşınmış, kaldırılmış veya bağlantı hatalı yazılmış olabilir. Ana sayfadan devam edebilir ya da aradığınız lisans, ders veya konuya menüden ulaşabilirsiniz.':
+    'The page may have moved, been removed, or the link may be mistyped. You can continue from the home page or use the menu to find the license, course or topic you need.',
+  'Erişim sınırı': 'Access limit',
+  'Bu sayfaya erişim izniniz yok.': 'You do not have permission to access this page.',
+  'Bu alan için hesabınızda gerekli yetki veya erişim bulunmuyor. Giriş yaptıktan sonra tekrar deneyebilir ya da uygun paket kapsamını inceleyebilirsiniz.':
+    'Your account does not have the required permission or access for this area. Sign in and try again, or review the available package scope.',
+  'Sistem hatası': 'System error',
+  'Şu anda bu işlemi tamamlayamadık.': 'We could not complete this action right now.',
+  'İstek işlenirken beklenmeyen bir sorun oluştu. Kısa süre sonra tekrar deneyin; sorun devam ederse destek ekibi kayıtları inceleyebilir.':
+    'An unexpected problem occurred while processing the request. Try again shortly; if it continues, support can review the logs.',
+  'Veri yüklenemedi': 'Data could not be loaded',
+  'Sayfa verileri yüklenemedi.': 'Page data could not be loaded.',
+  'Bu ekran için gerekli veriler alınamadı. Bağlantı veya oturum sürenizle ilgili geçici bir problem olabilir.':
+    'The data required for this screen could not be loaded. This may be a temporary connection or session issue.',
+  'Beklenmeyen hata': 'Unexpected error',
+  'Bir şey yolunda gitmedi.': 'Something went wrong.',
+  'Beklenmeyen bir hata oluştu. Sayfayı yenilemek çoğu geçici problemi çözer; devam ederse destek ekibine ekran bilgisini iletebilirsiniz.':
+    'An unexpected error occurred. Refreshing usually resolves temporary problems; if it continues, you can share the screen details with support.',
+  'Ana sayfaya dön': 'Go to home page',
+  'Önceki sayfa': 'Previous page',
+  'Sorun devam ederse destek ekibine iletin.': 'If the issue continues, contact the support team.',
+  'Paketleri incele': 'Review packages',
+  'Panele dön': 'Back to dashboard',
+  'Sayfayı yenile': 'Refresh page',
+  'Ana sayfa': 'Home page',
+  'Tekrar dene': 'Try again',
+  'Erişim gerekli': 'Access required',
+  'Bu içerik için erişim gerekli.': 'Access is required for this content.',
+  'Bu alana erişmek için ilgili lisans veya paket kapsamının hesabınızda tanımlı olması gerekiyor.':
+    'The related license or package scope must be assigned to your account to access this area.',
 }
 
 const LocalizationContext = createContext<LocalizationContextValue | null>(null)

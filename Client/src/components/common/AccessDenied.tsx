@@ -1,5 +1,6 @@
 import { Button } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { useLocalization } from '../../shared/localization'
 import { ErrorStatePage } from './ErrorStatePage'
 
 interface AccessDeniedProps {
@@ -11,6 +12,8 @@ export function AccessDenied({
   title = 'Bu içerik için erişim gerekli.',
   message = 'Bu alana erişmek için ilgili lisans veya paket kapsamının hesabınızda tanımlı olması gerekiyor.',
 }: AccessDeniedProps) {
+  const { t } = useLocalization()
+
   return (
     <ErrorStatePage
       code="403"
@@ -18,12 +21,12 @@ export function AccessDenied({
       eyebrow="Erişim gerekli"
       primaryAction={
         <Button component={RouterLink} to="/plans" variant="contained">
-          Paketleri incele
+          {t('Paketleri incele')}
         </Button>
       }
       secondaryAction={
         <Button component={RouterLink} to="/dashboard" variant="outlined">
-          Panele dön
+          {t('Panele dön')}
         </Button>
       }
       title={title}

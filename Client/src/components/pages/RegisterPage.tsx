@@ -5,12 +5,15 @@ import { Link as RouterLink, Navigate, useNavigate } from 'react-router'
 import { registerUser } from '../../app/authSlice'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getDefaultAuthenticatedPath } from '../../shared/auth/authRedirects'
+import { useLocalization } from '../../shared/localization'
 import { AuthShowcase } from '../common/AuthShowcase'
+import { LanguageSwitch } from '../common/LanguageSwitch'
 
 export function RegisterPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { error, isLoading, user } = useAppSelector((state) => state.auth)
+  const { t } = useLocalization()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -27,12 +30,12 @@ export function RegisterPage() {
     setFormError('')
 
     if (password !== confirmPassword) {
-      setFormError('Şifreler aynı olmalı.')
+      setFormError(t('Şifreler aynı olmalı.'))
       return
     }
 
     if (!kvkkAccepted) {
-      setFormError('KVKK Aydınlatma Metnini okuduğunu onaylamalısın.')
+      setFormError(t('KVKK Aydınlatma Metnini okuduğunu onaylamalısın.'))
       return
     }
 
@@ -52,6 +55,9 @@ export function RegisterPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: { md: 8, xs: 5 } }}>
+      <Stack direction="row" sx={{ justifyContent: 'flex-end', mb: 2 }}>
+        <LanguageSwitch />
+      </Stack>
       <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { lg: '1fr 0.9fr', xs: '1fr' } }}>
         <AuthShowcase
           title="Kişisel Çalışma alanını birkaç adımda oluştur."
@@ -65,31 +71,31 @@ export function RegisterPage() {
                 <PersonAddAltOutlinedIcon />
               </Avatar>
               <Typography component="h1" sx={{ fontSize: 30, fontWeight: 900 }}>
-                Kayıt Ol
+                {t('Kayıt Ol')}
               </Typography>
               <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                Kişisel SPK çalışma alanın için yeni hesap oluştur.
+                {t('Kişisel SPK çalışma alanın için yeni hesap oluştur.')}
               </Typography>
             </Stack>
 
             {(formError || error) && <Alert severity="error">{formError || error}</Alert>}
 
-            <TextField autoComplete="email" autoFocus fullWidth label="E-posta" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            <TextField autoComplete="new-password" fullWidth helperText="En az 6 karakter, büyük harf, küçük harf ve rakam içermeli." label="Şifre" required type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
-            <TextField autoComplete="new-password" fullWidth label="Şifre tekrar" required type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+            <TextField autoComplete="email" autoFocus fullWidth label={t('E-posta')} required type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            <TextField autoComplete="new-password" fullWidth helperText={t('En az 6 karakter, büyük harf, küçük harf ve rakam içermeli.')} label={t('Şifre')} required type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <TextField autoComplete="new-password" fullWidth label={t('Şifre tekrar')} required type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
             <FormControlLabel
               control={<Checkbox checked={kvkkAccepted} onChange={(event) => setKvkkAccepted(event.target.checked)} />}
-              label={<Typography variant="body2"><Link component={RouterLink} to="/kvkk">KVKK Aydınlatma Metnini</Link> okudum.</Typography>}
+              label={<Typography variant="body2"><Link component={RouterLink} to="/kvkk">{t('KVKK Aydınlatma Metnini')}</Link> {t('okudum.')}</Typography>}
             />
             <FormControlLabel
               control={<Checkbox checked={commercialElectronicMessages} onChange={(event) => setCommercialElectronicMessages(event.target.checked)} />}
-              label="Ticari elektronik ileti almak istiyorum."
+              label={t('Ticari elektronik ileti almak istiyorum.')}
             />
             <Button disabled={isLoading} size="large" type="submit" variant="contained">
-              {isLoading ? 'Kayıt oluşturuluyor' : 'Kayıt ol'}
+              {isLoading ? t('Kayıt oluşturuluyor') : t('Kayıt ol')}
             </Button>
             <Button component={RouterLink} disabled={isLoading} to="/login" variant="text">
-              Zaten hesabım var
+              {t('Zaten hesabım var')}
             </Button>
           </Stack>
         </Paper>

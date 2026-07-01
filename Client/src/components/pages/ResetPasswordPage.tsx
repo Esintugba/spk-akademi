@@ -5,10 +5,13 @@ import { Link as RouterLink, Navigate, useSearchParams } from 'react-router'
 import { useAppSelector } from '../../app/hooks'
 import { authApi } from '../../shared/api'
 import { getDefaultAuthenticatedPath } from '../../shared/auth/authRedirects'
+import { useLocalization } from '../../shared/localization'
 import { AuthShowcase } from '../common/AuthShowcase'
+import { LanguageSwitch } from '../common/LanguageSwitch'
 
 export function ResetPasswordPage() {
   const { user } = useAppSelector((state) => state.auth)
+  const { t } = useLocalization()
   const [searchParams] = useSearchParams()
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams])
   const initialEmail = useMemo(() => searchParams.get('email') ?? '', [searchParams])
@@ -30,12 +33,12 @@ export function ResetPasswordPage() {
     setFormError('')
 
     if (isTokenMissing) {
-      setFormError('Şifre sıfırlama bağlantısı eksik veya geçersiz.')
+      setFormError(t('Şifre sıfırlama bağlantısı eksik veya geçersiz.'))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setFormError('Şifreler aynı olmalı.')
+      setFormError(t('Şifreler aynı olmalı.'))
       return
     }
 
@@ -55,6 +58,9 @@ export function ResetPasswordPage() {
 
   return (
     <Container maxWidth="xl" sx={{ py: { md: 8, xs: 5 } }}>
+      <Stack direction="row" sx={{ justifyContent: 'flex-end', mb: 2 }}>
+        <LanguageSwitch />
+      </Stack>
       <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { lg: '1fr 0.9fr', xs: '1fr' } }}>
         <AuthShowcase
           title="Yeni şifreni belirle."
@@ -68,32 +74,32 @@ export function ResetPasswordPage() {
                 <LockResetOutlinedIcon />
               </Avatar>
               <Typography component="h1" sx={{ fontSize: 30, fontWeight: 900 }}>
-                Şifreyi Yenile
+                {t('Şifreyi Yenile')}
               </Typography>
               <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-                Hesabınız için yeni ve güçlü bir şifre seçin.
+                {t('Hesabınız için yeni ve güçlü bir şifre seçin.')}
               </Typography>
             </Stack>
 
-            {isTokenMissing && <Alert severity="warning">Şifre sıfırlama bağlantısı eksik veya geçersiz.</Alert>}
+            {isTokenMissing && <Alert severity="warning">{t('Şifre sıfırlama bağlantısı eksik veya geçersiz.')}</Alert>}
             {formError && <Alert severity="error">{formError}</Alert>}
             {isComplete && (
               <Alert
                 action={
                   <Button color="inherit" component={RouterLink} size="small" to="/login">
-                    Giriş yap
+                    {t('Giriş yap')}
                   </Button>
                 }
                 severity="success"
               >
-                Şifren yenilendi. Yeni şifrenle giriş yapabilirsin.
+                {t('Şifren yenilendi. Yeni şifrenle giriş yapabilirsin.')}
               </Alert>
             )}
 
             <TextField
               autoComplete="email"
               fullWidth
-              label="E-posta"
+              label={t('E-posta')}
               required
               type="email"
               value={email}
@@ -102,8 +108,8 @@ export function ResetPasswordPage() {
             <TextField
               autoComplete="new-password"
               fullWidth
-              helperText="En az 6 karakter, büyük harf, küçük harf ve rakam içermeli."
-              label="Yeni şifre"
+              helperText={t('En az 6 karakter, büyük harf, küçük harf ve rakam içermeli.')}
+              label={t('Yeni şifre')}
               required
               type="password"
               value={newPassword}
@@ -112,17 +118,17 @@ export function ResetPasswordPage() {
             <TextField
               autoComplete="new-password"
               fullWidth
-              label="Yeni şifre tekrar"
+              label={t('Yeni şifre tekrar')}
               required
               type="password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
             />
             <Button disabled={isSubmitting || isTokenMissing || isComplete} size="large" type="submit" variant="contained">
-              {isSubmitting ? 'Yenileniyor' : 'Şifreyi yenile'}
+              {isSubmitting ? t('Yenileniyor') : t('Şifreyi yenile')}
             </Button>
             <Button component={RouterLink} to="/login" variant="text">
-              Giriş sayfasına dön
+              {t('Giriş sayfasına dön')}
             </Button>
           </Stack>
         </Paper>
