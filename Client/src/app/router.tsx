@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, type ReactNode, Suspense } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router'
-import { Alert, CircularProgress, Box } from '@mui/material'
+import { createBrowserRouter } from 'react-router'
+import { CircularProgress, Box } from '@mui/material'
 import App from '../App'
 import { MarketingLayout } from '../components/layout/MarketingLayout'
 import { AdminRoute } from './AdminRoute'
@@ -10,6 +10,7 @@ import { ProtectedRoute } from './ProtectedRoute'
 import { StudentLayout } from '../components/layout/StudentLayout'
 import { AppBrandingShell } from '../shared/branding/AppBrandingShell'
 import { StudentOnboardingGuard } from './StudentOnboardingGuard'
+import { DataErrorPage, ForbiddenPage, NotFoundPage, RouteErrorPage, ServerErrorPage } from '../components/pages/ErrorPages'
 import {
   useAdminCatalogInvalidation,
   useCourses,
@@ -117,11 +118,7 @@ function RouteDataFallback() {
 }
 
 function RouteDataError() {
-  return (
-    <Alert severity="error" sx={{ m: 2 }}>
-      Sayfa verileri alınamadı.
-    </Alert>
-  )
+  return <DataErrorPage />
 }
 
 function DashboardRoute() {
@@ -263,6 +260,7 @@ export const router = createBrowserRouter([
       {
         path: '/',
         element: lazyElement(<App />),
+        errorElement: <RouteErrorPage />,
         children: [
       {
         element: <MarketingLayout />,
@@ -507,6 +505,9 @@ export const router = createBrowserRouter([
               },
             },
           },
+          { path: '404', element: <NotFoundPage /> },
+          { path: '403', element: <ForbiddenPage /> },
+          { path: '500', element: <ServerErrorPage /> },
         ],
       },
       {
@@ -603,7 +604,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
-          { path: '*', element: <Navigate replace to="/" /> },
+          { path: '*', element: <NotFoundPage /> },
         ],
       },
     ],

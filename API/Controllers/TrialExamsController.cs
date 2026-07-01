@@ -98,6 +98,6 @@ public class TrialExamsController(ITrialExamManagementService trialExamManagemen
         error switch
         {
             TrialExamManagementError.NotFound => NotFound(),
-            _ => BadRequest(message ?? "Deneme sımavı işlemi tamamlanamadı.")
+            _ => BadRequest(message ?? "Deneme sınavı işlemi tamamlanamadı.")
         };
 }

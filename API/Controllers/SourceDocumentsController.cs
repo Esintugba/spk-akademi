@@ -183,6 +183,6 @@ public class SourceDocumentsController(
             SourceDocumentError.Forbidden => Forbid(),
             SourceDocumentError.NotFound => NotFound(),
             SourceDocumentError.FileMissing => NotFound(message ?? "Dosya bulunamadı."),
-            _ => BadRequest(message ?? "Kaynak dökuman islemi tamamlanamadı.")
+            _ => BadRequest(message ?? "Kaynak döküman işlemi tamamlanamadı.")
         };
 }
