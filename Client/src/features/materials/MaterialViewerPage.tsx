@@ -417,7 +417,7 @@ export function MaterialViewerPage() {
               startIcon={<BookmarkAddOutlinedIcon />}
               variant="outlined"
             >
-              Bookmark Ekle
+              Yer İşareti Ekle
             </Button>
           </Stack>
         </Stack>
@@ -519,15 +519,15 @@ export function MaterialViewerPage() {
                 setNumPages(info.numPages)
                 setPage((current) => Math.min(Math.max(1, current), info.numPages))
               }}
-              onLoadError={(error) => setPdfError(error.message || 'PDF dosyasi yuklenemedi.')}
+              onLoadError={(error) => setPdfError(error.message || 'PDF dosyası yüklenemedi.')}
               error={
                 <Stack spacing={1.5} sx={{ maxWidth: 520, p: 2 }}>
                   <Alert severity="error">
-                    {pdfError || 'PDF dosyasi yuklenemedi.'}
+                    {pdfError || 'PDF dosyası yüklenemedi.'}
                   </Alert>
                   {pdfFileUrl && (
                     <Button component="a" href={pdfFileUrl} target="_blank" rel="noreferrer" variant="outlined">
-                      PDF'i yeni sekmede ac
+                      PDF'i yeni sekmede aç
                     </Button>
                   )}
                 </Stack>
@@ -562,9 +562,9 @@ export function MaterialViewerPage() {
                 <Skeleton height={180} variant="rounded" />
               </Stack>
             ) : extractedTextQuery.isError ? (
-              <Alert severity="error">Metin gorunumu yuklenemedi.</Alert>
+              <Alert severity="error">Metin görünümü yüklenemedi.</Alert>
             ) : visibleExtractedPages.length === 0 ? (
-              <Alert severity="info">Metin gorunumunde gosterilecek sonuc bulunamadi.</Alert>
+              <Alert severity="info">Metin görünümünde gösterilecek sonuç bulunamadı.</Alert>
             ) : (
               <Stack spacing={2}>
                 {visibleExtractedPages.map((item) => (
@@ -579,7 +579,7 @@ export function MaterialViewerPage() {
                         size="small"
                         variant="outlined"
                       >
-                        PDF'te ac
+                        PDF'te aç
                       </Button>
                     </Stack>
                     <Typography
@@ -605,7 +605,7 @@ export function MaterialViewerPage() {
         <Stack spacing={2.5} sx={viewerMode === 'split' ? { gridColumn: { lg: '1 / -1' } } : undefined}>
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
             <Typography sx={{ fontWeight: 900, mb: 1.5 }} variant="subtitle1">
-              Not / Highlight
+              Notlar / Vurgular
             </Typography>
 
             <Stack spacing={1.25}>
@@ -664,7 +664,7 @@ export function MaterialViewerPage() {
 
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
             <Typography sx={{ fontWeight: 900, mb: 1.5 }} variant="subtitle1">
-              Bookmarks
+              Yer İşaretleri
             </Typography>
             {bookmarksQuery.isLoading ? (
               <Skeleton height={140} variant="rounded" />
@@ -678,14 +678,14 @@ export function MaterialViewerPage() {
               </Stack>
             ) : (
               <Typography color="text.secondary" variant="body2">
-                Bookmark yok.
+                Yer işareti yok.
               </Typography>
             )}
           </Paper>
 
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
             <Typography sx={{ fontWeight: 900, mb: 1.5 }} variant="subtitle1">
-              Notlar / Highlights
+              Notlar / Vurgular
             </Typography>
             {notesQuery.isLoading ? (
               <Skeleton height={160} variant="rounded" />

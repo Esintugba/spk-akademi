@@ -141,7 +141,7 @@ export function AdminBadgesPage() {
     }
 
     if (!form.iconUrl.trim()) {
-      return 'Ikon yolu zorunludur.'
+      return 'İkon yolu zorunludur.'
     }
 
     if (form.xpReward < 0 || form.requirementValue < 1) {
@@ -241,7 +241,7 @@ export function AdminBadgesPage() {
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               />
               <TextField
-                label="Ikon yolu"
+                label="İkon yolu"
                 value={form.iconUrl}
                 onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
               />

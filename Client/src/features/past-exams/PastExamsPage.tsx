@@ -236,7 +236,7 @@ export function PastExamsPage() {
                   getOptionLabel={(option) => ExamSession[option]}
                   value={field.value}
                   onChange={(_, value) => field.onChange(value)}
-                  renderInput={(params) => <TextField {...params} label="Session" placeholder="Opsiyonel" />}
+                  renderInput={(params) => <TextField {...params} label="Oturum" placeholder="Opsiyonel" />}
                 />
               )}
             />
@@ -319,12 +319,12 @@ export function PastExamsPage() {
 
       <Stack spacing={2}>
         <Typography sx={{ fontWeight: 800 }} variant="subtitle1">
-          Analytics
+          Analizler
         </Typography>
         {analyticsQuery.isLoading && <Skeleton height={320} variant="rounded" />}
         {analyticsQuery.isError && (
           <Alert severity="error">
-            {analyticsQuery.error instanceof Error ? analyticsQuery.error.message : 'Analytics yüklenemedi.'}
+            {analyticsQuery.error instanceof Error ? analyticsQuery.error.message : 'Analizler yüklenemedi.'}
           </Alert>
         )}
         {analyticsQuery.data && <PastExamAnalyticsCharts analytics={analyticsQuery.data} />}

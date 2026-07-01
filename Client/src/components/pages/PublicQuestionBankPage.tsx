@@ -8,8 +8,8 @@ import { MarketingSectionHeading } from '../common/MarketingSectionHeading'
 import { marketingCardSx, marketingGridSx, marketingPageSx, marketingSectionSx } from '../common/marketingStyles'
 
 const accessOptions = [
-  { label: 'Free', value: ContentAccessLevel.Free },
-  { label: 'Trial', value: ContentAccessLevel.Trial },
+  { label: 'Ücretsiz', value: ContentAccessLevel.Free },
+  { label: 'Deneme', value: ContentAccessLevel.Trial },
 ]
 
 export function PublicQuestionBankPage() {
@@ -74,10 +74,9 @@ export function PublicQuestionBankPage() {
   return (
     <Box sx={marketingPageSx}>
       <MarketingHero
-        eyebrow="Public Soru Bankası"
+        eyebrow="Genel Soru Bankası"
         title="Onaylı örnek sorular ve mini quizler."
-        description="Public tarafta yalnızca onaylı içerikler görünür. Free ve Trial seviyesine göre filtrelenmiş soru bankası ve örnek deneme listeleri bu ekranda yer alır."
-        actions={
+        description="Herkese açık alanda yalnızca onaylı içerikler görünür. Ücretsiz ve Deneme seviyesine göre filtrelenmiş soru bankası..."         actions={
           <Button startIcon={<PlayArrowRoundedIcon />} variant="contained" onClick={() => void startMiniQuiz()}>
             Mini quiz başlat
           </Button>
@@ -99,14 +98,14 @@ export function PublicQuestionBankPage() {
         <MarketingSectionHeading
           eyebrow="Soru Bankası"
           title="Örnek sorular"
-          description="Bu listede yalnızca onaylı ve public erişime açılmış sorular yer alır."
+          description="Bu listede yalnızca onaylı ve herkese açık erişime sunulmuş sorular yer alır."
         />
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: 'repeat(3, minmax(0, 1fr))', md: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
           {filteredQuestions.map((question) => (
             <Paper key={question.id} sx={{ ...marketingCardSx, display: 'flex', flexDirection: 'column', minHeight: 260 }} variant="outlined">
               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, minHeight: 28 }}>
                 <Chip color="primary" label={question.topicTitle} size="small" />
-                <Chip label={accessOptions.find((option) => option.value === question.accessLevel)?.label || 'Free'} size="small" />
+                <Chip label={accessOptions.find((option) => option.value === question.accessLevel)?.label || 'Ücretsiz'} size="small" />
               </Stack>
               <Typography sx={{ fontSize: 18, fontWeight: 900, lineHeight: 1.35, mt: 1.5 }}>{question.text}</Typography>
             </Paper>
@@ -116,8 +115,8 @@ export function PublicQuestionBankPage() {
         <Box sx={marketingSectionSx}>
           <MarketingSectionHeading
             eyebrow="Örnek Denemeler"
-            title="Public örnek deneme listesi"
-            description="Public erişim seviyesine açılmış örnek denemeler burada listelenir."
+            title="Herkese açık örnek deneme listesi"
+            description="Herkese açık erişim seviyesine açılmış örnek denemeler burada listelenir."
           />
           <Box sx={marketingGridSx}>
             {exampleTrials.map((trial) => (
@@ -135,7 +134,7 @@ export function PublicQuestionBankPage() {
       </Container>
 
       <Dialog fullWidth maxWidth="md" open={quizQuestions.length > 0} onClose={() => setQuizQuestions([])}>
-        <DialogTitle>Public mini quiz</DialogTitle>
+        <DialogTitle>Herkese Açık Mini Quiz</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {quizQuestions.map((question, index) => (

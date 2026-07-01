@@ -93,13 +93,13 @@ export function CoursePracticeSessionPage() {
     <QuizSessionShell
       answers={answers}
       attempt={attempt}
-      description={`${attempt.totalQuestions} soru - tamamlayınca ders ve konu bazlı analiz göreceksin.`}
+      description={`${attempt.totalQuestions} soru içerir. Testi tamamladıktan sonra ders ve konu bazlı analizini görüntüleyebilirsin.`}
       error={error}
       isBusy={isBusy}
       onAnswerChange={setAnswer}
       onSubmit={() => void handleSubmit()}
-      submitLabel="Testi Bitir ve Sonuclari Gor"
-      title="Ders bazli practice testi"
+      submitLabel="Testi Bitir ve Sonuçları Gör"
+      title="Ders bazlı pratik test"
     />
   )
 }

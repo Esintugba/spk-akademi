@@ -205,7 +205,7 @@ export function GoalsPage() {
             <Box>
               <Typography sx={{ fontSize: 20, fontWeight: 900 }}>Tekrar hedefi</Typography>
               <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
-                Bugun vadesi gelen {dueReviewCount} tekrar sorusu var.
+               Bugün tamamlanması gereken {dueReviewCount} tekrar sorusu bulunuyor.
               </Typography>
               {activeReviewGoal && (
                 <Box sx={{ mt: 1.5, maxWidth: 420 }}>
@@ -348,7 +348,7 @@ export function GoalsPage() {
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeDialog}>Vazgec</Button>
+            <Button onClick={closeDialog}>Vazgeç</Button>
             <Button disabled={createGoal.isPending || updateGoal.isPending} type="submit" variant="contained">
               Kaydet
             </Button>
@@ -429,7 +429,7 @@ function GoalCard({
             </Box>
           </Stack>
           <Stack direction="row" spacing={0.5}>
-            <IconButton aria-label="Hedefi duzenle" onClick={() => onEdit(goal)} size="small">
+            <IconButton aria-label="Hedefi düzenle" onClick={() => onEdit(goal)} size="small">
               <EditOutlinedIcon fontSize="small" />
             </IconButton>
             <IconButton aria-label="Hedefi sil" color="error" onClick={() => onDelete(goal)} size="small">
@@ -447,7 +447,7 @@ function GoalCard({
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <Chip label={statusLabels[goal.status]} size="small" />
           {goal.isOverdue && <Chip color="warning" label="Gecikti" size="small" />}
-          <Chip label={`${goal.daysRemaining} gun kaldi`} size="small" variant="outlined" />
+          <Chip label={`${goal.daysRemaining} gün kaldı`} size="small" variant="outlined" />
         </Stack>
 
         <Box>

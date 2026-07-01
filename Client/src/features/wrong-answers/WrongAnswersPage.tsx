@@ -120,7 +120,7 @@ export function WrongAnswersPage() {
       <StudentPageHero
         eyebrow="Yanlışlarım"
         title="Yanlışlarım Test Modu"
-        description="Yanlış yaptığın sorular spaced repetition ile tekrar kuyruğuna alınır. Zamanı gelenleri çözerek zayıf konularını güçlendir."
+        description="Yanlış yaptığın sorular aralıklı tekrar yöntemi ile tekrar kuyruğuna alınır. Zamanı gelenleri çözerek zayıf konularını güçlendir."
       />
 
       {statsQuery.isLoading ? (

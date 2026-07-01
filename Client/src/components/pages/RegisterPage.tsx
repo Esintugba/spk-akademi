@@ -46,7 +46,7 @@ export function RegisterPage() {
       })).unwrap()
       navigate(registeredUser.role === 'Admin' ? '/admin' : '/onboarding')
     } catch {
-      // Hata mesaji authSlice ve axios interceptor uzerinden gosteriliyor.
+      // Hata mesajı authSlice ve axios interceptor üzerinden gösteriliyor.
     }
   }
 

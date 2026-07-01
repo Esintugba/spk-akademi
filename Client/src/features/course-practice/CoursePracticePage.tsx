@@ -139,8 +139,8 @@ export function CoursePracticePage() {
     <Stack spacing={3}>
       <StudentPageHero
         eyebrow="Ders Pratiği"
-        title="Ders Bazlı Practice Testi"
-        description="Tek bir derse odaklan, filtreleri ayarla ve SPK çalışma akışına uygun practice testi oluştur."
+        title="Ders Bazlı Pratik Testi"
+        description="Tek bir derse odaklan, filtreleri ayarla ve SPK çalışma akışına uygun deneme testi oluştur."
       />
 
       {courses.length === 0 ? (
@@ -302,7 +302,7 @@ export function CoursePracticePage() {
             )}
 
             <Button disabled={startMutation.isPending} type="submit" variant="contained">
-              {startMutation.isPending ? 'Oluşturuluyor…' : 'Practice Testini Başlat'}
+              {startMutation.isPending ? 'Oluşturuluyor…' : 'Ders Pratiğini Başlat'}
             </Button>
           </Stack>
         </Paper>

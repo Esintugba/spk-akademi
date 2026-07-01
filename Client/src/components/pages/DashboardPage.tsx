@@ -51,7 +51,7 @@ export function DashboardPage() {
   }
 
   if (dashboardQuery.error instanceof Error || !dashboardQuery.data) {
-    return <Alert severity="error">{dashboardQuery.error?.message || 'Admin dashboard yüklenemedi.'}</Alert>
+    return <Alert severity="error">{dashboardQuery.error?.message || 'Yönetim paneli yüklenemedi.'}</Alert>
   }
 
   const dashboard = dashboardQuery.data
@@ -94,10 +94,10 @@ export function DashboardPage() {
       </Box>
 
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: 'repeat(4, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
-        <AdminMetricCard detail="Acik/islemde/kullanici bekleyen" icon={<SupportAgentOutlinedIcon />} label="Bekleyen Talepler" value={formatNumber(dashboard.supportTickets.pendingTickets)} />
-        <AdminMetricCard detail="Henuz admin atanmamis" icon={<SupportAgentOutlinedIcon />} label="Atanmamis Talepler" value={formatNumber(dashboard.supportTickets.unassignedTickets)} />
-        <AdminMetricCard detail="Bugun olusturulan" icon={<SupportAgentOutlinedIcon />} label="Bugun Acilan" value={formatNumber(dashboard.supportTickets.openedToday)} />
-        <AdminMetricCard detail="Kritik ve kapanmamis" icon={<SupportAgentOutlinedIcon />} label="Kritik Talepler" value={formatNumber(dashboard.supportTickets.criticalTickets)} />
+        <AdminMetricCard detail="Açık / işlemde / kullanıcı bekleyen" icon={<SupportAgentOutlinedIcon />} label="Bekleyen Talepler" value={formatNumber(dashboard.supportTickets.pendingTickets)} />
+        <AdminMetricCard detail="Henüz yönetici atanmamış" icon={<SupportAgentOutlinedIcon />} label="Atanmamış Talepler" value={formatNumber(dashboard.supportTickets.unassignedTickets)} />
+        <AdminMetricCard detail="Bugün oluşturulan" icon={<SupportAgentOutlinedIcon />} label="Bugün Açılan" value={formatNumber(dashboard.supportTickets.openedToday)} />
+        <AdminMetricCard detail="Kritik ve kapanmamış" icon={<SupportAgentOutlinedIcon />} label="Kritik Talepler" value={formatNumber(dashboard.supportTickets.criticalTickets)} />
       </Box>
 
       <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '1.1fr 0.9fr 0.9fr', xs: '1fr' } }}>
@@ -250,13 +250,13 @@ function SystemHealthPanel({ dashboard }: { dashboard: AdminDashboard }) {
     <AdminSurface title="Sistem Sağlığı" description={`Son kontrol: ${formatDate(dashboard.systemHealth.checkedAt)}`}>
       <Stack spacing={1.2}>
         <MiniMetric icon={<HealthAndSafetyOutlinedIcon color="success" />} label="API durumu" textValue={dashboard.systemHealth.apiStatus} />
-        <MiniMetric label="Background jobs" value={dashboard.systemHealth.backgroundJobsQueued} />
-        <MiniMetric label="Mail queue" value={dashboard.systemHealth.mailQueuePending} />
-        <MiniMetric label="Import queue" value={dashboard.systemHealth.importQueuePending} />
+        <MiniMetric label="Arka plan görevleri" value={dashboard.systemHealth.backgroundJobsQueued} />
+        <MiniMetric label="E-posta kuyruğu" value={dashboard.systemHealth.mailQueuePending} />
+        <MiniMetric label="İçe aktarma kuyruğu" value={dashboard.systemHealth.importQueuePending} />
         {queues.map((queue) => (
           <Box key={queue.name}>
             <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography sx={{ fontWeight: 750 }}>{queue.name} queue</Typography>
+              <Typography sx={{ fontWeight: 750 }}>{queue.name} kuyruğu</Typography>
               <Typography color="text.secondary">{queue.pendingCount}/{queue.capacity}</Typography>
             </Stack>
             <LinearProgress

@@ -149,7 +149,7 @@ export function QuizPage({ topics }: QuizPageProps) {
                 </Button>
               )}
               <Button component={RouterLink} to="/quiz/course-practice" variant="outlined">
-                Ders bazlı practice
+                Ders Bazlı Pratik
               </Button>
             </Stack>
           }
@@ -190,7 +190,7 @@ export function QuizPage({ topics }: QuizPageProps) {
             {remainingSeconds !== null && (
               <Chip
                 color={remainingSeconds <= 60 ? 'warning' : 'primary'}
-                label={`Kalan sure: ${formatRemainingTime(remainingSeconds)}`}
+                label={`Kalan süre: ${formatRemainingTime(remainingSeconds)}`}
                 sx={{ alignSelf: 'flex-start', fontWeight: 800 }}
               />
             )}

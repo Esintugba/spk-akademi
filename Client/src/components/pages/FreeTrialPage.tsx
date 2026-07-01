@@ -224,7 +224,7 @@ export function FreeTrialPage() {
     }
 
     if (!isAuthenticated) {
-      setError('Ucretsiz denemeyi baslatmak icin kayit ol veya giris yap.')
+      setError('Ücretsiz denemeyi başlatmak için kayıt ol veya giriş yap.')
       return
     }
 

@@ -48,7 +48,7 @@ export function WrongAnswersSessionPage() {
     <QuizSessionShell
       answers={answers}
       attempt={attempt}
-      description={`${attempt.totalQuestions} soru - doğru cevapladıkça spaced repetition ile tekrar aralığı uzar.`}
+      description={`${attempt.totalQuestions} soru - doğru cevapladıkça aralıklı tekrar süren uzar.`}
       error={error}
       isBusy={submitMutation.isPending}
       onAnswerChange={setAnswer}

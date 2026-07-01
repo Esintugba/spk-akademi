@@ -339,7 +339,7 @@ export function MyTopicsPage() {
               </Typography>
               <Typography sx={{ fontSize: 42, fontWeight: 900 }}>{topics.length}</Typography>
               <Typography color="text.secondary" variant="body2">
-                {courses.length} ders icinde listeleniyor.
+                {courses.length} ders içinde listeleniyor.
               </Typography>
             </Stack>
           </Paper>
@@ -367,7 +367,7 @@ export function MyTopicsPage() {
                 color="primary"
                 detail={recentActivity
                   ? `${recentActivity.courseName} · ${formatTopicDate(recentActivity.lastStudiedAt)}`
-                  : 'Henüz bir çalışma hareketin bulunmuyor.'}
+                  : 'Henüz bir çalışma geçmişin bulunmuyor.'}
                 icon={<HistoryOutlinedIcon />}
                 title={recentActivity?.topicTitle ?? 'İlk konunu çalışmaya başla'}
                 to={recentActivity ? `/study/${recentActivity.topicId}` : '/my-topics'}

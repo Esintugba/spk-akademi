@@ -129,7 +129,7 @@ export function AdminSupportTicketsPage() {
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(4, 1fr)', xs: '1fr' } }}>
         <AdminMetricCard detail="Açık/İşlemde/Kullanıcı Bekleyen" icon={<SupportAgentOutlinedIcon />} label="Bekleyen Talepler" value={summary?.pendingTickets ?? 0} />
         <AdminMetricCard detail="Henüz admin atanmamış" icon={<SupportAgentOutlinedIcon />} label="Atanmamış" value={summary?.unassignedTickets ?? 0} />
-        <AdminMetricCard detail="Bugün oluşturulmuş" icon={<SupportAgentOutlinedIcon />} label="Bugün Açıklanan" value={summary?.openedToday ?? 0} />
+        <AdminMetricCard detail="Bugün oluşturulmuş" icon={<SupportAgentOutlinedIcon />} label="Bugün Açılan" value={summary?.openedToday ?? 0} />
         <AdminMetricCard detail="Kritik ve kapanmamış" icon={<SupportAgentOutlinedIcon />} label="Kritik" value={summary?.criticalTickets ?? 0} />
       </Box>
 
@@ -183,7 +183,7 @@ export function AdminSupportTicketsPage() {
       <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { xl: '1fr 520px', xs: '1fr' } }}>
         <Paper sx={{ borderRadius: 3, overflow: 'hidden' }} variant="outlined">
           {ticketsQuery.isLoading && <Skeleton height={360} variant="rounded" />}
-          {ticketsQuery.isError && <Alert severity="error">{ticketsQuery.error instanceof Error ? ticketsQuery.error.message : 'Talepler yuklenemedi.'}</Alert>}
+          {ticketsQuery.isError && <Alert severity="error">{ticketsQuery.error instanceof Error ? ticketsQuery.error.message : 'Talepler yüklenemedi.'}</Alert>}
           {ticketsQuery.data && (
             <TableContainer>
               <Table>

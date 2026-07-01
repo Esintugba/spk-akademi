@@ -34,8 +34,8 @@ export function AdminConsentsPage() {
       />
 
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(4, 1fr)', xs: '1fr' } }}>
-        <AdminMetricCard detail={`Son onay: ${formatDate(data.lastCookieConsentAt)}`} icon={<span />} label="Cookie kabul" value={data.cookieAcceptedCount} />
-        <AdminMetricCard detail="Analitik ve pazarlama kapalı" icon={<span />} label="Cookie red" value={data.cookieRejectedCount} />
+        <AdminMetricCard detail={`Son onay: ${formatDate(data.lastCookieConsentAt)}`} icon={<span />} label="Çerez kabul" value={data.cookieAcceptedCount} />
+        <AdminMetricCard detail="Analitik ve pazarlama kapalı" icon={<span />} label="Çerez red" value={data.cookieRejectedCount} />
         <AdminMetricCard detail={`Son KVKK: ${formatDate(data.lastKvkkConsentAt)}`} icon={<span />} label="KVKK onayı" value={data.kvkkConsentCount} />
         <AdminMetricCard detail="Son 30 kayıt listelenir" icon={<span />} label="Kayıt" value={data.recentConsents.length} />
       </Box>
@@ -45,10 +45,10 @@ export function AdminConsentsPage() {
           <TableHead>
             <TableRow>
               <TableCell>Tür</TableCell>
-              <TableCell>UserId</TableCell>
+              <TableCell>Kullanıcı ID</TableCell>
               <TableCell>IP</TableCell>
               <TableCell>Tarih</TableCell>
-              <TableCell>Version</TableCell>
+              <TableCell>Versiyon</TableCell>
               <TableCell>Onaylar</TableCell>
             </TableRow>
           </TableHead>

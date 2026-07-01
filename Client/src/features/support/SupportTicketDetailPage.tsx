@@ -102,7 +102,7 @@ export function SupportTicketDetailPage() {
           </Paper>
 
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
-            <Typography sx={{ fontSize: 22, fontWeight: 900, mb: 2 }}>Mesajlasma</Typography>
+            <Typography sx={{ fontSize: 22, fontWeight: 900, mb: 2 }}>Mesajlaşma</Typography>
             <Stack spacing={2}>
               {ticket.messages.map((item) => (
                 <Paper

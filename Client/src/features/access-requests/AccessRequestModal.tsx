@@ -53,12 +53,12 @@ export function AccessRequestModal() {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: MY_REQUESTS_KEY })
-      toast.success('Erisim talebiniz gonderildi.')
+      toast.success('Erişim talebiniz gönderildi.')
       reset()
       closeModal()
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Basvuru gonderilemedi.')
+      toast.error(error.message || 'Başvuru gönderilemedi.')
     },
   })
 
@@ -77,7 +77,7 @@ export function AccessRequestModal() {
           mutation.mutate(values)
         })}
       >
-        <DialogTitle>Erisim talebini onayla</DialogTitle>
+        <DialogTitle>Erişim talebini onayla</DialogTitle>
         <DialogContent>
           <Stack spacing={2.25}>
             <Box>
@@ -93,7 +93,7 @@ export function AccessRequestModal() {
               {requestedLicenseName && (
                 <Chip
                   color="primary"
-                  label={`Secilen lisans: ${requestedLicenseName}`}
+                  label={`Seçilen lisans: ${requestedLicenseName}`}
                   size="small"
                   sx={{ fontWeight: 700, mt: 1.25 }}
                 />
@@ -110,7 +110,7 @@ export function AccessRequestModal() {
 
             {licenses.length > 0 && (
               <Box>
-                <Typography sx={{ fontWeight: 850, mb: 1 }}>Bu talep su lisanslari kapsar</Typography>
+                <Typography sx={{ fontWeight: 850, mb: 1 }}>Bu talep şu lisansları kapsar</Typography>
                 <Stack spacing={1}>
                   {licenses.slice(0, 8).map((license) => (
                     <Box
@@ -144,18 +144,18 @@ export function AccessRequestModal() {
               error={Boolean(formState.errors.message)}
               fullWidth
               helperText={formState.errors.message?.message}
-              label="Mesajiniz (opsiyonel)"
+              label="Mesajınız (opsiyonel)"
               multiline
-              placeholder="Hangi sinava hazirlandiginizi veya talep nedeninizi kisaca yazabilirsiniz."
+              placeholder="Hangi sınava hazırlandığınızı veya talep nedeninizi kısaca yazabilirsiniz."
               rows={4}
               {...register('message')}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Iptal</Button>
+          <Button onClick={onClose}>İptal</Button>
           <Button disabled={mutation.isPending || !planId} type="submit" variant="contained">
-            {mutation.isPending ? 'Gonderiliyor...' : 'Bu paket icin basvuru gonder'}
+            {mutation.isPending ? 'Gönderiliyor...' : 'Bu paket için başvuru gönder'}
           </Button>
         </DialogActions>
       </form>

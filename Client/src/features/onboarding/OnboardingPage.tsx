@@ -154,13 +154,13 @@ export function OnboardingPage() {
           <Stack spacing={2.5}>
             <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ justifyContent: 'space-between' }}>
               <Box>
-                <Typography sx={{ fontSize: 22, fontWeight: 900 }}>Erisim kapsaminizi secin</Typography>
+                <Typography sx={{ fontSize: 22, fontWeight: 900 }}>Erişim Kapsamınızı Seçin</Typography>
                 <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                  Basvuru yapmadan once paketin actigi lisanslari ve icerik kapsamlarini net olarak gorebilirsiniz.
+                  Başvuru yapmadan önce paketin açtığı lisansları ve içerik kapsamlarını net olarak görebilirsiniz.
                 </Typography>
               </Box>
               <Button component={RouterLink} to="/plans" variant="text">
-                Tum paketler
+                Tüm paketler
               </Button>
             </Stack>
 
@@ -171,9 +171,9 @@ export function OnboardingPage() {
                 ))}
               </Box>
             ) : plansQuery.isError ? (
-              <Alert severity="warning">Paket kapsami yuklenemedi. Paketler sayfasindan tekrar deneyebilirsiniz.</Alert>
+              <Alert severity="warning">Paket kapsamı yüklenemedi. Paketler sayfasından tekrar deneyebilirsiniz.</Alert>
             ) : suggestedPlans.length === 0 ? (
-              <Alert severity="success">Talep edilebilir ek paket bulunmuyor. Aktif erisimleriniz panelde listelenecek.</Alert>
+              <Alert severity="success">Talep edilebilir ek paket bulunmuyor. Aktif erişimleriniz panelde listelenecek.</Alert>
             ) : (
               <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(3, minmax(0, 1fr))', xs: '1fr' } }}>
                 {suggestedPlans.map((plan) => {
@@ -187,14 +187,14 @@ export function OnboardingPage() {
                           <Inventory2OutlinedIcon color="primary" />
                           <Chip
                             color={hasPending ? 'warning' : 'default'}
-                            label={hasPending ? 'Basvuru inceleniyor' : 'Erisim gerekli'}
+                            label={hasPending ? 'Başvuru inceleniyor' : 'Erişim gerekli'}
                             size="small"
                           />
                         </Stack>
                         <Box>
                           <Typography sx={{ fontSize: 19, fontWeight: 900 }}>{plan.name}</Typography>
                           <Typography color="text.secondary" sx={{ lineHeight: 1.65, mt: 0.75 }} variant="body2">
-                            {plan.shortDescription || plan.description || 'Bu paket icin aciklama yakinda eklenecek.'}
+                            {plan.shortDescription || plan.description || 'Bu paket için açıklama yakında eklenecek.'}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { sm: 'repeat(3, minmax(0, 1fr))', xs: '1fr' } }}>
@@ -225,7 +225,7 @@ export function OnboardingPage() {
                         sx={{ mt: 2 }}
                         variant="contained"
                       >
-                        {hasPending ? 'Basvuru beklemede' : 'Bu pakete basvur'}
+                        {hasPending ? 'Başvuru beklemede' : 'Bu pakete başvur'}
                       </Button>
                     </Paper>
                   )

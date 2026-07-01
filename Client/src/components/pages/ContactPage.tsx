@@ -19,7 +19,7 @@ const contactSchema = z.object({
   email: z.string().trim().email('Geçerli bir e-posta girin.').max(254),
   subject: z.string().trim().min(3, 'Konu en az 3 karakter olmalıdır.').max(180),
   message: z.string().trim().min(20, 'Mesaj en az 20 karakter olmalıdır.').max(4000),
-  kvkkAccepted: z.boolean().refine((value) => value, 'KVKK Aydinlatma Metnini onaylamalisiniz.'),
+  kvkkAccepted: z.boolean().refine((value) => value, 'KVKK Aydınlatma Metnini onaylamalısınız.'),
   commercialElectronicMessages: z.boolean(),
   website: z.string().max(200).optional(),
 })
@@ -131,7 +131,7 @@ export function ContactPage() {
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <FormControlLabel
                     control={<Checkbox {...register('kvkkAccepted')} />}
-                    label={<Typography variant="body2"><Link href="/kvkk">KVKK Aydinlatma Metnini</Link> okudum.</Typography>}
+                    label={<Typography variant="body2"><Link href="/kvkk">KVKK Aydınlatma Metnini</Link> okudum.</Typography>}
                   />
                   {errors.kvkkAccepted && <Typography color="error" sx={{ display: 'block' }} variant="caption">{errors.kvkkAccepted.message}</Typography>}
                   <FormControlLabel

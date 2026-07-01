@@ -28,7 +28,7 @@ export function ForgotPasswordPage() {
       await authApi.forgotPassword({ email })
       setMessage(successMessage)
     } catch {
-      // Hata mesaji axios interceptor uzerinden gosteriliyor.
+      // Hata mesajı axios interceptor üzerinden gösteriliyor.
     } finally {
       setIsSubmitting(false)
     }

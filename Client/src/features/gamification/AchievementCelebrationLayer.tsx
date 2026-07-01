@@ -23,7 +23,7 @@ export function AchievementCelebrationLayer() {
 
     const timeout = window.setTimeout(() => {
       dismissNotice(activeNotice.id)
-    }, 2600)
+    }, 3500)
 
     return () => window.clearTimeout(timeout)
   }, [activeNotice, dismissNotice])

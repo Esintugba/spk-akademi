@@ -220,7 +220,7 @@ export function AdminContactMessagesPage() {
               >
                 Spam
               </Button>
-              <Button onClick={() => setSelected(null)}>Detayi kapat</Button>
+              <Button onClick={() => setSelected(null)}>Detayı kapat</Button>
             </Stack>
           </Stack>
         </Paper>

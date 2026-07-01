@@ -24,7 +24,7 @@ export class OnboardingErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <Stack spacing={2}>
-          <Alert severity="error">Onboarding ekranı yüklenirken bir hata oluştu.</Alert>
+          <Alert severity="error">Onboarding yüklenirken bir hata oluştu.</Alert>
           <Button onClick={() => this.setState({ hasError: false })} variant="outlined">
             Tekrar dene
           </Button>

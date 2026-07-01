@@ -171,7 +171,7 @@ export function TrialExamSessionPage() {
       warningContent={
         isLastFiveMinutes ? (
           <Alert icon={<WarningAmberRoundedIcon />} severity="warning">
-            Son 5 dakika - sure dolunca cevaplar otomatik gonderilir.
+            Son 5 dakika. Süre dolduğunda cevaplar otomatik olarak gönderilecektir.
           </Alert>
         ) : null
       }

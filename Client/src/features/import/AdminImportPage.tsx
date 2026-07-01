@@ -108,7 +108,7 @@ export function AdminImportPage() {
       setMaterialResult(result)
       toast.success(`${result.importedFiles} materyal import edildi.`)
     },
-    onError: (error: Error) => toast.error(error.message || 'Materyal import baslatilamadi.'),
+    onError: (error: Error) => toast.error(error.message || 'Materyal import başlatılamadı.'),
   })
 
   const jobQuery = useQuery({
@@ -170,7 +170,7 @@ export function AdminImportPage() {
 
   function startMaterialImport() {
     if (!materialCourseId || !materialFile) {
-      toast.error('Ders ve PDF/ZIP dosyasi secmelisin.')
+      toast.error('Ders ve PDF/ZIP dosyası seçmelisin.')
       return
     }
 
@@ -189,7 +189,7 @@ export function AdminImportPage() {
           Toplu import
         </Typography>
         <Typography color="text.secondary">
-          CSV veya JSON soru dosyasını yükleyin, önce validation ve duplicate preview alın, sonra importu başlatın.
+          CSV veya JSON soru dosyasını yükleyin, önce doğrulama ve benzer kayıt ön izlemesini alın, ardından içe aktarma işlemini başlatın.
         </Typography>
       </Box>
 
@@ -263,7 +263,7 @@ export function AdminImportPage() {
           startIcon={<SearchOutlinedIcon />}
           variant="text"
         >
-          Duplicate tekrar kontrol
+          Duplicate Tekrar Kontrol Et
         </Button>
       </Stack>
 
@@ -339,13 +339,13 @@ export function AdminImportPage() {
           >
             <CloudUploadOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
             <Typography sx={{ fontWeight: 800 }}>
-              {materialFile ? materialFile.name : 'PDF veya ZIP dosyasini buraya surukleyin'}
+              {materialFile ? materialFile.name : 'PDF veya ZİP dosyasını buraya sürükleyin'}
             </Typography>
             <Typography color="text.secondary" variant="body2">
-              PDF tek kaynak olarak, ZIP ise icindeki PDF dosyalari toplu kaynak olarak import edilir. Maksimum 50 MB.
+              PDF tek kaynak olarak, ZİP ise içindeki PDF dosyaları toplu kaynak olarak import edilir. Maksimum 50 MB.
             </Typography>
             <Button component="label" variant="outlined">
-              PDF/ZIP sec
+              PDF/ZİP seç
               <input
                 accept=".pdf,.zip,application/pdf,application/zip"
                 hidden
@@ -357,7 +357,7 @@ export function AdminImportPage() {
 
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
             <Stack spacing={2}>
-              {coursesQuery.isError && <Alert severity="error">Ders listesi yuklenemedi.</Alert>}
+              {coursesQuery.isError && <Alert severity="error">Ders listesi yüklenemedi.</Alert>}
               <TextField
                 disabled={coursesQuery.isLoading}
                 fullWidth
@@ -375,14 +375,14 @@ export function AdminImportPage() {
               </TextField>
               <TextField
                 fullWidth
-                helperText="ZIP importta her PDF kendi dosya adi ile baslik alir."
-                label="Baslik"
+                helperText="ZİP importta her PDF kendi dosya adı ile başlık alır."
+                label="Başlık"
                 onChange={(event) => setMaterialTitle(event.target.value)}
                 value={materialTitle}
               />
               <TextField
                 fullWidth
-                label="Kaynak adi"
+                label="Kaynak adı"
                 onChange={(event) => setMaterialSourceName(event.target.value)}
                 value={materialSourceName}
               />
@@ -392,7 +392,7 @@ export function AdminImportPage() {
                 startIcon={<PlayArrowOutlinedIcon />}
                 variant="contained"
               >
-                Materyal import baslat
+                Materyal import başlat
               </Button>
             </Stack>
           </Paper>
@@ -466,7 +466,7 @@ function MaterialDocumentsTable({ documents }: { documents: MaterialImportResult
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Baslik</TableCell>
+            <TableCell>Başlık</TableCell>
             <TableCell>Dosya</TableCell>
             <TableCell>Sayfa</TableCell>
             <TableCell>Kaynak</TableCell>
