@@ -26,6 +26,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Database__Provider: ${Database__Provider:-Postgres}
+      Database__AutoMigrate: ${Database__AutoMigrate:-false}
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:?ConnectionStrings__DefaultConnection is required}
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}

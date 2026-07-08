@@ -30,6 +30,8 @@ public static class ConfigurationSecurityValidator
         var jwtKey = configuration["Jwt:Key"];
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var databaseProvider = configuration["Database:Provider"] ?? "Sqlite";
+        var autoMigrate = configuration.GetValue<bool>("Database:AutoMigrate");
+        var allowProductionAutoMigrate = configuration.GetValue<bool>("Database:AllowProductionAutoMigrate");
         var emailEnabled = configuration.GetValue<bool>("Email:Enabled");
         var seedAdminEnabled = configuration.GetValue<bool>("SeedAdmin:Enabled");
         var allowedHosts = configuration["AllowedHosts"];
@@ -45,12 +47,27 @@ public static class ConfigurationSecurityValidator
             errors.Add($"Jwt:Key must be at least {MinimumJwtKeyLength} characters outside Development.");
         }
 
+        string? normalizedDatabaseProvider = null;
+        try
+        {
+            normalizedDatabaseProvider = DatabaseOptions.NormalizeProvider(databaseProvider);
+        }
+        catch (InvalidOperationException exception)
+        {
+            errors.Add(exception.Message);
+        }
+
         ValidateRequiredSecret(errors, "ConnectionStrings:DefaultConnection", connectionString, isDevelopment);
         if (!isDevelopment &&
-            IsPostgresProvider(databaseProvider) &&
+            normalizedDatabaseProvider == DatabaseOptions.PostgresProvider &&
             !ConnectionStringHasPassword(connectionString))
         {
             errors.Add("ConnectionStrings:DefaultConnection must include a non-placeholder Password for Postgres outside Development.");
+        }
+
+        if (!isDevelopment && autoMigrate && !allowProductionAutoMigrate)
+        {
+            errors.Add("Database:AutoMigrate cannot be true outside Development unless Database:AllowProductionAutoMigrate is explicitly true.");
         }
 
         if (!isDevelopment && emailEnabled)
@@ -107,13 +124,6 @@ public static class ConfigurationSecurityValidator
         {
             errors.Add($"{key} contains a placeholder or weak default.");
         }
-    }
-
-    private static bool IsPostgresProvider(string provider)
-    {
-        return provider.Trim().Equals("postgres", StringComparison.OrdinalIgnoreCase) ||
-            provider.Trim().Equals("postgresql", StringComparison.OrdinalIgnoreCase) ||
-            provider.Trim().Equals("npgsql", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ConnectionStringHasPassword(string? connectionString)

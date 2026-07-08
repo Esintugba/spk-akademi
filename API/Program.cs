@@ -18,7 +18,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
@@ -125,20 +124,14 @@ ConfigurationSecurityValidator.ThrowIfInvalid(builder.Configuration, builder.Env
 var databaseOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+connectionString = DatabaseProviderConfigurator.ResolveConnectionString(
+    databaseOptions,
+    connectionString,
+    builder.Environment.ContentRootPath);
 
 builder.Services.AddDbContext<DataContext>(options =>
 {
-    var provider = databaseOptions.Provider.Trim().ToLowerInvariant();
-
-    if (provider is "postgres" or "postgresql" or "npgsql")
-    {
-        options.UseNpgsql(connectionString);
-        options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
-        return;
-    }
-
-    options.UseSqlite(connectionString);
-    options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+    DatabaseProviderConfigurator.Configure(options, databaseOptions, connectionString);
 });
 
 builder.Services

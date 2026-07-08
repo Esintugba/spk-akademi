@@ -16,13 +16,25 @@ public static class DatabaseInitializationExtensions
         var databaseOptions = services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
         var dbContext = services.GetRequiredService<DataContext>();
 
+        if (!app.Environment.IsDevelopment() &&
+            databaseOptions.AutoMigrate &&
+            !databaseOptions.AllowProductionAutoMigrate)
+        {
+            throw new InvalidOperationException(
+                "Automatic database migration is disabled outside Development unless Database:AllowProductionAutoMigrate is explicitly set to true. Run migrations from the deployment pipeline instead.");
+        }
+
         if (!databaseOptions.AutoMigrate)
         {
             logger.LogInformation("Automatic database migration is disabled.");
             return;
         }
 
-        logger.LogInformation("Applying database migrations for provider {Provider}.", databaseOptions.Provider);
+        logger.LogInformation(
+            "Applying database migrations for provider {Provider} from assembly {MigrationsAssembly}.",
+            databaseOptions.Provider,
+            databaseOptions.ResolveMigrationsAssembly());
+
         await dbContext.Database.MigrateAsync();
         var badgeService = services.GetRequiredService<IBadgeService>();
         await badgeService.SeedDefaultsAsync();

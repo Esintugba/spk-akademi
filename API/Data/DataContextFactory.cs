@@ -1,5 +1,4 @@
 using API.Configuration;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -21,19 +20,19 @@ public sealed class DataContextFactory : IDesignTimeDbContextFactory<DataContext
 
         var databaseOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>()
             ?? new DatabaseOptions();
+        databaseOptions.Provider = GetArgumentValue(args, "provider")
+            ?? Environment.GetEnvironmentVariable("EF_PROVIDER")
+            ?? databaseOptions.Provider;
+
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? "Data Source=spk.db";
+        connectionString = GetArgumentValue(args, "connection")
+            ?? Environment.GetEnvironmentVariable("EF_CONNECTION")
+            ?? connectionString;
+        connectionString = DatabaseProviderConfigurator.ResolveConnectionString(databaseOptions, connectionString, basePath);
 
         var optionsBuilder = new DbContextOptionsBuilder<DataContext>();
-        var provider = databaseOptions.Provider.Trim().ToLowerInvariant();
-
-        if (provider is "postgres" or "postgresql" or "npgsql")
-        {
-            optionsBuilder.UseNpgsql(connectionString);
-            return new DataContext(optionsBuilder.Options);
-        }
-
-        optionsBuilder.UseSqlite(ResolveSqliteConnectionString(connectionString, basePath));
+        DatabaseProviderConfigurator.Configure(optionsBuilder, databaseOptions, connectionString);
         return new DataContext(optionsBuilder.Options);
     }
 
@@ -52,15 +51,25 @@ public sealed class DataContextFactory : IDesignTimeDbContextFactory<DataContext
             : currentDirectory;
     }
 
-    private static string ResolveSqliteConnectionString(string connectionString, string basePath)
+    private static string? GetArgumentValue(string[] args, string name)
     {
-        var builder = new SqliteConnectionStringBuilder(connectionString);
+        var prefixedName = "--" + name;
 
-        if (!string.IsNullOrWhiteSpace(builder.DataSource) && !Path.IsPathRooted(builder.DataSource))
+        for (var i = 0; i < args.Length; i++)
         {
-            builder.DataSource = Path.GetFullPath(Path.Combine(basePath, builder.DataSource));
+            var argument = args[i];
+
+            if (argument.Equals(prefixedName, StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+            {
+                return args[i + 1];
+            }
+
+            if (argument.StartsWith(prefixedName + "=", StringComparison.OrdinalIgnoreCase))
+            {
+                return argument[(prefixedName.Length + 1)..];
+            }
         }
 
-        return builder.ConnectionString;
+        return null;
     }
 }
