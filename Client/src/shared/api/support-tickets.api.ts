@@ -37,4 +37,5 @@ export const supportTicketsApi = {
     request.post<SupportTicketDetail>(`/api/admin/support-tickets/${id}/messages`, payload, formConfig),
   updateAdmin: (id: string, payload: { status?: number; priority?: number; assignedAdminId?: string | null; note?: string }) =>
     request.put<SupportTicketDetail>(`/api/admin/support-tickets/${id}`, payload),
+  downloadAttachment: (url: string) => request.get<Blob>(url, { responseType: 'blob' }),
 }

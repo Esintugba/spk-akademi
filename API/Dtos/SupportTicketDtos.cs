@@ -48,6 +48,11 @@ public record SupportTicketMessageDto(
     string? AttachmentUrl,
     DateTime CreatedAt);
 
+public record SupportTicketAttachmentDownloadDto(
+    string FullPath,
+    string FileName,
+    string ContentType);
+
 public record SupportTicketStatusHistoryDto(
     Guid Id,
     SupportTicketStatus? OldStatus,

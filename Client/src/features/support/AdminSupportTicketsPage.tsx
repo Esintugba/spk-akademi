@@ -288,7 +288,7 @@ export function AdminSupportTicketsPage() {
                     </Stack>
                     <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.message}</Typography>
                     {item.attachmentUrl && (
-                      <Button component="a" href={resolveApiAssetUrl(item.attachmentUrl)} size="small" target="_blank">
+                      <Button onClick={() => void openSupportAttachment(item.attachmentUrl)} size="small">
                         Eki Aç
                       </Button>
                     )}
@@ -337,4 +337,26 @@ async function invalidateSupportQueries(queryClient: ReturnType<typeof useQueryC
     queryClient.invalidateQueries({ queryKey: ['support-tickets'] }),
     queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] }),
   ])
+}
+
+async function openSupportAttachment(url: string | null | undefined) {
+  if (!url) {
+    return
+  }
+
+  if (!url.startsWith('/api/')) {
+    window.open(resolveApiAssetUrl(url), '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const file = await supportTicketsApi.downloadAttachment(url)
+  const objectUrl = URL.createObjectURL(file)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.target = '_blank'
+  anchor.rel = 'noopener noreferrer'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000)
 }

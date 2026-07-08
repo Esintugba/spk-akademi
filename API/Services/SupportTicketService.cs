@@ -6,6 +6,7 @@ using API.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace API.Services;
 
@@ -61,6 +62,17 @@ public interface ISupportTicketService
     Task<StudentSupportDashboardDto> GetStudentDashboardAsync(string userId, CancellationToken cancellationToken = default);
 
     Task<AdminSupportDashboardDto> GetAdminDashboardAsync(CancellationToken cancellationToken = default);
+
+    Task<(SupportTicketError Error, SupportTicketAttachmentDownloadDto? Result)> GetUserAttachmentAsync(
+        string userId,
+        Guid ticketId,
+        string fileName,
+        CancellationToken cancellationToken = default);
+
+    Task<(SupportTicketError Error, SupportTicketAttachmentDownloadDto? Result)> GetAdminAttachmentAsync(
+        Guid ticketId,
+        string fileName,
+        CancellationToken cancellationToken = default);
 }
 
 public class SupportTicketService(
@@ -149,7 +161,7 @@ public class SupportTicketService(
         await AddNotificationAsync(ticket, null, SupportTicketNotificationType.NewTicketCreated, "Yeni destek talebi", $"{ticket.TicketNumber} numaralı talep oluşturuldu.", now, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, cancellationToken));
+        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, adminLinks: false, cancellationToken));
     }
 
     public async Task<(SupportTicketError Error, SupportTicketDetailDto? Result)> GetMyTicketAsync(
@@ -168,7 +180,7 @@ public class SupportTicketService(
             return (SupportTicketError.Forbidden, null);
         }
 
-        return (SupportTicketError.None, ToDetailDto(ticket));
+        return (SupportTicketError.None, ToDetailDto(ticket, adminLinks: false));
     }
 
     public async Task<(SupportTicketError Error, SupportTicketDetailDto? Result)> AddUserMessageAsync(
@@ -226,7 +238,7 @@ public class SupportTicketService(
         await AddNotificationAsync(ticket, ticket.AssignedAdminId, SupportTicketNotificationType.UserReplied, "Destek talebine kullanıcı yanıtı", $"{ticket.TicketNumber} numaralı talebe kullanıcı yanıtı verdi.", now, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, cancellationToken));
+        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, adminLinks: false, cancellationToken));
     }
 
     public async Task<SupportTicketListDto> GetAdminTicketsAsync(
@@ -288,7 +300,7 @@ public class SupportTicketService(
         var ticket = await GetTicketEntityAsync(ticketId, cancellationToken);
         return ticket is null
             ? (SupportTicketError.NotFound, null)
-            : (SupportTicketError.None, ToDetailDto(ticket));
+            : (SupportTicketError.None, ToDetailDto(ticket, adminLinks: true));
     }
 
     public async Task<(SupportTicketError Error, SupportTicketDetailDto? Result)> AddAdminMessageAsync(
@@ -342,7 +354,7 @@ public class SupportTicketService(
         await AddNotificationAsync(ticket, ticket.UserId, SupportTicketNotificationType.AdminReplied, "Destek talebine admin yanıtı", $"{ticket.TicketNumber} numaralı talebinize admin yanıtı verildi.", now, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
 
-        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, cancellationToken));
+        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, adminLinks: true, cancellationToken));
     }
 
     public async Task<(SupportTicketError Error, SupportTicketDetailDto? Result)> UpdateAdminTicketAsync(
@@ -391,7 +403,7 @@ public class SupportTicketService(
         ticket.UpdatedAt = now;
         await context.SaveChangesAsync(cancellationToken);
 
-        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, cancellationToken));
+        return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, adminLinks: true, cancellationToken));
     }
 
     public async Task<StudentSupportDashboardDto> GetStudentDashboardAsync(
@@ -430,6 +442,19 @@ public class SupportTicketService(
         return new AdminSupportDashboardDto(pending, unassigned, openedToday, critical);
     }
 
+    public Task<(SupportTicketError Error, SupportTicketAttachmentDownloadDto? Result)> GetUserAttachmentAsync(
+        string userId,
+        Guid ticketId,
+        string fileName,
+        CancellationToken cancellationToken = default) =>
+        GetAttachmentAsync(ticketId, fileName, userId, cancellationToken);
+
+    public Task<(SupportTicketError Error, SupportTicketAttachmentDownloadDto? Result)> GetAdminAttachmentAsync(
+        Guid ticketId,
+        string fileName,
+        CancellationToken cancellationToken = default) =>
+        GetAttachmentAsync(ticketId, fileName, userId: null, cancellationToken);
+
     private IQueryable<SupportTicket> BaseTicketQuery() =>
         context.SupportTickets
             .AsNoTracking()
@@ -450,10 +475,13 @@ public class SupportTicketService(
                 .ThenInclude(x => x.ChangedBy)
             .FirstOrDefaultAsync(x => x.Id == ticketId, cancellationToken);
 
-    private async Task<SupportTicketDetailDto> GetTicketDetailAsync(Guid ticketId, CancellationToken cancellationToken)
+    private async Task<SupportTicketDetailDto> GetTicketDetailAsync(
+        Guid ticketId,
+        bool adminLinks,
+        CancellationToken cancellationToken)
     {
         var ticket = await BaseTicketQuery().FirstAsync(x => x.Id == ticketId, cancellationToken);
-        return ToDetailDto(ticket);
+        return ToDetailDto(ticket, adminLinks);
     }
 
     private static SupportTicketSummaryDto ToSummaryDto(SupportTicket ticket)
@@ -478,7 +506,7 @@ public class SupportTicketService(
             lastMessageAt);
     }
 
-    private static SupportTicketDetailDto ToDetailDto(SupportTicket ticket) =>
+    private static SupportTicketDetailDto ToDetailDto(SupportTicket ticket, bool adminLinks) =>
         new(
             ticket.Id,
             ticket.TicketNumber,
@@ -504,7 +532,7 @@ public class SupportTicketService(
                     x.Sender?.Email,
                     x.IsAdminReply,
                     x.Message,
-                    x.AttachmentUrl,
+                    BuildAttachmentUrl(ticket.Id, x.AttachmentUrl, adminLinks),
                     x.CreatedAt))
                 .ToList(),
             ticket.StatusHistory
@@ -555,6 +583,89 @@ public class SupportTicketService(
         await attachment.CopyToAsync(stream, cancellationToken);
 
         return (SupportTicketError.None, $"/uploads/support-tickets/{ticketId:N}/{fileName}");
+    }
+
+    private async Task<(SupportTicketError Error, SupportTicketAttachmentDownloadDto? Result)> GetAttachmentAsync(
+        Guid ticketId,
+        string fileName,
+        string? userId,
+        CancellationToken cancellationToken)
+    {
+        var safeFileName = Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(safeFileName) ||
+            !string.Equals(safeFileName, fileName, StringComparison.Ordinal))
+        {
+            return (SupportTicketError.NotFound, null);
+        }
+
+        var ticket = await context.SupportTickets
+            .AsNoTracking()
+            .Include(x => x.Messages)
+            .FirstOrDefaultAsync(x => x.Id == ticketId, cancellationToken);
+        if (ticket is null)
+        {
+            return (SupportTicketError.NotFound, null);
+        }
+
+        if (userId is not null && !string.Equals(ticket.UserId, userId, StringComparison.Ordinal))
+        {
+            return (SupportTicketError.Forbidden, null);
+        }
+
+        var attachmentUrl = ticket.Messages
+            .Select(x => x.AttachmentUrl)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .FirstOrDefault(x => string.Equals(Path.GetFileName(x), safeFileName, StringComparison.OrdinalIgnoreCase));
+        if (attachmentUrl is null)
+        {
+            return (SupportTicketError.NotFound, null);
+        }
+
+        var fullPath = GetAttachmentFullPath(ticket.Id, safeFileName);
+        if (fullPath is null || !File.Exists(fullPath))
+        {
+            return (SupportTicketError.NotFound, null);
+        }
+
+        var provider = new FileExtensionContentTypeProvider();
+        if (!provider.TryGetContentType(safeFileName, out var contentType))
+        {
+            contentType = "application/octet-stream";
+        }
+
+        return (SupportTicketError.None, new SupportTicketAttachmentDownloadDto(fullPath, safeFileName, contentType));
+    }
+
+    private string? GetAttachmentFullPath(Guid ticketId, string fileName)
+    {
+        var uploadRoot = Path.GetFullPath(
+            Path.Combine(
+                environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"),
+                "uploads",
+                "support-tickets",
+                ticketId.ToString("N")));
+        var fullPath = Path.GetFullPath(Path.Combine(uploadRoot, fileName));
+
+        return fullPath.StartsWith(uploadRoot, StringComparison.OrdinalIgnoreCase) ? fullPath : null;
+    }
+
+    private static string? BuildAttachmentUrl(Guid ticketId, string? attachmentUrl, bool adminLinks)
+    {
+        if (string.IsNullOrWhiteSpace(attachmentUrl))
+        {
+            return null;
+        }
+
+        var fileName = Path.GetFileName(attachmentUrl);
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            !attachmentUrl.StartsWith("/uploads/support-tickets/", StringComparison.OrdinalIgnoreCase))
+        {
+            return attachmentUrl;
+        }
+
+        return adminLinks
+            ? $"/api/admin/support-tickets/{ticketId}/attachments/{Uri.EscapeDataString(fileName)}"
+            : $"/api/support/tickets/{ticketId}/attachments/{Uri.EscapeDataString(fileName)}";
     }
 
     private static void AddStatusHistory(

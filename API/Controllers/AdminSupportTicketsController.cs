@@ -52,6 +52,18 @@ public class AdminSupportTicketsController(
         return ToActionResult(error, result);
     }
 
+    [HttpGet("{id:guid}/attachments/{fileName}")]
+    public async Task<IActionResult> DownloadAttachment(
+        Guid id,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        var (error, result) = await supportTicketService.GetAdminAttachmentAsync(id, fileName, cancellationToken);
+        return error == SupportTicketError.None && result is not null
+            ? PhysicalFile(result.FullPath, result.ContentType, result.FileName)
+            : NotFound(new { message = "Dosya eki bulunamadı." });
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<SupportTicketDetailDto>> UpdateTicket(
         Guid id,

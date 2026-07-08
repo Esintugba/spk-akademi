@@ -4,6 +4,7 @@ using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API.Controllers;
 
@@ -14,6 +15,7 @@ public class AccountController(
     IAccountService accountService) : ControllerBase
 {
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(
         RegisterDto dto,
         CancellationToken cancellationToken = default)
@@ -28,6 +30,7 @@ public class AccountController(
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
     {
         var outcome = await accountService.LoginAsync(dto);
@@ -42,6 +45,7 @@ public class AccountController(
     }
 
     [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ForgotPassword(
         ForgotPasswordDto dto,
         CancellationToken cancellationToken = default)
@@ -51,6 +55,7 @@ public class AccountController(
     }
 
     [HttpPost("reset-password")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
     {
         var outcome = await accountService.ResetPasswordAsync(dto);

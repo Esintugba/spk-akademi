@@ -68,6 +68,7 @@ public class AccountService(
     IOptions<SeoOptions> seoOptions) : IAccountService
 {
     private readonly SeoOptions _seoOptions = seoOptions.Value;
+    private const string InvalidLoginMessage = "E-posta veya sifre hatali.";
 
     public async Task<AccountServiceOutcome<bool>> RegisterAsync(
         RegisterDto dto,
@@ -127,11 +128,35 @@ public class AccountService(
     {
         var user = await userManager.FindByEmailAsync(dto.Email);
 
-        if (user is null || !await userManager.CheckPasswordAsync(user, dto.Password))
+        if (user is null)
         {
             return AccountServiceOutcome<AuthResponseDto>.Fail(
                 AccountServiceError.Unauthorized,
-                "E-posta veya şifre hatalı.");
+                InvalidLoginMessage);
+        }
+
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            return AccountServiceOutcome<AuthResponseDto>.Fail(
+                AccountServiceError.Unauthorized,
+                InvalidLoginMessage);
+        }
+
+        if (!await userManager.CheckPasswordAsync(user, dto.Password))
+        {
+            if (userManager.SupportsUserLockout && await userManager.GetLockoutEnabledAsync(user))
+            {
+                await userManager.AccessFailedAsync(user);
+            }
+
+            return AccountServiceOutcome<AuthResponseDto>.Fail(
+                AccountServiceError.Unauthorized,
+                InvalidLoginMessage);
+        }
+
+        if (userManager.SupportsUserLockout && await userManager.GetAccessFailedCountAsync(user) > 0)
+        {
+            await userManager.ResetAccessFailedCountAsync(user);
         }
 
         var roles = await userManager.GetRolesAsync(user);
@@ -145,7 +170,18 @@ public class AccountService(
 
     public async Task<AccountServiceOutcome<AuthResponseDto>> RefreshAsync(RefreshTokenDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+        {
+            return AccountServiceOutcome<AuthResponseDto>.Fail(
+                AccountServiceError.RefreshTokenInvalid,
+                "Oturum yenileme anahtarı geçersiz.");
+        }
+
+        var refreshTokenHash = RefreshTokenHasher.Hash(dto.RefreshToken);
         var user = await userManager.Users
+            .FirstOrDefaultAsync(x => x.RefreshToken == refreshTokenHash);
+
+        user ??= await userManager.Users
             .FirstOrDefaultAsync(x => x.RefreshToken == dto.RefreshToken);
 
         if (user is null ||

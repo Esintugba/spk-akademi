@@ -121,12 +121,10 @@ export function SupportTicketDetailPage() {
                   <Typography sx={{ mt: 1, whiteSpace: 'pre-wrap' }}>{item.message}</Typography>
                   {item.attachmentUrl && (
                     <Button
-                      component="a"
-                      href={resolveApiAssetUrl(item.attachmentUrl)}
+                      onClick={() => void openSupportAttachment(item.attachmentUrl)}
                       size="small"
                       startIcon={<AttachFileOutlinedIcon />}
                       sx={{ mt: 1.5 }}
-                      target="_blank"
                     >
                       Eki Aç
                     </Button>
@@ -196,4 +194,26 @@ export function SupportTicketDetailPage() {
       </Box>
     </Stack>
   )
+}
+
+async function openSupportAttachment(url: string | null | undefined) {
+  if (!url) {
+    return
+  }
+
+  if (!url.startsWith('/api/')) {
+    window.open(resolveApiAssetUrl(url), '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  const file = await supportTicketsApi.downloadAttachment(url)
+  const objectUrl = URL.createObjectURL(file)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.target = '_blank'
+  anchor.rel = 'noopener noreferrer'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000)
 }

@@ -85,6 +85,31 @@ public class SupportTicketsController(
         return ToActionResult(error, result);
     }
 
+    [HttpGet("{id:guid}/attachments/{fileName}")]
+    public async Task<IActionResult> DownloadAttachment(
+        Guid id,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        var userId = userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Unauthorized();
+        }
+
+        var (error, result) = await supportTicketService.GetUserAttachmentAsync(
+            userId,
+            id,
+            fileName,
+            cancellationToken);
+        if (error == SupportTicketError.None && result is not null)
+        {
+            return PhysicalFile(result.FullPath, result.ContentType, result.FileName);
+        }
+
+        return ToDownloadActionResult(error);
+    }
+
     private ActionResult<SupportTicketDetailDto> ToActionResult(SupportTicketError error, SupportTicketDetailDto? result) =>
         error switch
         {
@@ -93,5 +118,12 @@ public class SupportTicketsController(
             SupportTicketError.InvalidState => Conflict(new { message = "Kapalı destek talebine mesaj eklenemez." }),
             SupportTicketError.InvalidAttachment => BadRequest(new { message = "Dosya eki geçersiz. En fazla 8MB; jpg, png, webp, pdf, doc, docx veya txt yükleyin." }),
             _ => Ok(result)
+        };
+
+    private IActionResult ToDownloadActionResult(SupportTicketError error) =>
+        error switch
+        {
+            SupportTicketError.Forbidden => Forbid(),
+            _ => NotFound(new { message = "Dosya eki bulunamadı." })
         };
 }

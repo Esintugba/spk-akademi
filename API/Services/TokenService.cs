@@ -46,14 +46,15 @@ public class TokenService(
             expires: expiresAt,
             signingCredentials: credentials);
 
-        user.RefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        user.RefreshToken = RefreshTokenHasher.Hash(refreshToken);
         user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays);
         await userManager.UpdateAsync(user);
 
         return new AuthResponseDto(
             new JwtSecurityTokenHandler().WriteToken(token),
             AccessTokenMinutes * 60,
-            user.RefreshToken,
+            refreshToken,
             "Bearer",
             primaryRole);
     }

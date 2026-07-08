@@ -150,6 +150,9 @@ builder.Services
         options.Password.RequireUppercase = true;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequiredLength = 6;
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.MaxFailedAccessAttempts = 5;
     })
     .AddEntityFrameworkStores<DataContext>()
     .AddDefaultTokenProviders();
@@ -268,6 +271,18 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true
             }));
 
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: $"{httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous"}:{httpContext.Request.Path.Value?.ToLowerInvariant()}",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                AutoReplenishment = true
+            }));
+
     options.AddPolicy("contact", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
@@ -311,6 +326,23 @@ app.UseRateLimiter();
 var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
 if (Directory.Exists(webRootPath))
 {
+    // Sensitive uploads are served through authorized/tokenized endpoints, never as public static files.
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments(
+                new PathString("/uploads/source-documents"),
+                StringComparison.OrdinalIgnoreCase) ||
+            context.Request.Path.StartsWithSegments(
+                new PathString("/uploads/support-tickets"),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        await next();
+    });
+
     app.UseDefaultFiles();
     app.UseStaticFiles(new StaticFileOptions
     {
