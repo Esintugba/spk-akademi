@@ -38,6 +38,7 @@ public class AccountController(
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Refresh(RefreshTokenDto dto)
     {
         var outcome = await accountService.RefreshAsync(dto);

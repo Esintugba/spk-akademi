@@ -13,6 +13,7 @@ import { request } from './client'
 export const authApi = {
   register: (payload: RegisterRequest) => request.post<void>('/api/account/register', payload),
   login: (payload: LoginRequest) => request.post<LoginResponse>('/api/account/login', payload),
+  refresh: (refreshToken: string) => request.post<LoginResponse>('/api/account/refresh', { refreshToken }, { skipAuth: true }),
   forgotPassword: (payload: ForgotPasswordRequest) => request.post<void>('/api/account/forgot-password', payload, { skipAuth: true }),
   resetPassword: (payload: ResetPasswordRequest) => request.post<void>('/api/account/reset-password', payload, { skipAuth: true }),
   getMyProfile: () => request.get<AccountProfile>('/api/account/me'),

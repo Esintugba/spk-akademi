@@ -20,4 +20,5 @@ public record AuthResponseDto(
     int ExpiresIn,
     string RefreshToken,
     string TokenType,
-    string Role);
+    string Role,
+    DateTime RefreshTokenExpiresAt);

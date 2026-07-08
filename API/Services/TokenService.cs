@@ -47,8 +47,9 @@ public class TokenService(
             signingCredentials: credentials);
 
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(options.RefreshTokenDays);
         user.RefreshToken = RefreshTokenHasher.Hash(refreshToken);
-        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(options.RefreshTokenDays);
+        user.RefreshTokenExpiresAt = refreshTokenExpiresAt;
         await userManager.UpdateAsync(user);
 
         return new AuthResponseDto(
@@ -56,7 +57,8 @@ public class TokenService(
             options.AccessTokenMinutes * 60,
             refreshToken,
             "Bearer",
-            primaryRole);
+            primaryRole,
+            refreshTokenExpiresAt);
     }
 
     private static string GetJwtKey(JwtOptions options)

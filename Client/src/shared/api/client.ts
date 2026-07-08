@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 import { toast } from 'react-toastify'
-import type { LoginResponse } from '../../models'
+import type { AuthUser, LoginResponse } from '../../models'
 import { clearStoredUser, getStoredUser, isAccessTokenExpired, updateStoredTokens } from '../auth/authStorage'
 
 interface ApiErrorResponse {
@@ -24,6 +24,17 @@ export class ApiRequestError extends Error {
   }
 }
 
+export class AuthRefreshError extends Error {
+  constructor(
+    message: string,
+    public readonly invalidSession: boolean,
+    public readonly status?: number,
+  ) {
+    super(message)
+    this.name = 'AuthRefreshError'
+  }
+}
+
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 const axiosInstance = axios.create({
@@ -33,7 +44,7 @@ const axiosInstance = axios.create({
   },
 })
 
-let refreshPromise: Promise<ReturnType<typeof updateStoredTokens>> | null = null
+let refreshPromise: Promise<AuthUser | null> | null = null
 
 function notifyInvalidAuth() {
   if (typeof window !== 'undefined') {
@@ -41,7 +52,21 @@ function notifyInvalidAuth() {
   }
 }
 
-async function refreshAccessToken() {
+function notifyAuthRefreshed(user: AuthUser) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent<AuthUser>('spk:auth-refreshed', { detail: user }))
+  }
+}
+
+function isInvalidRefreshError(error: unknown) {
+  return axios.isAxiosError(error) && (error.response?.status === 400 || error.response?.status === 401)
+}
+
+export function isAuthRefreshError(error: unknown): error is AuthRefreshError {
+  return error instanceof AuthRefreshError
+}
+
+export async function refreshStoredSession() {
   const user = getStoredUser()
 
   if (!user?.refreshToken) {
@@ -55,11 +80,25 @@ async function refreshAccessToken() {
         { refreshToken: user.refreshToken },
         { headers: { 'Content-Type': 'application/json' } },
       )
-      .then((response) => updateStoredTokens(response.data))
+      .then((response) => {
+        const updatedUser = updateStoredTokens(response.data)
+
+        if (updatedUser) {
+          notifyAuthRefreshed(updatedUser)
+        }
+
+        return updatedUser
+      })
       .catch((error) => {
-        clearStoredUser()
-        notifyInvalidAuth()
-        throw error
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined
+
+        if (isInvalidRefreshError(error)) {
+          clearStoredUser()
+          notifyInvalidAuth()
+          throw new AuthRefreshError('Oturum yenileme anahtarı geçersiz.', true, status)
+        }
+
+        throw new AuthRefreshError('Oturum şu anda yenilenemedi.', false, status)
       })
       .finally(() => {
         refreshPromise = null
@@ -82,11 +121,17 @@ axiosInstance.interceptors.request.use(async (config) => {
 
   if (user && isAccessTokenExpired(user)) {
     try {
-      user = await refreshAccessToken()
-    } catch {
-      clearStoredUser()
-      notifyInvalidAuth()
-      user = null
+      user = await refreshStoredSession()
+    } catch (error) {
+      if (isAuthRefreshError(error) && error.invalidSession) {
+        return Promise.reject(new ApiRequestError('Oturum süresi doldu.', 401))
+      }
+
+      return Promise.reject(error)
+    }
+
+    if (!user) {
+      return Promise.reject(new ApiRequestError('Oturum süresi doldu.', 401))
     }
   }
 
@@ -107,7 +152,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const user = await refreshAccessToken()
+        const user = await refreshStoredSession()
 
         if (user?.token) {
           originalRequest.headers = {
@@ -117,7 +162,12 @@ axiosInstance.interceptors.response.use(
 
           return await axiosInstance.request(originalRequest)
         }
-      } catch {
+      } catch (refreshError) {
+        if (isAuthRefreshError(refreshError) && !refreshError.invalidSession) {
+          toast.error('Oturum şu anda yenilenemedi. Bağlantını kontrol edip tekrar dene.', { toastId: 'api-auth-refresh-failed' })
+          return Promise.reject(new ApiRequestError(refreshError.message, refreshError.status))
+        }
+
         clearStoredUser()
         notifyInvalidAuth()
       }

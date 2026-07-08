@@ -25,6 +25,7 @@ export interface LoginResponse {
   accessToken: string
   expiresIn: number
   refreshToken: string
+  refreshTokenExpiresAt?: string
   role: 'Admin' | 'Student'
   tokenType?: string
 }
@@ -33,6 +34,7 @@ export interface AuthUser {
   email: string
   expiresAt: number
   refreshToken: string
+  refreshTokenExpiresAt?: number
   role: 'Admin' | 'Student'
   token: string
 }

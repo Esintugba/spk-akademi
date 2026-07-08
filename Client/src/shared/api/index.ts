@@ -58,6 +58,7 @@ import { userLicenseAccessesApi } from './user-license-accesses.api'
 export const api = {
   register: authApi.register,
   login: authApi.login,
+  refresh: authApi.refresh,
   forgotPassword: authApi.forgotPassword,
   resetPassword: authApi.resetPassword,
   getMyProfile: authApi.getMyProfile,
