@@ -1,4 +1,6 @@
 using System.IO.Compression;
+using System.Net;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using API.Authorization;
@@ -29,6 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
+builder.Services.Configure<ForwardedHeadersConfigurationOptions>(builder.Configuration.GetSection(ForwardedHeadersConfigurationOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.SectionName));
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
@@ -104,11 +107,30 @@ builder.Services.AddResponseCompression(options =>
 });
 builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+var forwardedHeadersOptions = builder.Configuration
+    .GetSection(ForwardedHeadersConfigurationOptions.SectionName)
+    .Get<ForwardedHeadersConfigurationOptions>() ?? new ForwardedHeadersConfigurationOptions();
+
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
+    options.ForwardedHeaders = forwardedHeadersOptions.Enabled
+        ? ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        : ForwardedHeaders.None;
+    options.ForwardLimit = forwardedHeadersOptions.ForwardLimit;
+    options.RequireHeaderSymmetry = forwardedHeadersOptions.RequireHeaderSymmetry;
+
     options.KnownProxies.Clear();
+    options.KnownIPNetworks.Clear();
+
+    foreach (var proxy in ParseKnownProxies(forwardedHeadersOptions.KnownProxies))
+    {
+        options.KnownProxies.Add(proxy);
+    }
+
+    foreach (var network in ParseKnownNetworks(forwardedHeadersOptions.KnownNetworks))
+    {
+        options.KnownIPNetworks.Add(network);
+    }
 });
 
 builder.Services.AddScoped<IPdfTextExtractor, PdfPigTextExtractor>();
@@ -260,7 +282,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("api", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            partitionKey: GetUserOrIpPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = rateLimitingOptions.PermitLimit,
@@ -272,7 +294,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: $"{httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous"}:{httpContext.Request.Path.Value?.ToLowerInvariant()}",
+            partitionKey: $"ip:{GetClientIpAddress(httpContext)}:path:{GetNormalizedPath(httpContext)}",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 20,
@@ -284,7 +306,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("contact", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            partitionKey: $"ip:{GetClientIpAddress(httpContext)}",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 3,
@@ -367,3 +389,62 @@ await app.InitialiseDatabaseAsync();
 await RoleSeeder.SeedRoles(app);
 
 app.Run();
+
+static IEnumerable<IPAddress> ParseKnownProxies(IEnumerable<string> proxies)
+{
+    foreach (var proxy in proxies.Where(value => !string.IsNullOrWhiteSpace(value)))
+    {
+        if (!IPAddress.TryParse(proxy.Trim(), out var address))
+        {
+            throw new InvalidOperationException($"ForwardedHeaders:KnownProxies contains an invalid IP address: {proxy}.");
+        }
+
+        yield return address;
+
+        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            yield return address.MapToIPv6();
+        }
+    }
+}
+
+static IEnumerable<System.Net.IPNetwork> ParseKnownNetworks(IEnumerable<string> networks)
+{
+    foreach (var network in networks.Where(value => !string.IsNullOrWhiteSpace(value)))
+    {
+        var parts = network.Trim().Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length != 2 ||
+            !IPAddress.TryParse(parts[0], out var prefix) ||
+            !int.TryParse(parts[1], out var prefixLength))
+        {
+            throw new InvalidOperationException($"ForwardedHeaders:KnownNetworks contains an invalid CIDR network: {network}.");
+        }
+
+        yield return new System.Net.IPNetwork(prefix, prefixLength);
+
+        if (prefix.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+        {
+            yield return new System.Net.IPNetwork(prefix.MapToIPv6(), prefixLength + 96);
+        }
+    }
+}
+
+static string GetUserOrIpPartitionKey(HttpContext httpContext)
+{
+    var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    return !string.IsNullOrWhiteSpace(userId)
+        ? $"user:{userId}"
+        : $"ip:{GetClientIpAddress(httpContext)}";
+}
+
+static string GetClientIpAddress(HttpContext httpContext)
+{
+    return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+}
+
+static string GetNormalizedPath(HttpContext httpContext)
+{
+    return httpContext.Request.Path.Value?.ToLowerInvariant() ?? "/";
+}

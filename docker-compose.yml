@@ -10,6 +10,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - spk-internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spk} -d ${POSTGRES_DB:-spk_prod}"]
       interval: 10s
@@ -28,6 +30,10 @@ services:
       Database__Provider: ${Database__Provider:-Postgres}
       Database__AutoMigrate: ${Database__AutoMigrate:-false}
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:?ConnectionStrings__DefaultConnection is required}
+      ForwardedHeaders__Enabled: ${ForwardedHeaders__Enabled:-true}
+      ForwardedHeaders__KnownProxies__0: ${ForwardedHeaders__KnownProxies__0:-172.30.0.10}
+      ForwardedHeaders__ForwardLimit: ${ForwardedHeaders__ForwardLimit:-1}
+      ForwardedHeaders__RequireHeaderSymmetry: ${ForwardedHeaders__RequireHeaderSymmetry:-true}
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
       Jwt__PreviousKeys__0: ${JWT_PREVIOUS_KEY_0:-}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
@@ -47,6 +53,8 @@ services:
       - ./storage/imports:/app/imports
       - ./storage/logs:/logs
       - ./storage/data-protection:/keys
+    networks:
+      - spk-internal
 
   frontend:
     build:
@@ -57,6 +65,8 @@ services:
     container_name: spk-frontend
     expose:
       - "80"
+    networks:
+      - spk-internal
 
   nginx:
     image: nginx:1.29-alpine
@@ -68,6 +78,9 @@ services:
       - "80:80"
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      spk-internal:
+        ipv4_address: 172.30.0.10
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ || exit 1"]
       interval: 15s
@@ -76,3 +89,10 @@ services:
 
 volumes:
   postgres-data:
+
+networks:
+  spk-internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

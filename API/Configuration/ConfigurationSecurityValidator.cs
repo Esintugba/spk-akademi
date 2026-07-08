@@ -60,6 +60,9 @@ public static class ConfigurationSecurityValidator
         var errors = new List<string>();
         var isDevelopment = environment.IsDevelopment();
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+        var forwardedHeadersOptions = configuration
+            .GetSection(ForwardedHeadersConfigurationOptions.SectionName)
+            .Get<ForwardedHeadersConfigurationOptions>() ?? new ForwardedHeadersConfigurationOptions();
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var databaseProvider = configuration["Database:Provider"] ?? "Sqlite";
         var autoMigrate = configuration.GetValue<bool>("Database:AutoMigrate");
@@ -109,6 +112,7 @@ public static class ConfigurationSecurityValidator
 
         ValidateCors(errors, allowedOrigins, isDevelopment);
         ValidateAllowedHosts(errors, allowedHosts, isDevelopment);
+        ValidateForwardedHeaders(errors, forwardedHeadersOptions, isDevelopment);
 
         return errors;
     }
@@ -353,6 +357,52 @@ public static class ConfigurationSecurityValidator
         }
     }
 
+    private static void ValidateForwardedHeaders(
+        List<string> errors,
+        ForwardedHeadersConfigurationOptions options,
+        bool isDevelopment)
+    {
+        var knownProxies = options.KnownProxies
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .ToArray();
+        var knownNetworks = options.KnownNetworks
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .ToArray();
+
+        if (options.ForwardLimit <= 0 || options.ForwardLimit > 5)
+        {
+            errors.Add("ForwardedHeaders:ForwardLimit must be between 1 and 5.");
+        }
+
+        foreach (var proxy in knownProxies)
+        {
+            if (!System.Net.IPAddress.TryParse(proxy, out _))
+            {
+                errors.Add($"ForwardedHeaders:KnownProxies contains an invalid IP address: {proxy}.");
+            }
+        }
+
+        foreach (var network in knownNetworks)
+        {
+            if (!TryParseIPNetwork(network))
+            {
+                errors.Add($"ForwardedHeaders:KnownNetworks contains an invalid CIDR network: {network}.");
+            }
+        }
+
+        if (isDevelopment || !options.Enabled)
+        {
+            return;
+        }
+
+        if (knownProxies.Length == 0 && knownNetworks.Length == 0)
+        {
+            errors.Add("ForwardedHeaders is enabled outside Development, but no KnownProxies or KnownNetworks are configured. Refusing to trust forwarded headers from every remote address.");
+        }
+    }
+
     private static bool IsWildcardOrigin(string origin)
     {
         return origin == "*" ||
@@ -416,5 +466,25 @@ public static class ConfigurationSecurityValidator
         }
 
         return host[..portSeparatorIndex];
+    }
+
+    private static bool TryParseIPNetwork(string value)
+    {
+        var parts = value.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length != 2 ||
+            !System.Net.IPAddress.TryParse(parts[0], out var prefix) ||
+            !int.TryParse(parts[1], out var prefixLength))
+        {
+            return false;
+        }
+
+        var maxPrefixLength = prefix.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128;
+        if (prefixLength < 0 || prefixLength > maxPrefixLength)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

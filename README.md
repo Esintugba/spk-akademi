@@ -135,8 +135,8 @@ dotnet ef database update --project API/API.csproj
 
 Production/staging:
 
-- Uygulama startup sirasinda `AutoMigrate=true` ise migration uygular.
-- Daha kontrollu rollout istenirse `Database:AutoMigrate=false` yapilip migration ayri pipeline adiminda calistirilabilir.
+- Varsayilan olarak `Database:AutoMigrate=false` kullanilir.
+- Migration production/staging icin CI/CD pipeline veya kontrollu operator adimi olarak uygulanmalidir.
 
 ## Environment degiskenleri
 
@@ -145,6 +145,10 @@ Asagidaki degiskenler kritik:
 - `ASPNETCORE_ENVIRONMENT`
 - `ConnectionStrings__DefaultConnection`
 - `Database__Provider`
+- `ForwardedHeaders__Enabled`
+- `ForwardedHeaders__KnownProxies__0`
+- `ForwardedHeaders__KnownNetworks__0`
+- `ForwardedHeaders__ForwardLimit`
 - `Jwt__Key`
 - `Cors__AllowedOrigins__0`
 - `Cors__AllowedOrigins__1`
@@ -158,6 +162,38 @@ Asagidaki degiskenler kritik:
 - `Email__SmtpUser`
 - `Email__SmtpPassword`
 - `VITE_API_BASE_URL`
+
+## Forwarded headers ve reverse proxy
+
+API, reverse proxy arkasinda calisirken client IP ve scheme bilgisini sadece guvenilen proxy'lerden gelen forwarded header'lardan okur. Guvenilmeyen kaynaklardan gelen `X-Forwarded-For` ve `X-Forwarded-Proto` header'lari kabul edilmez.
+
+Production icin temel ayarlar:
+
+```env
+ForwardedHeaders__Enabled=true
+ForwardedHeaders__KnownProxies__0=172.30.0.10
+ForwardedHeaders__ForwardLimit=1
+ForwardedHeaders__RequireHeaderSymmetry=true
+```
+
+Docker Compose senaryosunda Nginx container'i `172.30.0.10` internal IP adresine sabitlenir ve API sadece bu proxy'den gelen forwarded header'lari isler. Subnet host ortaminda cakisirsa `docker-compose.yml` icindeki network subnet'i ve `ForwardedHeaders__KnownProxies__0` birlikte degistirilmelidir.
+
+Proxy kurallari:
+
+- Direct API access: `ForwardedHeaders__Enabled=false`; rate limit TCP remote IP uzerinden calisir.
+- Nginx -> API: API tarafinda sadece Nginx IP'si `KnownProxies` olmalidir. Nginx upstream'e `X-Forwarded-For $remote_addr` gondererek client'in sahte XFF header'ini tasimamali.
+- Cloudflare -> Nginx -> API: API sadece Nginx'e guvenir. Nginx Cloudflare IP range'lerini `set_real_ip_from` ile dogrulamali, `CF-Connecting-IP` degerini yalniz Cloudflare'dan geldiyse client IP olarak upstream'e aktarmalidir. Cloudflare bypass'i engellemek icin origin firewall sadece Cloudflare/Nginx yolunu kabul etmelidir.
+- Caddy veya Traefik -> API: API tarafinda Caddy/Traefik container veya load balancer IP'si `KnownProxies` olarak verilir.
+- Kubernetes Ingress -> API: Ingress controller pod/service CIDR'i `KnownNetworks` veya sabit ingress IP'leri `KnownProxies` olarak verilir. Tum cluster/private network'e gerekmedikce guvenilmemelidir.
+- OCI Load Balancer -> API: Load balancer private IP'leri veya subnet'i `KnownProxies`/`KnownNetworks` olarak tanimlanir; API public internete dogrudan acilmamalidir.
+
+Rate limiting partition stratejisi:
+
+- Genel API: authenticated kullanici varsa `user:{id}`, yoksa `ip:{clientIp}`.
+- Auth endpointleri: `ip:{clientIp}:path:{path}`.
+- Contact endpointleri: `ip:{clientIp}`.
+
+Bu model IP spoofing'e karsi forwarded headers middleware'in guvenli proxy listesini temel alir. `RemoteIpAddress` sadece direct access'te TCP peer IP'si veya guvenilen proxy tarafindan dogrulanmis forwarded client IP'si oldugunda guvenilir kabul edilir.
 
 ## JWT secret yonetimi
 
@@ -216,6 +252,7 @@ Staging ve Production ortamlarinda uygulama fail-fast calisir. Asagidaki durumla
 - `Email__Enabled=true` iken `Email__SmtpPassword` eksik veya placeholder ise
 - `AllowedHosts` development disinda bos veya wildcard ise
 - `Cors__AllowedOrigins` development disinda bos, wildcard veya gecersiz origin iceriyorsa
+- `ForwardedHeaders__Enabled=true` iken development disinda `KnownProxies` veya `KnownNetworks` bos ise
 
 Docker Compose tarafinda secret fallback kullanilmaz. `POSTGRES_PASSWORD`, `ConnectionStrings__DefaultConnection` ve `JWT_KEY` verilmezse compose baslamaz.
 
@@ -254,7 +291,7 @@ Gerekli secrets:
 - JWT secret en az 32 byte, kriptografik rastgele ve rotate edilebilir olmali.
 - Veritabani kullanicisi uygulama icin least-privilege yetkilerle sinirlandirilmali.
 - Production domainlerini `Cors:AllowedOrigins` altinda whitelist et.
-- Reverse proxy arkasinda `X-Forwarded-*` headerlari ile calisir.
+- Reverse proxy arkasinda sadece tanimli `KnownProxies`/`KnownNetworks` uzerinden gelen `X-Forwarded-*` headerlari ile calisir.
 - Static assetler uzun sure cache'lenir, `index.html` cache'lenmez.
 - Serilog loglari `logs/` altina gunluk rolling file olarak yazilir.
 

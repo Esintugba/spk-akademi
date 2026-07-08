@@ -8,6 +8,10 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Database__Provider: Sqlite
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/data/spk.db}
+      ForwardedHeaders__Enabled: ${ForwardedHeaders__Enabled:-false}
+      ForwardedHeaders__KnownProxies__0: ${ForwardedHeaders__KnownProxies__0:-}
+      ForwardedHeaders__ForwardLimit: ${ForwardedHeaders__ForwardLimit:-1}
+      ForwardedHeaders__RequireHeaderSymmetry: ${ForwardedHeaders__RequireHeaderSymmetry:-true}
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
       Jwt__PreviousKeys__0: ${JWT_PREVIOUS_KEY_0:-}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
