@@ -9,6 +9,7 @@ services:
       Database__Provider: Sqlite
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/data/spk.db}
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
+      Jwt__PreviousKeys__0: ${JWT_PREVIOUS_KEY_0:-}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
       Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:?Cors__AllowedOrigins__0 is required}
       Seo__PublicBaseUrl: ${Seo__PublicBaseUrl:?Seo__PublicBaseUrl is required}

@@ -29,6 +29,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.SectionName));
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
 builder.Services.Configure<SeedAdminOptions>(builder.Configuration.GetSection(SeedAdminOptions.SectionName));
@@ -150,10 +151,15 @@ builder.Services
     .AddEntityFrameworkStores<DataContext>()
     .AddDefaultTokenProviders();
 
-var jwtKey = builder.Configuration["Jwt:Key"] ??
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+var jwtValidationKeys = jwtOptions.GetValidationKeys()
+    .Select(key => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)))
+    .ToArray();
+
+if (jwtValidationKeys.Length == 0)
+{
     throw new InvalidOperationException("Jwt:Key is not configured.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "spk-api";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "spk-client";
+}
 
 builder.Services
     .AddAuthentication(options =>
@@ -169,9 +175,9 @@ builder.Services
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
             ValidateLifetime = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKeys = jwtValidationKeys,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
         options.Events = new JwtBearerEvents

@@ -2,9 +2,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using API.Configuration;
 using API.Dtos;
 using API.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace API.Services;
@@ -15,18 +17,16 @@ public interface ITokenService
 }
 
 public class TokenService(
-    IConfiguration configuration,
+    IOptions<JwtOptions> jwtOptions,
     UserManager<AppUser> userManager) : ITokenService
 {
-    private const int AccessTokenMinutes = 60;
-    private const int RefreshTokenDays = 7;
-
     public async Task<AuthResponseDto> CreateTokenResponse(AppUser user)
     {
+        var options = jwtOptions.Value;
         var roles = await userManager.GetRolesAsync(user);
         var primaryRole = roles.Contains(AppRoles.Admin) ? AppRoles.Admin : AppRoles.Student;
-        var expiresAt = DateTime.UtcNow.AddMinutes(AccessTokenMinutes);
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtKey()));
+        var expiresAt = DateTime.UtcNow.AddMinutes(options.AccessTokenMinutes);
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(GetJwtKey(options)));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
         var claims = new List<Claim>
         {
@@ -40,38 +40,29 @@ public class TokenService(
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var token = new JwtSecurityToken(
-            issuer: GetJwtIssuer(),
-            audience: GetJwtAudience(),
+            issuer: options.Issuer,
+            audience: options.Audience,
             claims: claims,
             expires: expiresAt,
             signingCredentials: credentials);
 
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         user.RefreshToken = RefreshTokenHasher.Hash(refreshToken);
-        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays);
+        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(options.RefreshTokenDays);
         await userManager.UpdateAsync(user);
 
         return new AuthResponseDto(
             new JwtSecurityTokenHandler().WriteToken(token),
-            AccessTokenMinutes * 60,
+            options.AccessTokenMinutes * 60,
             refreshToken,
             "Bearer",
             primaryRole);
     }
 
-    private string GetJwtKey()
+    private static string GetJwtKey(JwtOptions options)
     {
-        return configuration["Jwt:Key"] ??
-            throw new InvalidOperationException("Jwt:Key is not configured.");
-    }
-
-    private string GetJwtIssuer()
-    {
-        return configuration["Jwt:Issuer"] ?? "spk-api";
-    }
-
-    private string GetJwtAudience()
-    {
-        return configuration["Jwt:Audience"] ?? "spk-client";
+        return !string.IsNullOrWhiteSpace(options.Key)
+            ? options.Key.Trim()
+            : throw new InvalidOperationException("Jwt:Key is not configured.");
     }
 }

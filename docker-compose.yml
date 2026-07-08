@@ -29,6 +29,7 @@ services:
       Database__AutoMigrate: ${Database__AutoMigrate:-false}
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:?ConnectionStrings__DefaultConnection is required}
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required}
+      Jwt__PreviousKeys__0: ${JWT_PREVIOUS_KEY_0:-}
       AllowedHosts: ${AllowedHosts:?AllowedHosts is required}
       Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:-http://localhost}
       Cors__AllowedOrigins__1: ${Cors__AllowedOrigins__1:-https://localhost}

@@ -5,29 +5,61 @@ namespace API.Configuration;
 public static class ConfigurationSecurityValidator
 {
     private const int MinimumJwtKeyLength = 32;
+    private const int MinimumJwtKeyBytes = 32;
+    private const double MinimumJwtEntropyBits = 128;
+
+    private const string RetiredSourceControlledJwtKeySha256 =
+        "64c9520e68d9c5ab63c68783dfcea9f273e2e6a6733d0dec6f1bbf9b533b5955";
 
     private static readonly string[] PlaceholderValues =
     [
+        "__set_via_environment__",
+        "set-via-environment",
+        "set_via_environment",
         "change-me",
         "changeme",
         "replace-me",
+        "replace-with",
         "replace-with-secure-key",
         "replace-in-production-secret-store",
         "replace-in-staging-secret-store",
         "your-secret",
         "secret",
         "password",
+        "public",
+        "example",
+        "sample",
+        "demo",
+        "default",
         "admin123",
         "123456",
         "test",
         "development-only"
     ];
 
+    private static readonly string[] WeakJwtTerms =
+    [
+        "spkakademi",
+        "spkacademy",
+        "supersecret",
+        "jwtkey",
+        "jwtsecret",
+        "localdev",
+        "devsecret",
+        "prodsecret",
+        "productionsecret",
+        "localhost",
+        "development",
+        "staging",
+        "production",
+        "default"
+    ];
+
     public static IReadOnlyList<string> Validate(IConfiguration configuration, IHostEnvironment environment)
     {
         var errors = new List<string>();
         var isDevelopment = environment.IsDevelopment();
-        var jwtKey = configuration["Jwt:Key"];
+        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var databaseProvider = configuration["Database:Provider"] ?? "Sqlite";
         var autoMigrate = configuration.GetValue<bool>("Database:AutoMigrate");
@@ -39,13 +71,7 @@ public static class ConfigurationSecurityValidator
             .GetSection($"{CorsOptions.SectionName}:AllowedOrigins")
             .Get<string[]>() ?? [];
 
-        ValidateRequiredSecret(errors, "Jwt:Key", jwtKey, isDevelopment);
-        if (!string.IsNullOrWhiteSpace(jwtKey) &&
-            !isDevelopment &&
-            jwtKey.Trim().Length < MinimumJwtKeyLength)
-        {
-            errors.Add($"Jwt:Key must be at least {MinimumJwtKeyLength} characters outside Development.");
-        }
+        ValidateJwtOptions(errors, jwtOptions, isDevelopment);
 
         string? normalizedDatabaseProvider = null;
         try
@@ -107,6 +133,102 @@ public static class ConfigurationSecurityValidator
         return PlaceholderValues.Any(placeholder => normalized.Contains(placeholder, StringComparison.Ordinal));
     }
 
+    private static void ValidateJwtOptions(List<string> errors, JwtOptions jwtOptions, bool isDevelopment)
+    {
+        ValidateJwtKey(errors, "Jwt:Key", jwtOptions.Key, isDevelopment, required: true);
+
+        var currentKey = jwtOptions.Key.Trim();
+        var previousKeys = jwtOptions.PreviousKeys
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Select(key => key.Trim())
+            .ToArray();
+
+        for (var i = 0; i < previousKeys.Length; i++)
+        {
+            ValidateJwtKey(errors, $"Jwt:PreviousKeys:{i}", previousKeys[i], isDevelopment, required: false);
+
+            if (!string.IsNullOrWhiteSpace(currentKey) &&
+                FixedTimeEquals(currentKey, previousKeys[i]))
+            {
+                errors.Add($"Jwt:PreviousKeys:{i} must not be the same value as Jwt:Key.");
+            }
+        }
+
+        var duplicatePreviousKey = previousKeys
+            .GroupBy(key => key)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicatePreviousKey is not null)
+        {
+            errors.Add("Jwt:PreviousKeys contains duplicate signing keys.");
+        }
+
+        if (jwtOptions.AccessTokenMinutes <= 0 || jwtOptions.AccessTokenMinutes > 1440)
+        {
+            errors.Add("Jwt:AccessTokenMinutes must be between 1 and 1440.");
+        }
+
+        if (jwtOptions.RefreshTokenDays <= 0 || jwtOptions.RefreshTokenDays > 90)
+        {
+            errors.Add("Jwt:RefreshTokenDays must be between 1 and 90.");
+        }
+    }
+
+    private static void ValidateJwtKey(
+        List<string> errors,
+        string keyName,
+        string? value,
+        bool isDevelopment,
+        bool required)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            if (required)
+            {
+                errors.Add($"{keyName} is required. Use User Secrets in Development and an environment variable or secret manager outside Development.");
+            }
+
+            return;
+        }
+
+        var trimmed = value.Trim();
+
+        if (FixedTimeEquals(ComputeSha256Hex(trimmed), RetiredSourceControlledJwtKeySha256))
+        {
+            errors.Add($"{keyName} uses a retired source-controlled JWT key and must be rotated immediately.");
+        }
+
+        if (ContainsPlaceholder(trimmed) || ContainsWeakJwtTerm(trimmed))
+        {
+            errors.Add($"{keyName} contains a placeholder, public, demo, test, default, or predictable value.");
+        }
+
+        if (trimmed.Length < MinimumJwtKeyLength)
+        {
+            errors.Add($"{keyName} must be at least {MinimumJwtKeyLength} characters.");
+        }
+
+        var byteLength = System.Text.Encoding.UTF8.GetByteCount(trimmed);
+        if (byteLength < MinimumJwtKeyBytes)
+        {
+            errors.Add($"{keyName} must contain at least {MinimumJwtKeyBytes} UTF-8 bytes for HMAC SHA256.");
+        }
+
+        if (!isDevelopment)
+        {
+            var estimatedEntropyBits = EstimateShannonEntropyBits(trimmed);
+            if (estimatedEntropyBits < MinimumJwtEntropyBits)
+            {
+                errors.Add($"{keyName} has low estimated entropy. Use at least 32 cryptographically random bytes encoded as Base64 or 64 random hex characters.");
+            }
+
+            if (IsPredictableJwtKey(trimmed))
+            {
+                errors.Add($"{keyName} looks predictable. Use a cryptographically random key from a secret manager.");
+            }
+        }
+    }
+
     private static void ValidateRequiredSecret(List<string> errors, string key, string? value, bool isDevelopment)
     {
         if (isDevelopment)
@@ -120,10 +242,73 @@ public static class ConfigurationSecurityValidator
             return;
         }
 
-        if (ContainsPlaceholder(value))
+        if (!key.StartsWith("ConnectionStrings:", StringComparison.OrdinalIgnoreCase) &&
+            ContainsPlaceholder(value))
         {
             errors.Add($"{key} contains a placeholder or weak default.");
         }
+    }
+
+    private static bool ContainsWeakJwtTerm(string value)
+    {
+        var normalized = Regex.Replace(value.ToLowerInvariant(), "[^a-z0-9]", string.Empty);
+        return WeakJwtTerms.Any(term => normalized.Contains(term, StringComparison.Ordinal));
+    }
+
+    private static bool IsPredictableJwtKey(string value)
+    {
+        if (Guid.TryParse(value, out _))
+        {
+            return true;
+        }
+
+        if (value.Distinct().Count() < 12)
+        {
+            return true;
+        }
+
+        if (Regex.IsMatch(value, @"(.)\1{7,}"))
+        {
+            return true;
+        }
+
+        return Regex.IsMatch(
+            value,
+            "(012345|123456|234567|345678|456789|abcdef|qwerty|letmein|password)",
+            RegexOptions.IgnoreCase);
+    }
+
+    private static double EstimateShannonEntropyBits(string value)
+    {
+        var length = value.Length;
+        if (length == 0)
+        {
+            return 0;
+        }
+
+        var entropyPerCharacter = value
+            .GroupBy(character => character)
+            .Select(group =>
+            {
+                var probability = (double)group.Count() / length;
+                return -probability * Math.Log(probability, 2);
+            })
+            .Sum();
+
+        return entropyPerCharacter * length;
+    }
+
+    private static bool FixedTimeEquals(string left, string right)
+    {
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(left),
+            System.Text.Encoding.UTF8.GetBytes(right));
+    }
+
+    private static string ComputeSha256Hex(string value)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
     private static bool ConnectionStringHasPassword(string? connectionString)

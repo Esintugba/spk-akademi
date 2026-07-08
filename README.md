@@ -36,7 +36,10 @@ dotnet run --project API/API.csproj
 Development secret degerleri source control icinde tutulmaz. Ilk lokal kurulumda .NET User Secrets kullan:
 
 ```powershell
-dotnet user-secrets set "Jwt:Key" "local-dev-jwt-secret-at-least-32-characters" --project API/API.csproj
+$bytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$jwtKey = [Convert]::ToBase64String($bytes)
+dotnet user-secrets set "Jwt:Key" $jwtKey --project API/API.csproj
 dotnet user-secrets set "SeedAdmin:Enabled" "true" --project API/API.csproj
 dotnet user-secrets set "SeedAdmin:Email" "admin@spkakademi.local" --project API/API.csproj
 dotnet user-secrets set "SeedAdmin:Password" "<local-admin-password>" --project API/API.csproj
@@ -56,7 +59,7 @@ npm run dev
 ## Docker ile calistirma
 
 1. `.env.example` dosyasini `.env` olarak kopyala.
-2. Bos secret alanlarini gercek degerlerle doldur.
+2. Bos secret alanlarini deployment secret store degerleriyle doldur. Gercek secret degerlerini repoya yazma.
 3. Asagidaki komutu calistir:
 
 ```powershell
@@ -78,7 +81,7 @@ Healthcheck:
 Mevcut migration seti SQLite ile uyumlu oldugu icin en dusuk riskli ucretsiz canliya alma yolu tek container API + frontend build ve kalici host volume kullanmaktir. Bu senaryoda uygulama frontend dosyalarini kendisi servis eder; ayri nginx veya frontend container gerekmez.
 
 1. `.env.sqlite.example` dosyasini `.env` olarak kopyala.
-2. `JWT_KEY` degerini en az 32 karakterlik rastgele guclu bir secret ile doldur.
+2. `JWT_KEY` degerini en az 32 byte kriptografik rastgele secret ile doldur.
 3. Gercek domain kullanacaksan:
 
 ```env
@@ -156,9 +159,59 @@ Asagidaki degiskenler kritik:
 - `Email__SmtpPassword`
 - `VITE_API_BASE_URL`
 
+## JWT secret yonetimi
+
+JWT signing key source control icinde tutulmaz. `API/appsettings.json`, `API/appsettings.Development.json`, `API/appsettings.Staging.json` ve `API/appsettings.Production.json` icinde gercek JWT secret bulunmamalidir. Uygulama JWT key'i su kaynaklardan alir:
+
+1. Command-line arguments
+2. Environment variables, Docker/Kubernetes/secret manager tarafindan process environment olarak verilen degerler dahil
+3. Development ortaminda .NET User Secrets
+4. `appsettings.{Environment}.json`
+5. `appsettings.json`
+
+ASP.NET Core icin standart environment variable adi `Jwt__Key`'dir. Docker Compose bu degeri `.env` icindeki `JWT_KEY` degiskeninden `Jwt__Key` olarak API container'ina aktarir.
+
+Guclu JWT key uretimi:
+
+```powershell
+$bytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+[Convert]::ToBase64String($bytes)
+```
+
+```bash
+openssl rand -base64 32
+```
+
+```bash
+head -c 32 /dev/urandom | base64
+```
+
+Minimum gereksinim:
+
+- En az 32 UTF-8 byte.
+- Kriptografik rastgele uretilmis olmali.
+- `secret`, `password`, `example`, `demo`, `default`, `test`, `spkakademi`, `supersecret` gibi tahmin edilebilir kelimeler icermemeli.
+- Production secret Azure Key Vault, AWS Secrets Manager, HashiCorp Vault, Docker Secret, Kubernetes Secret, OCI Secret veya CI/CD secret store uzerinden saglanmali.
+
+Docker icin:
+
+```env
+JWT_KEY=<secret-manager-or-ci-cd-value>
+```
+
+JWT rotation:
+
+1. Yeni key uret ve `JWT_KEY` olarak deploy et.
+2. Eski key'i gecici olarak `JWT_PREVIOUS_KEY_0` ile ver.
+3. Access token suresi dolana kadar current + previous key dogrulanir, yeni tokenlar sadece current key ile imzalanir.
+4. En uzun access token suresi ve gerekli operasyon penceresi dolduktan sonra `JWT_PREVIOUS_KEY_0` kaldirilir.
+5. Refresh tokenlar veritabaninda hash'li tutulur; signing key degisimi refresh tokenlari otomatik gecersiz kilmaz. Zorunlu logout istenirse kullanicilarin refresh token alanlari temizlenmelidir.
+
 Staging ve Production ortamlarinda uygulama fail-fast calisir. Asagidaki durumlarda API acilmaz:
 
-- `Jwt__Key` eksik, kisa veya placeholder ise
+- `Jwt__Key` eksik, kisa, dusuk entropy'li, source-controlled eski deger, placeholder veya tahmin edilebilir ise
+- `Jwt__PreviousKeys__*` degerleri zayif, tekrarli veya current key ile ayni ise
 - `ConnectionStrings__DefaultConnection` eksik veya placeholder DB sifresi iceriyorsa
 - `Email__Enabled=true` iken `Email__SmtpPassword` eksik veya placeholder ise
 - `AllowedHosts` development disinda bos veya wildcard ise
@@ -185,9 +238,11 @@ Gerekli secrets:
 - `STAGING_DEPLOY_WEBHOOK_URL`
 - `PRODUCTION_DEPLOY_WEBHOOK_URL`
 - `STAGING_JWT_KEY`
+- `STAGING_JWT_PREVIOUS_KEY_0` (sadece rotation penceresinde)
 - `STAGING_DB_PASSWORD`
 - `STAGING_SMTP_PASSWORD`
 - `PRODUCTION_JWT_KEY`
+- `PRODUCTION_JWT_PREVIOUS_KEY_0` (sadece rotation penceresinde)
 - `PRODUCTION_DB_PASSWORD`
 - `PRODUCTION_SMTP_PASSWORD`
 
@@ -196,7 +251,7 @@ Gerekli secrets:
 - JWT secret bilgilerini source control icinde tutma.
 - Development icin .NET User Secrets kullan; `appsettings.Development.json` icine JWT key, admin sifresi, SMTP sifresi veya API key yazma.
 - Secret degerlerini Azure Key Vault, AWS Secrets Manager, HashiCorp Vault, Docker Secrets veya Kubernetes Secrets uzerinden sagla.
-- JWT secret en az 32 karakter, rastgele ve rotate edilebilir olmali.
+- JWT secret en az 32 byte, kriptografik rastgele ve rotate edilebilir olmali.
 - Veritabani kullanicisi uygulama icin least-privilege yetkilerle sinirlandirilmali.
 - Production domainlerini `Cors:AllowedOrigins` altinda whitelist et.
 - Reverse proxy arkasinda `X-Forwarded-*` headerlari ile calisir.
