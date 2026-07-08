@@ -23,8 +23,9 @@ export interface ResetPasswordRequest {
 
 export interface LoginResponse {
   accessToken: string
+  email: string
   expiresIn: number
-  refreshToken: string
+  refreshToken?: string | null
   refreshTokenExpiresAt?: string
   role: 'Admin' | 'Student'
   tokenType?: string
@@ -33,7 +34,6 @@ export interface LoginResponse {
 export interface AuthUser {
   email: string
   expiresAt: number
-  refreshToken: string
   refreshTokenExpiresAt?: number
   role: 'Admin' | 'Student'
   token: string

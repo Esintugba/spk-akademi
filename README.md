@@ -244,6 +244,33 @@ JWT rotation:
 4. En uzun access token suresi ve gerekli operasyon penceresi dolduktan sonra `JWT_PREVIOUS_KEY_0` kaldirilir.
 5. Refresh tokenlar veritabaninda hash'li tutulur; signing key degisimi refresh tokenlari otomatik gecersiz kilmaz. Zorunlu logout istenirse kullanicilarin refresh token alanlari temizlenmelidir.
 
+## Refresh token cookie ve CSRF
+
+Refresh token JavaScript tarafindan okunabilir storage alanlarinda tutulmaz. Backend login ve refresh cevaplarinda refresh token'i response body'sinden cikarir ve HttpOnly cookie olarak yazar:
+
+- Cookie adi: `__Host-spk-refresh`
+- `HttpOnly=true`
+- `Secure=true` production/staging icin zorunlu
+- `SameSite=Lax`
+- `Path=/`
+- Domain verilmez; `__Host-` prefix host-only cookie semantigini zorunlu kilar
+
+Frontend access token'i sadece memory'de tutar. Sayfa yenilendiginde access token kaybolur; uygulama `/api/account/refresh` endpoint'ine cookie ile sessiz refresh dener ve yeni access token'i memory'ye alir.
+
+Cookie refresh modeli CSRF riski olusturdugu icin auth cookie kullanan endpointler antiforgery token ister. Frontend once `/api/account/csrf` endpoint'inden token alir, sonra unsafe isteklerde `X-XSRF-TOKEN` header'ini gonderir. CORS policy credential destekler ve sadece explicit `Cors__AllowedOrigins` degerlerine izin verir.
+
+Production ortaminda asagidaki ayarlar degistirilmemelidir:
+
+```env
+AuthCookies__RefreshTokenCookieName=__Host-spk-refresh
+AuthCookies__AntiforgeryCookieName=__Host-spk-antiforgery
+AuthCookies__SameSite=Lax
+AuthCookies__Secure=true
+AuthCookies__Path=/
+```
+
+Development ortaminda HTTP localhost icin cookie isimleri `spk-refresh-dev` ve `spk-antiforgery-dev`, `Secure=false` olarak override edilir. Production her zaman HTTPS arkasinda calismalidir.
+
 Staging ve Production ortamlarinda uygulama fail-fast calisir. Asagidaki durumlarda API acilmaz:
 
 - `Jwt__Key` eksik, kisa, dusuk entropy'li, source-controlled eski deger, placeholder veya tahmin edilebilir ise
@@ -253,6 +280,8 @@ Staging ve Production ortamlarinda uygulama fail-fast calisir. Asagidaki durumla
 - `AllowedHosts` development disinda bos veya wildcard ise
 - `Cors__AllowedOrigins` development disinda bos, wildcard veya gecersiz origin iceriyorsa
 - `ForwardedHeaders__Enabled=true` iken development disinda `KnownProxies` veya `KnownNetworks` bos ise
+- `AuthCookies__Secure=false` development disinda kullanilirsa
+- `AuthCookies__SameSite=None` production/staging icin review edilmeden kullanilirsa
 
 Docker Compose tarafinda secret fallback kullanilmaz. `POSTGRES_PASSWORD`, `ConnectionStrings__DefaultConnection` ve `JWT_KEY` verilmezse compose baslamaz.
 

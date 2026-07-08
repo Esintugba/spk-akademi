@@ -25,14 +25,13 @@ interface AuthState {
 
 const storedUser = getStoredUser()
 const storedUserHasValidAccessToken = storedUser && !isAccessTokenExpired(storedUser)
-const storedUserCanRefresh = storedUser && !storedUserHasValidAccessToken && !isRefreshTokenExpired(storedUser)
 
 const initialState: AuthState = {
   error: '',
-  hasInitialized: !storedUserCanRefresh,
+  hasInitialized: false,
   initializationError: '',
   isAuthenticated: Boolean(storedUserHasValidAccessToken),
-  isInitializing: Boolean(storedUserCanRefresh),
+  isInitializing: true,
   isLoading: false,
   isRefreshing: false,
   user: storedUser ?? null,
@@ -43,15 +42,11 @@ export const initializeAuth = createAsyncThunk<AuthUser | null, void, { rejectVa
   async (_, { rejectWithValue }) => {
     const user = getStoredUser()
 
-    if (!user) {
-      return null
-    }
-
-    if (!isAccessTokenExpired(user)) {
+    if (user && !isAccessTokenExpired(user)) {
       return user
     }
 
-    if (isRefreshTokenExpired(user)) {
+    if (user && isRefreshTokenExpired(user)) {
       clearStoredUser()
       return null
     }
@@ -66,7 +61,7 @@ export const initializeAuth = createAsyncThunk<AuthUser | null, void, { rejectVa
 
 export const loginUser = createAsyncThunk('auth/loginUser', async (payload: LoginRequest) => {
   const response = await api.login(payload)
-  const user = createAuthUser(payload.email, response)
+  const user = createAuthUser(response)
   saveStoredUser(user)
 
   return user
@@ -75,7 +70,7 @@ export const loginUser = createAsyncThunk('auth/loginUser', async (payload: Logi
 export const registerUser = createAsyncThunk('auth/registerUser', async (payload: RegisterRequest) => {
   await api.register(payload)
   const response = await api.login(payload)
-  const user = createAuthUser(payload.email, response)
+  const user = createAuthUser(response)
   saveStoredUser(user)
 
   return user

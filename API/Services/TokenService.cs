@@ -58,7 +58,8 @@ public class TokenService(
             refreshToken,
             "Bearer",
             primaryRole,
-            refreshTokenExpiresAt);
+            refreshTokenExpiresAt,
+            user.Email ?? string.Empty);
     }
 
     private static string GetJwtKey(JwtOptions options)

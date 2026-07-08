@@ -9,7 +9,9 @@ public record RegisterDto(
 
 public record LoginDto(string Email, string Password);
 
-public record RefreshTokenDto(string RefreshToken);
+public record RefreshTokenDto(string? RefreshToken = null);
+
+public record CsrfTokenDto(string CsrfToken);
 
 public record ForgotPasswordDto(string Email);
 
@@ -18,7 +20,8 @@ public record ResetPasswordDto(string Email, string Token, string NewPassword);
 public record AuthResponseDto(
     string AccessToken,
     int ExpiresIn,
-    string RefreshToken,
+    string? RefreshToken,
     string TokenType,
     string Role,
-    DateTime RefreshTokenExpiresAt);
+    DateTime RefreshTokenExpiresAt,
+    string Email);

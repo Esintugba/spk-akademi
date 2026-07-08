@@ -19,6 +19,7 @@ import { toast } from 'react-toastify'
 import type { AppOutletContext } from '../../App'
 import { logout, selectCurrentUser } from '../../app/authSlice'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
+import { api } from '../../shared/api'
 import { AppBreadcrumbs } from '../common/AppBreadcrumbs'
 import { NavLinks } from './NavLinks'
 import { BrandMark } from '../../shared/branding/BrandMark'
@@ -34,7 +35,8 @@ export function AdminLayout() {
 
   const displayName = useMemo(() => user?.email?.split('@')[0] || 'Admin', [user?.email])
 
-  function handleLogout() {
+  async function handleLogout() {
+    await api.logoutSession().catch(() => undefined)
     dispatch(logout())
     toast.success('Çıkış yapıldı.')
     navigate('/login')

@@ -12,6 +12,7 @@ interface ApiErrorResponse {
 
 interface SpkAxiosRequestConfig extends AxiosRequestConfig {
   skipAuth?: boolean
+  skipCsrf?: boolean
 }
 
 export class ApiRequestError extends Error {
@@ -36,14 +37,18 @@ export class AuthRefreshError extends Error {
 }
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? ''
+const csrfHeaderName = 'X-XSRF-TOKEN'
 
 const axiosInstance = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
+let csrfPromise: Promise<string> | null = null
+let csrfToken: string | null = null
 let refreshPromise: Promise<AuthUser | null> | null = null
 
 function notifyInvalidAuth() {
@@ -62,30 +67,51 @@ function isInvalidRefreshError(error: unknown) {
   return axios.isAxiosError(error) && (error.response?.status === 400 || error.response?.status === 401)
 }
 
+function isUnsafeMethod(method?: string) {
+  return ['delete', 'patch', 'post', 'put'].includes((method ?? 'get').toLowerCase())
+}
+
+async function ensureCsrfToken() {
+  if (csrfToken) {
+    return csrfToken
+  }
+
+  if (!csrfPromise) {
+    csrfPromise = axios
+      .get<{ csrfToken: string }>(`${baseURL}/api/account/csrf`, { withCredentials: true })
+      .then((response) => {
+        csrfToken = response.data.csrfToken
+        return csrfToken
+      })
+      .finally(() => {
+        csrfPromise = null
+      })
+  }
+
+  return csrfPromise
+}
+
 export function isAuthRefreshError(error: unknown): error is AuthRefreshError {
   return error instanceof AuthRefreshError
 }
 
 export async function refreshStoredSession() {
-  const user = getStoredUser()
-
-  if (!user?.refreshToken) {
-    return null
-  }
-
   if (!refreshPromise) {
     refreshPromise = axios
       .post<LoginResponse>(
         `${baseURL}/api/account/refresh`,
-        { refreshToken: user.refreshToken },
-        { headers: { 'Content-Type': 'application/json' } },
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            [csrfHeaderName]: await ensureCsrfToken(),
+          },
+          withCredentials: true,
+        },
       )
       .then((response) => {
         const updatedUser = updateStoredTokens(response.data)
-
-        if (updatedUser) {
-          notifyAuthRefreshed(updatedUser)
-        }
+        notifyAuthRefreshed(updatedUser)
 
         return updatedUser
       })
@@ -93,12 +119,13 @@ export async function refreshStoredSession() {
         const status = axios.isAxiosError(error) ? error.response?.status : undefined
 
         if (isInvalidRefreshError(error)) {
+          csrfToken = null
           clearStoredUser()
           notifyInvalidAuth()
-          throw new AuthRefreshError('Oturum yenileme anahtarı geçersiz.', true, status)
+          throw new AuthRefreshError('Oturum yenileme anahtari gecersiz.', true, status)
         }
 
-        throw new AuthRefreshError('Oturum şu anda yenilenemedi.', false, status)
+        throw new AuthRefreshError('Oturum su anda yenilenemedi.', false, status)
       })
       .finally(() => {
         refreshPromise = null
@@ -109,29 +136,32 @@ export async function refreshStoredSession() {
 }
 
 axiosInstance.interceptors.request.use(async (config) => {
-  if (config.url?.includes('/api/account/refresh')) {
-    return config
+  const spkConfig = config as SpkAxiosRequestConfig
+
+  if (isUnsafeMethod(config.method) && !spkConfig.skipCsrf) {
+    config.headers[csrfHeaderName] = await ensureCsrfToken()
   }
 
-  if ((config as SpkAxiosRequestConfig).skipAuth) {
+  if (spkConfig.skipAuth) {
     return config
   }
 
   let user = getStoredUser()
+  const isRefreshRequest = Boolean(config.url?.includes('/api/account/refresh'))
 
-  if (user && isAccessTokenExpired(user)) {
+  if (!isRefreshRequest && (!user || isAccessTokenExpired(user))) {
     try {
       user = await refreshStoredSession()
     } catch (error) {
       if (isAuthRefreshError(error) && error.invalidSession) {
-        return Promise.reject(new ApiRequestError('Oturum süresi doldu.', 401))
+        return Promise.reject(new ApiRequestError('Oturum suresi doldu.', 401))
       }
 
       return Promise.reject(error)
     }
 
     if (!user) {
-      return Promise.reject(new ApiRequestError('Oturum süresi doldu.', 401))
+      return Promise.reject(new ApiRequestError('Oturum suresi doldu.', 401))
     }
   }
 
@@ -164,10 +194,11 @@ axiosInstance.interceptors.response.use(
         }
       } catch (refreshError) {
         if (isAuthRefreshError(refreshError) && !refreshError.invalidSession) {
-          toast.error('Oturum şu anda yenilenemedi. Bağlantını kontrol edip tekrar dene.', { toastId: 'api-auth-refresh-failed' })
+          toast.error('Oturum su anda yenilenemedi. Baglantini kontrol edip tekrar dene.', { toastId: 'api-auth-refresh-failed' })
           return Promise.reject(new ApiRequestError(refreshError.message, refreshError.status))
         }
 
+        csrfToken = null
         clearStoredUser()
         notifyInvalidAuth()
       }
@@ -175,20 +206,21 @@ axiosInstance.interceptors.response.use(
 
     const responseData = error.response?.data
     const status = error.response?.status
-    const message = responseData?.message || responseData?.title || error.message || 'İstek başarısız oldu.'
+    const message = responseData?.message || responseData?.title || error.message || 'Istek basarisiz oldu.'
 
     if (status === 400) {
-      toast.error(message || 'Geçersiz istek.')
+      toast.error(message || 'Gecersiz istek.')
     } else if (status === 401 && !isRefreshRequest) {
+      csrfToken = null
       clearStoredUser()
       notifyInvalidAuth()
-      toast.error('Bu işlem için giriş yapman gerekiyor.', { toastId: 'api-auth-required' })
+      toast.error('Bu islem icin giris yapman gerekiyor.', { toastId: 'api-auth-required' })
     } else if (status === 403) {
-      toast.error('Bu işlem için yetkin yok.', { toastId: 'api-forbidden' })
+      toast.error('Bu islem icin yetkin yok.', { toastId: 'api-forbidden' })
     } else if (status === 404) {
-      toast.error('İstenen kaynak bulunamadı.')
+      toast.error('Istenen kaynak bulunamadi.')
     } else if (status && status >= 500) {
-      toast.error(message || 'Sunucuda beklenmeyen bir hata oluştu.')
+      toast.error(message || 'Sunucuda beklenmeyen bir hata olustu.')
     } else if (!isRefreshRequest) {
       toast.error(message)
     }

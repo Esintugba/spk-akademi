@@ -63,6 +63,7 @@ public static class ConfigurationSecurityValidator
         var forwardedHeadersOptions = configuration
             .GetSection(ForwardedHeadersConfigurationOptions.SectionName)
             .Get<ForwardedHeadersConfigurationOptions>() ?? new ForwardedHeadersConfigurationOptions();
+        var authCookieOptions = configuration.GetSection(AuthCookieOptions.SectionName).Get<AuthCookieOptions>() ?? new AuthCookieOptions();
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var databaseProvider = configuration["Database:Provider"] ?? "Sqlite";
         var autoMigrate = configuration.GetValue<bool>("Database:AutoMigrate");
@@ -113,6 +114,7 @@ public static class ConfigurationSecurityValidator
         ValidateCors(errors, allowedOrigins, isDevelopment);
         ValidateAllowedHosts(errors, allowedHosts, isDevelopment);
         ValidateForwardedHeaders(errors, forwardedHeadersOptions, isDevelopment);
+        ValidateAuthCookies(errors, authCookieOptions, isDevelopment);
 
         return errors;
     }
@@ -400,6 +402,59 @@ public static class ConfigurationSecurityValidator
         if (knownProxies.Length == 0 && knownNetworks.Length == 0)
         {
             errors.Add("ForwardedHeaders is enabled outside Development, but no KnownProxies or KnownNetworks are configured. Refusing to trust forwarded headers from every remote address.");
+        }
+    }
+
+    private static void ValidateAuthCookies(List<string> errors, AuthCookieOptions options, bool isDevelopment)
+    {
+        if (string.IsNullOrWhiteSpace(options.RefreshTokenCookieName))
+        {
+            errors.Add("AuthCookies:RefreshTokenCookieName is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.AntiforgeryCookieName))
+        {
+            errors.Add("AuthCookies:AntiforgeryCookieName is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Path) || !options.Path.StartsWith('/'))
+        {
+            errors.Add("AuthCookies:Path must start with '/'.");
+        }
+
+        if (!isDevelopment && !options.Secure)
+        {
+            errors.Add("AuthCookies:Secure must be true outside Development.");
+        }
+
+        if (!isDevelopment && options.SameSite == SameSiteMode.None)
+        {
+            errors.Add("AuthCookies:SameSite=None is not allowed outside Development unless a cross-site frontend architecture is explicitly designed and reviewed.");
+        }
+
+        ValidateHostPrefixedCookie(errors, "AuthCookies:RefreshTokenCookieName", options.RefreshTokenCookieName, options);
+        ValidateHostPrefixedCookie(errors, "AuthCookies:AntiforgeryCookieName", options.AntiforgeryCookieName, options);
+    }
+
+    private static void ValidateHostPrefixedCookie(
+        List<string> errors,
+        string keyName,
+        string cookieName,
+        AuthCookieOptions options)
+    {
+        if (!cookieName.StartsWith("__Host-", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        if (!options.Secure)
+        {
+            errors.Add($"{keyName} uses the __Host- prefix, so AuthCookies:Secure must be true.");
+        }
+
+        if (options.Path != "/")
+        {
+            errors.Add($"{keyName} uses the __Host- prefix, so AuthCookies:Path must be '/'.");
         }
     }
 

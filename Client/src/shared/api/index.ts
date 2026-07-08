@@ -59,6 +59,7 @@ export const api = {
   register: authApi.register,
   login: authApi.login,
   refresh: authApi.refresh,
+  logoutSession: authApi.logout,
   forgotPassword: authApi.forgotPassword,
   resetPassword: authApi.resetPassword,
   getMyProfile: authApi.getMyProfile,

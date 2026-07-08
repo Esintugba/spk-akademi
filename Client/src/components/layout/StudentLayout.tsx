@@ -32,7 +32,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { AchievementCelebrationLayer } from '../../features/gamification/AchievementCelebrationLayer'
 import { ResumeQuizModal } from '../../features/quiz-session/ResumeQuizModal'
 import { AppBreadcrumbs } from '../common/AppBreadcrumbs'
-import { gamificationApi } from '../../shared/api'
+import { api, gamificationApi } from '../../shared/api'
 import { studentNavigation, type StudentNavItem } from '../../shared/navigation'
 import { BrandMark } from '../../shared/branding/BrandMark'
 import { useLocalization } from '../../shared/localization'
@@ -219,7 +219,8 @@ export function StudentLayout() {
     void gamificationApi.claimDailyLogin().catch(() => undefined)
   }, [user])
 
-  function handleLogout() {
+  async function handleLogout() {
+    await api.logoutSession().catch(() => undefined)
     dispatch(logout())
     toast.success(t('Çıkış yapıldı.'))
     navigate('/login')

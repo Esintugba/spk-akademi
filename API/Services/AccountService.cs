@@ -42,7 +42,9 @@ public interface IAccountService
 
     Task<AccountServiceOutcome<AuthResponseDto>> LoginAsync(LoginDto dto);
 
-    Task<AccountServiceOutcome<AuthResponseDto>> RefreshAsync(RefreshTokenDto dto);
+    Task<AccountServiceOutcome<AuthResponseDto>> RefreshAsync(string? refreshToken);
+
+    Task<AccountServiceOutcome<bool>> LogoutAsync(string? refreshToken);
 
     Task<AccountServiceOutcome<AccountProfileDto>> GetProfileAsync(AppUser? user);
 
@@ -168,21 +170,21 @@ public class AccountService(
         return AccountServiceOutcome<AuthResponseDto>.Success(await tokenService.CreateTokenResponse(user));
     }
 
-    public async Task<AccountServiceOutcome<AuthResponseDto>> RefreshAsync(RefreshTokenDto dto)
+    public async Task<AccountServiceOutcome<AuthResponseDto>> RefreshAsync(string? refreshToken)
     {
-        if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+        if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return AccountServiceOutcome<AuthResponseDto>.Fail(
                 AccountServiceError.RefreshTokenInvalid,
                 "Oturum yenileme anahtarı geçersiz.");
         }
 
-        var refreshTokenHash = RefreshTokenHasher.Hash(dto.RefreshToken);
+        var refreshTokenHash = RefreshTokenHasher.Hash(refreshToken);
         var user = await userManager.Users
             .FirstOrDefaultAsync(x => x.RefreshToken == refreshTokenHash);
 
         user ??= await userManager.Users
-            .FirstOrDefaultAsync(x => x.RefreshToken == dto.RefreshToken);
+            .FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
 
         if (user is null ||
             string.IsNullOrWhiteSpace(user.RefreshToken) ||
@@ -194,6 +196,30 @@ public class AccountService(
         }
 
         return AccountServiceOutcome<AuthResponseDto>.Success(await tokenService.CreateTokenResponse(user));
+    }
+
+    public async Task<AccountServiceOutcome<bool>> LogoutAsync(string? refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return AccountServiceOutcome<bool>.Success(true);
+        }
+
+        var refreshTokenHash = RefreshTokenHasher.Hash(refreshToken);
+        var user = await userManager.Users
+            .FirstOrDefaultAsync(x => x.RefreshToken == refreshTokenHash);
+
+        user ??= await userManager.Users
+            .FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
+
+        if (user is not null)
+        {
+            user.RefreshToken = null;
+            user.RefreshTokenExpiresAt = null;
+            await userManager.UpdateAsync(user);
+        }
+
+        return AccountServiceOutcome<bool>.Success(true);
     }
 
     public async Task<AccountServiceOutcome<AccountProfileDto>> GetProfileAsync(AppUser? user)

@@ -33,6 +33,7 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.Configure<ForwardedHeadersConfigurationOptions>(builder.Configuration.GetSection(ForwardedHeadersConfigurationOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection(AuthCookieOptions.SectionName));
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.SectionName));
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
 builder.Services.Configure<SeedAdminOptions>(builder.Configuration.GetSection(SeedAdminOptions.SectionName));
@@ -77,6 +78,19 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 
         return new BadRequestObjectResult(response);
     };
+});
+var authCookieOptions = builder.Configuration.GetSection(AuthCookieOptions.SectionName).Get<AuthCookieOptions>() ?? new AuthCookieOptions();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = AuthCookieOptions.CsrfHeaderName;
+    options.Cookie.Name = authCookieOptions.AntiforgeryCookieName;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Path = string.IsNullOrWhiteSpace(authCookieOptions.Path) ? "/" : authCookieOptions.Path;
+    options.Cookie.SameSite = authCookieOptions.SameSite;
+    options.Cookie.SecurePolicy = authCookieOptions.Secure || !builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.Always
+        : CookieSecurePolicy.SameAsRequest;
 });
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
@@ -248,13 +262,18 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(allowedCorsOrigins)
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         }
         else if (builder.Environment.IsDevelopment())
         {
-            policy.AllowAnyOrigin()
+            policy.SetIsOriginAllowed(origin =>
+                    Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+                    (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                     uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)))
                 .AllowAnyMethod()
-                .AllowAnyHeader();
+                .AllowAnyHeader()
+                .AllowCredentials();
         }
         else
         {
