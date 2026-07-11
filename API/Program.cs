@@ -64,7 +64,7 @@ builder.Host.UseSerilog((context, services, configuration) =>
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning);
 });
 
-builder.Services.AddControllers(options =>
+builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<ApiErrorResultFilter>();
 });

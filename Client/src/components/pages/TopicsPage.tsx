@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -46,26 +46,52 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState('')
   const [visibleCount, setVisibleCount] = useState(24)
+  const [topicTypeFilter, setTopicTypeFilter] = useState('')
+  const [sortBy, setSortBy] = useState('order')
+
+  const courseById = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses])
 
   const filteredTopics = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('tr-TR')
 
-    return topics.filter((topic) => {
-      const course = courses.find((item) => item.id === topic.courseId)
-      const matchesCourse = !courseFilter || topic.courseId === courseFilter
-      const matchesSearch =
-        !term ||
-        [topic.title, topic.slug, topic.summary ?? '', topic.importantPoints ?? '', topic.parentTopicTitle ?? '', course?.name ?? '']
-          .join(' ')
-          .toLocaleLowerCase('tr-TR')
-          .includes(term)
+    return topics
+      .filter((topic) => {
+        const course = courseById.get(topic.courseId)
+        const matchesCourse = !courseFilter || topic.courseId === courseFilter
+        const matchesType = !topicTypeFilter || String(topic.type) === topicTypeFilter
+        const matchesSearch =
+          !term ||
+          [
+            topic.title,
+            topic.slug,
+            topic.summary ?? '',
+            topic.importantPoints ?? '',
+            topic.commonMistakes ?? '',
+            topic.formulas ?? '',
+            topic.parentTopicTitle ?? '',
+            course?.name ?? '',
+          ]
+            .join(' ')
+            .toLocaleLowerCase('tr-TR')
+            .includes(term)
 
-      return matchesCourse && matchesSearch
-    })
-  }, [courseFilter, courses, search, topics])
+        return matchesCourse && matchesType && matchesSearch
+      })
+      .sort((first, second) => compareFilteredTopics(first, second, sortBy, courseById))
+  }, [courseById, courseFilter, search, sortBy, topicTypeFilter, topics])
+
+  const filteredTopicStats = useMemo(() => ({
+    mainTopics: filteredTopics.filter((topic) => topic.type !== TopicType.SubTopic).length,
+    questions: filteredTopics.reduce((total, topic) => total + topic.questionCount, 0),
+    subTopics: filteredTopics.filter((topic) => topic.type === TopicType.SubTopic).length,
+  }), [filteredTopics])
+
+  useEffect(() => {
+    setVisibleCount(24)
+  }, [courseFilter, search, sortBy, topicTypeFilter])
 
   function getCourseName(courseId: string) {
-    return courses.find((course) => course.id === courseId)?.name ?? 'Ders bulunamadı'
+    return courseById.get(courseId)?.name ?? 'Ders bulunamadı'
   }
 
   function getTopicLabel(topic: Topic) {
@@ -186,6 +212,16 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
     }
   }
 
+  function renderTopicActions(topic: Topic) {
+    return (
+      <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
+        <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailTopic(topic)}><InfoOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+        <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(topic)}><EditOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+        <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === topic.id} onClick={() => setDeleteTarget(topic)}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
+      </Stack>
+    )
+  }
+
   const isSubTopicForm = form.type === TopicType.SubTopic
   const summaryLabel = isSubTopicForm ? 'Tanım' : 'Ana konu özeti'
   const importantPointsLabel = isSubTopicForm ? 'Soru çözüm ipuçları' : 'Önemli noktalar'
@@ -250,9 +286,9 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
           </Box>
         </AdminSurface>
 
-        <AdminSurface title="Konu listesi" description="Özet, soru yoğunluğu ve bağlı ders bilgisiyle konuları tarayın.">
+        <AdminSurface title="Konu listesi" description="Filtreler, sıralama ve özet bilgilerle konuları daha hızlı tarayın.">
           <Stack spacing={2}>
-            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'minmax(0,1.4fr) minmax(150px,0.9fr)', xs: 'minmax(0,1fr)' } }}>
               <TextField
                 fullWidth
                 label="Konu ara"
@@ -272,6 +308,27 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
                 <MenuItem value="">Tümü</MenuItem>
                 {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
               </TextField>
+              <TextField fullWidth label="Konu türü" select value={topicTypeFilter} onChange={(event) => setTopicTypeFilter(event.target.value)}>
+                <MenuItem value="">Tümü</MenuItem>
+                <MenuItem value={String(TopicType.MainTopic)}>Ana konu</MenuItem>
+                <MenuItem value={String(TopicType.SubTopic)}>Alt konu</MenuItem>
+              </TextField>
+              <TextField fullWidth label="Sıralama" select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <MenuItem value="order">Ders ve sıra</MenuItem>
+                <MenuItem value="title">Başlık A-Z</MenuItem>
+                <MenuItem value="questions-desc">En çok soru</MenuItem>
+              </TextField>
+            </Box>
+
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ alignItems: { sm: 'center', xs: 'stretch' }, bgcolor: 'rgba(15,23,42,0.035)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 2, justifyContent: 'space-between', px: 1.5, py: 1.25 }}>
+              <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+                {filteredTopics.length} konu bulundu
+              </Typography>
+              <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                <Chip label={`${filteredTopicStats.mainTopics} ana konu`} size="small" />
+                <Chip label={`${filteredTopicStats.subTopics} alt konu`} size="small" />
+                <Chip color="primary" label={`${filteredTopicStats.questions} soru`} size="small" />
+              </Stack>
             </Stack>
 
             <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}>
@@ -281,19 +338,18 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
                 filteredTopics.slice(0, visibleCount).map((topic) => (
                   <Box key={topic.id} sx={{ border: '1px solid rgba(148,163,184,0.18)', borderRadius: 3, minWidth: 0, p: 2.25 }}>
                     <Stack direction="row" sx={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
-                      <Chip color={topic.type === TopicType.SubTopic ? 'default' : 'primary'} label={topic.type === TopicType.SubTopic ? `${topic.order}. alt konu` : `${topic.order}. ana konu`} size="small" />
-                      <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
-                        <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailTopic(topic)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(topic)}><EditOutlinedIcon /></IconButton></Tooltip>
-                        <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === topic.id} onClick={() => setDeleteTarget(topic)}><DeleteOutlineIcon /></IconButton></Tooltip>
-                      </Stack>
+                      <Chip color={topic.type === TopicType.SubTopic ? 'default' : 'primary'} label={topic.type === TopicType.SubTopic ? `${topic.order}. alt konu` : `${topic.order}. ana konu`} size="small" sx={{ fontWeight: 800 }} />
+                      {renderTopicActions(topic)}
                     </Stack>
                     <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere', pl: topic.parentTopicId ? 2 : 0 }}>{topic.title}</Typography>
-                    <Typography color="text.secondary" sx={{ mt: 1 }}>{topic.summary || 'Kısa özet henüz girilmedi.'}</Typography>
+                    <Typography color="text.secondary" sx={{ display: '-webkit-box', lineHeight: 1.55, mt: 1, overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3 }}>
+                      {topic.summary || 'Kısa özet henüz girilmedi.'}
+                    </Typography>
                     <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.75, minWidth: 0, '& .MuiChip-root': { maxWidth: '100%' }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}>
                       <Chip label={getCourseName(topic.courseId)} size="small" />
                       {topic.parentTopicTitle && <Chip label={`Ana konu: ${topic.parentTopicTitle}`} size="small" variant="outlined" />}
                       {(topic.subTopicCount ?? 0) > 0 && <Chip label={`${topic.subTopicCount} alt konu`} size="small" variant="outlined" />}
+                      <Chip label={topic.slug} size="small" variant="outlined" />
                       <Chip color="primary" label={`${topic.questionCount} soru`} size="small" />
                     </Stack>
                   </Box>
@@ -345,4 +401,17 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '')
+}
+
+function compareFilteredTopics(first: Topic, second: Topic, sortBy: string, courseById: Map<string, Course>) {
+  if (sortBy === 'title') {
+    return first.title.localeCompare(second.title, 'tr') || first.order - second.order
+  }
+
+  if (sortBy === 'questions-desc') {
+    return second.questionCount - first.questionCount || first.title.localeCompare(second.title, 'tr')
+  }
+
+  const courseCompare = (courseById.get(first.courseId)?.name ?? '').localeCompare(courseById.get(second.courseId)?.name ?? '', 'tr')
+  return courseCompare || first.order - second.order || first.title.localeCompare(second.title, 'tr')
 }
