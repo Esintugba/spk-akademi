@@ -1,3 +1,6 @@
+using System.Data;
+using System.Data.Common;
+using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
 using API.Data;
@@ -6,6 +9,7 @@ using API.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.AspNetCore.StaticFiles;
 
 namespace API.Services;
@@ -79,6 +83,7 @@ public class SupportTicketService(
     DataContext context,
     IWebHostEnvironment environment) : ISupportTicketService
 {
+    private const int MaxTicketSequenceDigits = 9999;
     private static readonly Regex TagRegex = new("<.*?>", RegexOptions.Compiled);
     private static readonly Regex ControlRegex = new("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", RegexOptions.Compiled);
     private static readonly HashSet<string> AllowedAttachmentExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -113,8 +118,27 @@ public class SupportTicketService(
         CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
+        var ticketId = Guid.NewGuid();
+        string? attachmentUrl = null;
+
+        if (dto.Attachment is not null)
+        {
+            var (error, url) = await StoreAttachmentAsync(ticketId, dto.Attachment, cancellationToken);
+            if (error != SupportTicketError.None)
+            {
+                return (error, null);
+            }
+
+            attachmentUrl = url;
+        }
+
+        await using var transaction = await context.Database.BeginTransactionAsync(
+            GetTicketCreationIsolationLevel(),
+            cancellationToken);
+
         var ticket = new SupportTicket
         {
+            Id = ticketId,
             TicketNumber = await GenerateTicketNumberAsync(now, cancellationToken),
             UserId = userId,
             Category = dto.Category,
@@ -135,16 +159,7 @@ public class SupportTicketService(
             CreatedAt = now
         };
 
-        if (dto.Attachment is not null)
-        {
-            var (error, url) = await StoreAttachmentAsync(ticket.Id, dto.Attachment, cancellationToken);
-            if (error != SupportTicketError.None)
-            {
-                return (error, null);
-            }
-
-            message.AttachmentUrl = url;
-        }
+        message.AttachmentUrl = attachmentUrl;
 
         ticket.Messages.Add(message);
         ticket.StatusHistory.Add(new SupportTicketStatusHistory
@@ -160,6 +175,7 @@ public class SupportTicketService(
         context.SupportTickets.Add(ticket);
         await AddNotificationAsync(ticket, null, SupportTicketNotificationType.NewTicketCreated, "Yeni destek talebi", $"{ticket.TicketNumber} numaralı talep oluşturuldu.", now, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return (SupportTicketError.None, await GetTicketDetailAsync(ticket.Id, adminLinks: false, cancellationToken));
     }
@@ -549,13 +565,115 @@ public class SupportTicketService(
 
     private async Task<string> GenerateTicketNumberAsync(DateTime now, CancellationToken cancellationToken)
     {
-        var prefix = $"SPK-{now:yyyyMMdd}-";
-        var todayCount = await context.SupportTickets
-            .AsNoTracking()
-            .CountAsync(x => x.TicketNumber.StartsWith(prefix), cancellationToken);
+        var sequence = await GetNextTicketSequenceAsync(now, cancellationToken);
+        if (sequence > MaxTicketSequenceDigits)
+        {
+            throw new InvalidOperationException($"Daily support ticket capacity exceeded for {now:yyyyMMdd}.");
+        }
 
-        return $"{prefix}{todayCount + 1:0000}";
+        return $"SPK-{now:yyyyMMdd}-{sequence:0000}";
     }
+
+    private async Task<int> GetNextTicketSequenceAsync(DateTime now, CancellationToken cancellationToken)
+    {
+        var providerName = context.Database.ProviderName ?? string.Empty;
+        var commandText = GetTicketCounterCommandText(providerName);
+        var dateKey = now.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+
+        var connection = context.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await context.Database.OpenConnectionAsync(cancellationToken);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = commandText;
+        command.Transaction = context.Database.CurrentTransaction?.GetDbTransaction();
+        AddParameter(command, "@Id", IsSqliteProvider(providerName) ? Guid.NewGuid().ToString() : Guid.NewGuid());
+        AddParameter(command, "@DateKey", dateKey);
+        AddParameter(command, "@Now", now);
+
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        if (result is null || result == DBNull.Value)
+        {
+            throw new InvalidOperationException("Support ticket counter did not return a sequence value.");
+        }
+
+        return Convert.ToInt32(result, CultureInfo.InvariantCulture);
+    }
+
+    private IsolationLevel GetTicketCreationIsolationLevel()
+    {
+        var providerName = context.Database.ProviderName ?? string.Empty;
+
+        return IsSqliteProvider(providerName)
+            ? IsolationLevel.Serializable
+            : IsolationLevel.ReadCommitted;
+    }
+
+    private static string GetTicketCounterCommandText(string providerName)
+    {
+        if (IsSqliteProvider(providerName))
+        {
+            return """
+                INSERT INTO "SupportTicketCounters" ("Id", "DateKey", "LastNumber", "CreatedAt", "UpdatedAt")
+                VALUES (@Id, @DateKey, 1, @Now, @Now)
+                ON CONFLICT("DateKey") DO UPDATE SET
+                    "LastNumber" = "LastNumber" + 1,
+                    "UpdatedAt" = excluded."UpdatedAt"
+                RETURNING "LastNumber";
+                """;
+        }
+
+        if (IsPostgresProvider(providerName))
+        {
+            return """
+                INSERT INTO "SupportTicketCounters" ("Id", "DateKey", "LastNumber", "CreatedAt", "UpdatedAt")
+                VALUES (@Id, @DateKey, 1, @Now, @Now)
+                ON CONFLICT ("DateKey") DO UPDATE SET
+                    "LastNumber" = "SupportTicketCounters"."LastNumber" + 1,
+                    "UpdatedAt" = EXCLUDED."UpdatedAt"
+                RETURNING "LastNumber";
+                """;
+        }
+
+        if (IsSqlServerProvider(providerName))
+        {
+            return """
+                MERGE [SupportTicketCounters] WITH (HOLDLOCK) AS [Target]
+                USING (VALUES (@Id, @DateKey, @Now)) AS [Source] ([Id], [DateKey], [Now])
+                    ON [Target].[DateKey] = [Source].[DateKey]
+                WHEN MATCHED THEN
+                    UPDATE SET
+                        [LastNumber] = [Target].[LastNumber] + 1,
+                        [UpdatedAt] = [Source].[Now]
+                WHEN NOT MATCHED THEN
+                    INSERT ([Id], [DateKey], [LastNumber], [CreatedAt], [UpdatedAt])
+                    VALUES ([Source].[Id], [Source].[DateKey], 1, [Source].[Now], [Source].[Now])
+                OUTPUT inserted.[LastNumber];
+                """;
+        }
+
+        throw new NotSupportedException($"Unsupported database provider '{providerName}' for support ticket numbering.");
+    }
+
+    private static void AddParameter(DbCommand command, string name, object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
+    private static bool IsSqliteProvider(string providerName) =>
+        providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPostgresProvider(string providerName) =>
+        providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) ||
+        providerName.Contains("PostgreSQL", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSqlServerProvider(string providerName) =>
+        providerName.Contains("SqlServer", StringComparison.OrdinalIgnoreCase);
 
     private async Task<(SupportTicketError Error, string? Url)> StoreAttachmentAsync(
         Guid ticketId,

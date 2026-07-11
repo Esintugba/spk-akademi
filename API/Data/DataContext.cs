@@ -87,6 +87,8 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
+    public DbSet<SupportTicketCounter> SupportTicketCounters => Set<SupportTicketCounter>();
+
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
 
     public DbSet<SupportTicketStatusHistory> SupportTicketStatusHistories => Set<SupportTicketStatusHistory>();
@@ -861,6 +863,13 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
                 .WithMany()
                 .HasForeignKey(x => x.AssignedAdminId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SupportTicketCounter>(entity =>
+        {
+            entity.HasIndex(x => x.DateKey).IsUnique();
+
+            entity.Property(x => x.DateKey).HasMaxLength(8).IsRequired();
         });
 
         modelBuilder.Entity<SupportTicketMessage>(entity =>

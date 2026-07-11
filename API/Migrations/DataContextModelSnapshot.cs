@@ -1845,6 +1845,34 @@ namespace API.Migrations.PostgresTypeProbe
                     b.ToTable("SupportTickets");
                 });
 
+            modelBuilder.Entity("API.Entities.SupportTicketCounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DateKey")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DateKey")
+                        .IsUnique();
+
+                    b.ToTable("SupportTicketCounters");
+                });
+
             modelBuilder.Entity("API.Entities.SupportTicketMessage", b =>
                 {
                     b.Property<Guid>("Id")
