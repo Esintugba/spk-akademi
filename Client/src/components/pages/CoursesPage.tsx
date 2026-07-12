@@ -8,6 +8,7 @@ import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, I
 import type { Course, License } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -26,6 +27,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
   const [editingCourse, setEditingCourse] = useState<Course | null>(null)
   const [detailCourse, setDetailCourse] = useState<Course | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [licenseFilter, setLicenseFilter] = useState('')
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
@@ -61,6 +63,11 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(course: Course) {
     setEditingCourse(course)
     setForm({
@@ -71,6 +78,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
       slug: course.slug,
     })
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -111,6 +119,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
       }
 
       resetForm()
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ders kaydedilemedi.')
@@ -142,7 +151,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
         title="Ders yapısını lisans bazında kurun."
         description="Her lisansın altında yer alan modülleri, sıralarını ve kısa kodlarını burada tanımlayın. Konu ve PDF akışı bu yapı üzerinden ilerler."
         actions={
-          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={resetForm}>
+          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={openCreateDrawer}>
             Yeni ders
           </Button>
         }
@@ -150,70 +159,7 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
 
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' } }}>
-        <AdminSurface title={editingCourse ? 'Dersi düzenle' : 'Yeni ders ekle'} description="Ders sırası öğrenci tarafındaki listeleme akışını belirler.">
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              <TextField
-                error={Boolean(fieldError && !form.licenseId)}
-                fullWidth
-                helperText={fieldError && !form.licenseId ? fieldError : 'Bu dersin bağlı olduğu lisansı seçin.'}
-                label="Lisans"
-                required
-                select
-                value={form.licenseId}
-                onChange={(event) => setForm((current) => ({ ...current, licenseId: event.target.value }))}
-              >
-                {licenses.map((license) => (
-                  <MenuItem key={license.id} value={license.id}>
-                    {license.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                helperText="Örn. Finansal Piyasalar"
-                label="Ders adı"
-                required
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              />
-              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField
-                  fullWidth
-                  helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. finansal.piyasalar_1'}
-                  label="Kısa kod"
-                  required
-                  value={form.slug}
-                  onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-                />
-                <TextField
-                  fullWidth
-                  helperText={fieldError && (!Number.isInteger(Number(form.order)) || Number(form.order) < 1) ? fieldError : 'Öğrenci tarafındaki görünüm sırası'}
-                  label="Sıra"
-                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
-                  value={form.order}
-                  onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
-                />
-              </Stack>
-              <TextField
-                fullWidth
-                label="Açıklama"
-                rows={4}
-                multiline
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              />
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-                <Button disabled={isSaving || licenses.length === 0} type="submit" variant="contained">
-                  {isSaving ? 'Kaydediliyor' : editingCourse ? 'Değişiklikleri kaydet' : 'Ders ekle'}
-                </Button>
-                {editingCourse && <Button onClick={resetForm}>Vazgeç</Button>}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Ders listesi" description="Lisans bazında filtreleyin, arayın ve konu yoğunluğunu takip edin.">
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
@@ -299,6 +245,74 @@ export function CoursesPage({ courses, licenses, onChanged }: CoursesPageProps) 
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        description="Ders sırası öğrenci tarafındaki listeleme akışını belirler."
+        open={isFormDrawerOpen}
+        title={editingCourse ? 'Dersi düzenle' : 'Yeni ders ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            <TextField
+              error={Boolean(fieldError && !form.licenseId)}
+              fullWidth
+              helperText={fieldError && !form.licenseId ? fieldError : 'Bu dersin bağlı olduğu lisansı seçin.'}
+              label="Lisans"
+              required
+              select
+              value={form.licenseId}
+              onChange={(event) => setForm((current) => ({ ...current, licenseId: event.target.value }))}
+            >
+              {licenses.map((license) => (
+                <MenuItem key={license.id} value={license.id}>
+                  {license.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              fullWidth
+              helperText="Örn. Finansal Piyasalar"
+              label="Ders adı"
+              required
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            />
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+              <TextField
+                fullWidth
+                helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. finansal.piyasalar_1'}
+                label="Kısa kod"
+                required
+                value={form.slug}
+                onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
+              />
+              <TextField
+                fullWidth
+                helperText={fieldError && (!Number.isInteger(Number(form.order)) || Number(form.order) < 1) ? fieldError : 'Öğrenci tarafındaki görünüm sırası'}
+                label="Sıra"
+                slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
+                value={form.order}
+                onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
+              />
+            </Stack>
+            <TextField
+              fullWidth
+              label="Açıklama"
+              rows={4}
+              multiline
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            />
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
+              <Button disabled={isSaving || licenses.length === 0} type="submit" variant="contained">
+                {isSaving ? 'Kaydediliyor' : editingCourse ? 'Değişiklikleri kaydet' : 'Ders ekle'}
+              </Button>
+              {editingCourse && <Button onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailCourse)} onClose={() => setDetailCourse(null)}>
         <DialogTitle>Ders detayı</DialogTitle>

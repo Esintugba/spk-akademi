@@ -8,6 +8,7 @@ import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, Dial
 import type { License } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -35,6 +36,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
   const [editingLicense, setEditingLicense] = useState<License | null>(null)
   const [detailLicense, setDetailLicense] = useState<License | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<License | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
@@ -63,6 +65,11 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(license: License) {
     setEditingLicense(license)
     setForm({
@@ -77,6 +84,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
       slug: license.slug,
     })
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -134,6 +142,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
       }
 
       resetForm()
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lisans kaydedilemedi.')
@@ -167,7 +176,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
         title="Lisans kataloğunu yönetin."
         description="SPK lisans türlerini, kısa kodlarını ve içerik ağacının üst seviyesini burada tanımlayın. Öğrenci erişimi ve ders organizasyonu bu yapı üzerinden şekillenir."
         actions={
-          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={resetForm}>
+          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={openCreateDrawer}>
             Yeni lisans
           </Button>
         }
@@ -183,92 +192,7 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
 
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '0.9fr 1.1fr', xs: '1fr' } }}>
-        <AdminSurface title={editingLicense ? 'Lisansı düzenle' : 'Yeni lisans ekle'} description="Kısa kod alanını URL ve paket eşleşmeleri için temiz tutun.">
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <TextField
-                error={Boolean(fieldError && form.name.trim().length < 3)}
-                fullWidth
-                helperText={fieldError && form.name.trim().length < 3 ? fieldError : 'Örn. Sermaye Piyasası Faaliyetleri Düzey 1'}
-                label="Lisans adı"
-                required
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              />
-              <TextField
-                error={Boolean(fieldError && !isValidShortCode(form.slug))}
-                fullWidth
-                helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. duzey.1'}
-                label="Kısa kod"
-                required
-                value={form.slug}
-                onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-              />
-              <TextField
-                fullWidth
-                label="Kısa açıklama"
-                rows={2}
-                multiline
-                value={form.shortDescription}
-                onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
-              />
-              <TextField
-                fullWidth
-                label="Açıklama"
-                rows={4}
-                multiline
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              />
-              <TextField
-                fullWidth
-                helperText="Public lisans detayında görsel olarak kullanılabilir. Örn. /icons/licenses/duzey-1.svg"
-                label="İkon URL"
-                value={form.iconUrl}
-                onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
-              />
-              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Sıralama"
-                  value={form.displayOrder}
-                  onChange={(event) => setForm((current) => ({ ...current, displayOrder: onlyDigits(event.target.value) }))}
-                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
-                />
-                <TextField
-                  fullWidth
-                  label="Tahmini çalışma saati"
-                  value={form.estimatedStudyHours}
-                  onChange={(event) => setForm((current) => ({ ...current, estimatedStudyHours: onlyDigits(event.target.value) }))}
-                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
-                />
-              </Stack>
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
-                <FormControlLabel
-                  control={<Checkbox checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} />}
-                  label="Öne çıkar"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} />}
-                  label="Aktif katalogda göster"
-                />
-              </Stack>
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-                <Button disabled={isSaving} type="submit" variant="contained">
-                  {isSaving ? 'Kaydediliyor' : editingLicense ? 'Değişiklikleri kaydet' : 'Lisans ekle'}
-                </Button>
-                {editingLicense && (
-                  <Button disabled={isSaving} type="button" variant="outlined" onClick={resetForm}>
-                    Vazgeç
-                  </Button>
-                )}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Lisans listesi" description="Arama yaparak mevcut lisansları hızlıca filtreleyin ve düzenleyin.">
           <Stack spacing={2}>
             <TextField
@@ -366,6 +290,96 @@ export function LicensesPage({ licenses, onChanged }: LicensesPageProps) {
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        description="Kısa kod alanını URL ve paket eşleşmeleri için temiz tutun."
+        open={isFormDrawerOpen}
+        title={editingLicense ? 'Lisansı düzenle' : 'Yeni lisans ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <TextField
+              error={Boolean(fieldError && form.name.trim().length < 3)}
+              fullWidth
+              helperText={fieldError && form.name.trim().length < 3 ? fieldError : 'Örn. Sermaye Piyasası Faaliyetleri Düzey 1'}
+              label="Lisans adı"
+              required
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            />
+            <TextField
+              error={Boolean(fieldError && !isValidShortCode(form.slug))}
+              fullWidth
+              helperText={fieldError && !isValidShortCode(form.slug) ? fieldError : 'Örn. duzey.1'}
+              label="Kısa kod"
+              required
+              value={form.slug}
+              onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="Kısa açıklama"
+              rows={2}
+              multiline
+              value={form.shortDescription}
+              onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
+            />
+            <TextField
+              fullWidth
+              label="Açıklama"
+              rows={4}
+              multiline
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            />
+            <TextField
+              fullWidth
+              helperText="Public lisans detayında görsel olarak kullanılabilir. Örn. /icons/licenses/duzey-1.svg"
+              label="İkon URL"
+              value={form.iconUrl}
+              onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
+            />
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Sıralama"
+                value={form.displayOrder}
+                onChange={(event) => setForm((current) => ({ ...current, displayOrder: onlyDigits(event.target.value) }))}
+                slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
+              />
+              <TextField
+                fullWidth
+                label="Tahmini çalışma saati"
+                value={form.estimatedStudyHours}
+                onChange={(event) => setForm((current) => ({ ...current, estimatedStudyHours: onlyDigits(event.target.value) }))}
+                slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
+              />
+            </Stack>
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+              <FormControlLabel
+                control={<Checkbox checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} />}
+                label="Öne çıkar"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} />}
+                label="Aktif katalogda göster"
+              />
+            </Stack>
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
+              <Button disabled={isSaving} type="submit" variant="contained">
+                {isSaving ? 'Kaydediliyor' : editingLicense ? 'Değişiklikleri kaydet' : 'Lisans ekle'}
+              </Button>
+              {editingLicense && (
+                <Button disabled={isSaving} type="button" variant="outlined" onClick={() => setIsFormDrawerOpen(false)}>
+                  Vazgeç
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailLicense)} onClose={() => setDetailLicense(null)}>
         <DialogTitle>Lisans detayı</DialogTitle>

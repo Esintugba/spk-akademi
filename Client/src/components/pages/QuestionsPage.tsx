@@ -8,6 +8,7 @@ import { Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogCont
 import { ContentAccessLevel, ExamSession, ExamType, QuestionDifficulty, QuestionType, ReviewStatus, TopicType, type CreateQuestionOption, type Question, type Topic } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -43,6 +44,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [detailQuestion, setDetailQuestion] = useState<Question | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Question | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [topicFilter, setTopicFilter] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [reviewStatusFilter, setReviewStatusFilter] = useState('')
@@ -126,6 +128,11 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(question: Question) {
     setEditingQuestion(question)
     setTopicId(question.topicId)
@@ -141,6 +148,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setExamSession(question.examSession ?? '')
     setOptions(question.options.map((option) => ({ label: option.label, text: option.text, isCorrect: option.isCorrect })))
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -195,6 +203,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
       if (editingQuestion) await api.updateQuestion(editingQuestion.id, payload)
       else await api.createQuestion(payload)
       resetForm()
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Soru kaydedilemedi.')
@@ -223,99 +232,11 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
       <AdminPageHero
         title="Soru bankasını moderasyon odaklı yönetin."
         description="Konu, zorluk, tip ve açıklama alanlarıyla zengin sorular üretin. Öğrenci tarafına yalnızca onaylı içerikler gittiği için burada kurduğunuz kalite standardı kritik."
-        actions={<Button startIcon={<AddRoundedIcon />} variant="contained" onClick={resetForm}>Yeni soru</Button>}
+        actions={<Button startIcon={<AddRoundedIcon />} variant="contained" onClick={openCreateDrawer}>Yeni soru</Button>}
       />
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' } }}>
-        <AdminSurface title={editingQuestion ? 'Soruyu düzenle' : 'Yeni soru ekle'}>
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField fullWidth label="Alt konu" required select value={topicId} onChange={(event) => setTopicId(event.target.value)}>
-                  {subTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.parentTopicTitle ? `${topic.parentTopicTitle} > ${topic.title}` : topic.title}</MenuItem>)}
-                </TextField>
-                <TextField fullWidth label="Zorluk" select value={difficulty} onChange={(event) => setDifficulty(Number(event.target.value) as QuestionDifficulty)}>
-                  <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
-                  <MenuItem value={QuestionDifficulty.Medium}>Orta</MenuItem>
-                  <MenuItem value={QuestionDifficulty.Hard}>Zor</MenuItem>
-                </TextField>
-                <TextField fullWidth label="Tip" select value={type} onChange={(event) => setType(Number(event.target.value) as QuestionType)}>
-                  <MenuItem value={QuestionType.Definition}>Tanım</MenuItem>
-                  <MenuItem value={QuestionType.Concept}>Kavram</MenuItem>
-                  <MenuItem value={QuestionType.Legislation}>Mevzuat</MenuItem>
-                  <MenuItem value={QuestionType.Formula}>Formül</MenuItem>
-                  <MenuItem value={QuestionType.Comparison}>Karşılaştırma</MenuItem>
-                  <MenuItem value={QuestionType.Interpretation}>Yorum</MenuItem>
-                </TextField>
-              </Stack>
-              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2 }}>
-                <Stack spacing={2}>
-                  <FormControlLabel
-                    control={<Switch checked={isPastExamQuestion} onChange={(event) => setIsPastExamQuestion(event.target.checked)} />}
-                    label="Çıkmış soru"
-                  />
-                  {isPastExamQuestion && (
-                    <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                      <TextField
-                        fullWidth
-                        label="Sınav yılı"
-                        required
-                        value={examYear}
-                        onChange={(event) => setExamYear(onlyDigits(event.target.value))}
-                        slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 4, pattern: '[0-9]*' } }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Sınav türü"
-                        required
-                        select
-                        value={examType}
-                        onChange={(event) => setExamType(Number(event.target.value) as ExamType)}
-                      >
-                        {Object.values(ExamType).filter((value) => typeof value === 'number').map((value) => (
-                          <MenuItem key={value} value={value}>{ExamType[value as ExamType]}</MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        fullWidth
-                        label="Oturum"
-                        select
-                        value={examSession}
-                        onChange={(event) => setExamSession(event.target.value === '' ? '' : Number(event.target.value) as ExamSession)}
-                      >
-                        <MenuItem value="">Opsiyonel</MenuItem>
-                        {Object.values(ExamSession).filter((value) => typeof value === 'number').map((value) => (
-                          <MenuItem key={value} value={value}>{ExamSession[value as ExamSession]}</MenuItem>
-                        ))}
-                      </TextField>
-                    </Stack>
-                  )}
-                </Stack>
-              </Box>
-              <TextField fullWidth label="Soru metni" rows={4} multiline required value={text} onChange={(event) => setText(event.target.value)} />
-              <Stack spacing={1.5}>
-                {options.map((option, index) => (
-                  <Stack direction={{ sm: 'row', xs: 'column' }} key={option.label} spacing={1.5} sx={{ alignItems: 'center' }}>
-                    <TextField fullWidth label={`${option.label} şıkkı`} required value={option.text} onChange={(event) => updateOption(index, event.target.value)} />
-                    <ToggleButtonGroup exclusive size="small" value={option.isCorrect ? option.label : ''}>
-                      <ToggleButton value={option.label} onClick={() => markCorrect(index)}>Doğru</ToggleButton>
-                    </ToggleButtonGroup>
-                  </Stack>
-                ))}
-              </Stack>
-              <TextField fullWidth label="Açıklama" rows={3} multiline required value={explanation} onChange={(event) => setExplanation(event.target.value)} />
-              <TextField fullWidth label="Kaynak referansı" value={sourceReference} onChange={(event) => setSourceReference(event.target.value)} />
-              <TextField fullWidth label="Kaynak metin" rows={3} multiline value={sourceText} onChange={(event) => setSourceText(event.target.value)} />
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-                <Button disabled={isSaving || subTopics.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingQuestion ? 'Değişiklikleri kaydet' : 'Soru ekle'}</Button>
-                {editingQuestion && <Button onClick={resetForm}>Vazgeç</Button>}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Soru listesi">
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
@@ -377,6 +298,98 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        open={isFormDrawerOpen}
+        title={editingQuestion ? 'Soruyu düzenle' : 'Yeni soru ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+              <TextField fullWidth label="Alt konu" required select value={topicId} onChange={(event) => setTopicId(event.target.value)}>
+                {subTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.parentTopicTitle ? `${topic.parentTopicTitle} > ${topic.title}` : topic.title}</MenuItem>)}
+              </TextField>
+              <TextField fullWidth label="Zorluk" select value={difficulty} onChange={(event) => setDifficulty(Number(event.target.value) as QuestionDifficulty)}>
+                <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
+                <MenuItem value={QuestionDifficulty.Medium}>Orta</MenuItem>
+                <MenuItem value={QuestionDifficulty.Hard}>Zor</MenuItem>
+              </TextField>
+              <TextField fullWidth label="Tip" select value={type} onChange={(event) => setType(Number(event.target.value) as QuestionType)}>
+                <MenuItem value={QuestionType.Definition}>Tanım</MenuItem>
+                <MenuItem value={QuestionType.Concept}>Kavram</MenuItem>
+                <MenuItem value={QuestionType.Legislation}>Mevzuat</MenuItem>
+                <MenuItem value={QuestionType.Formula}>Formül</MenuItem>
+                <MenuItem value={QuestionType.Comparison}>Karşılaştırma</MenuItem>
+                <MenuItem value={QuestionType.Interpretation}>Yorum</MenuItem>
+              </TextField>
+            </Stack>
+            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2 }}>
+              <Stack spacing={2}>
+                <FormControlLabel
+                  control={<Switch checked={isPastExamQuestion} onChange={(event) => setIsPastExamQuestion(event.target.checked)} />}
+                  label="Çıkmış soru"
+                />
+                {isPastExamQuestion && (
+                  <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+                    <TextField
+                      fullWidth
+                      label="Sınav yılı"
+                      required
+                      value={examYear}
+                      onChange={(event) => setExamYear(onlyDigits(event.target.value))}
+                      slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 4, pattern: '[0-9]*' } }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Sınav türü"
+                      required
+                      select
+                      value={examType}
+                      onChange={(event) => setExamType(Number(event.target.value) as ExamType)}
+                    >
+                      {Object.values(ExamType).filter((value) => typeof value === 'number').map((value) => (
+                        <MenuItem key={value} value={value}>{ExamType[value as ExamType]}</MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      fullWidth
+                      label="Oturum"
+                      select
+                      value={examSession}
+                      onChange={(event) => setExamSession(event.target.value === '' ? '' : Number(event.target.value) as ExamSession)}
+                    >
+                      <MenuItem value="">Opsiyonel</MenuItem>
+                      {Object.values(ExamSession).filter((value) => typeof value === 'number').map((value) => (
+                        <MenuItem key={value} value={value}>{ExamSession[value as ExamSession]}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Stack>
+                )}
+              </Stack>
+            </Box>
+            <TextField fullWidth label="Soru metni" rows={4} multiline required value={text} onChange={(event) => setText(event.target.value)} />
+            <Stack spacing={1.5}>
+              {options.map((option, index) => (
+                <Stack direction={{ sm: 'row', xs: 'column' }} key={option.label} spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <TextField fullWidth label={`${option.label} şıkkı`} required value={option.text} onChange={(event) => updateOption(index, event.target.value)} />
+                  <ToggleButtonGroup exclusive size="small" value={option.isCorrect ? option.label : ''}>
+                    <ToggleButton value={option.label} onClick={() => markCorrect(index)}>Doğru</ToggleButton>
+                  </ToggleButtonGroup>
+                </Stack>
+              ))}
+            </Stack>
+            <TextField fullWidth label="Açıklama" rows={3} multiline required value={explanation} onChange={(event) => setExplanation(event.target.value)} />
+            <TextField fullWidth label="Kaynak referansı" value={sourceReference} onChange={(event) => setSourceReference(event.target.value)} />
+            <TextField fullWidth label="Kaynak metin" rows={3} multiline value={sourceText} onChange={(event) => setSourceText(event.target.value)} />
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
+              <Button disabled={isSaving || subTopics.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingQuestion ? 'Değişiklikleri kaydet' : 'Soru ekle'}</Button>
+              {editingQuestion && <Button onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailQuestion)} onClose={() => setDetailQuestion(null)} maxWidth="md" fullWidth>
         <DialogTitle>Soru detayı</DialogTitle>

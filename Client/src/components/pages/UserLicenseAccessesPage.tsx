@@ -2,10 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import type { AccessSource, CreateUserLicenseAccess, License, UserLicenseAccess, UserSummary } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -44,7 +45,7 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
   const [editingId, setEditingId] = useState('')
   const [error, setError] = useState('')
   const [isBusy, setIsBusy] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [sourceFilter, setSourceFilter] = useState<AccessSource | 'all'>('all')
@@ -103,7 +104,7 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
     setEditingId('')
     setForm(initialForm)
     setError('')
-    setIsDialogOpen(true)
+    setIsFormDrawerOpen(true)
   }
 
   function openEditDialog(access: UserLicenseAccess) {
@@ -117,7 +118,7 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
       accessSource: access.accessSource,
     })
     setError('')
-    setIsDialogOpen(true)
+    setIsFormDrawerOpen(true)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -141,7 +142,7 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
       }
 
       await loadData()
-      setIsDialogOpen(false)
+      setIsFormDrawerOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erişim kaydı kaydedilemedi.')
     } finally {
@@ -240,11 +241,13 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
         )}
       </AdminSurface>
 
-      <Dialog fullWidth maxWidth="sm" open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+      <AdminFormDrawer
+        open={isFormDrawerOpen}
+        title={editingId ? 'Erişim düzenle' : 'Erişim ver'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editingId ? 'Erişim düzenle' : 'Erişim ver'}</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ pt: 1 }}>
+            <Stack spacing={2}>
               <TextField disabled={Boolean(editingId)} fullWidth label="Kullanıcı" select value={form.userId} onChange={(event) => setForm((current) => ({ ...current, userId: event.target.value }))}>
                 {users.map((user) => <MenuItem key={user.id} value={user.id}>{user.email}</MenuItem>)}
               </TextField>
@@ -259,14 +262,13 @@ export function UserLicenseAccessesPage({ licenses }: UserLicenseAccessesPagePro
                 {sourceOptions.map((value) => <MenuItem key={value} value={value}>{sourceLabels[value]}</MenuItem>)}
               </TextField>
               <FormControlLabel control={<Checkbox checked={form.isActive} onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))} />} label="Aktif" />
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button disabled={isBusy} onClick={() => setIsDialogOpen(false)}>Vazgeç</Button>
+              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
             <Button disabled={isBusy} type="submit" variant="contained">{isBusy ? 'Kaydediliyor' : 'Kaydet'}</Button>
-          </DialogActions>
+                <Button disabled={isBusy} onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>
+              </Stack>
+            </Stack>
         </Box>
-      </Dialog>
+      </AdminFormDrawer>
     </Stack>
   )
 }

@@ -8,6 +8,7 @@ import { Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, I
 import { TopicType, type Course, type Topic } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -39,6 +40,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
   const [editingTopic, setEditingTopic] = useState<Topic | null>(null)
   const [detailTopic, setDetailTopic] = useState<Topic | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Topic | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [courseFilter, setCourseFilter] = useState('')
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
@@ -47,9 +49,16 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
   const [busyId, setBusyId] = useState('')
   const [visibleCount, setVisibleCount] = useState(24)
   const [topicTypeFilter, setTopicTypeFilter] = useState('')
+  const [parentTopicFilter, setParentTopicFilter] = useState('')
   const [sortBy, setSortBy] = useState('order')
 
   const courseById = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses])
+
+  const parentTopicFilterOptions = useMemo(() => (
+    topics
+      .filter((topic) => topic.type === TopicType.MainTopic && (!courseFilter || topic.courseId === courseFilter))
+      .sort((first, second) => compareFilteredTopics(first, second, 'order', courseById))
+  ), [courseById, courseFilter, topics])
 
   const filteredTopics = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('tr-TR')
@@ -59,6 +68,10 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
         const course = courseById.get(topic.courseId)
         const matchesCourse = !courseFilter || topic.courseId === courseFilter
         const matchesType = !topicTypeFilter || String(topic.type) === topicTypeFilter
+        const matchesParentTopic =
+          !parentTopicFilter ||
+          topic.parentTopicId === parentTopicFilter ||
+          (topic.id === parentTopicFilter && topic.type !== TopicType.SubTopic)
         const matchesSearch =
           !term ||
           [
@@ -75,10 +88,10 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
             .toLocaleLowerCase('tr-TR')
             .includes(term)
 
-        return matchesCourse && matchesType && matchesSearch
+        return matchesCourse && matchesType && matchesParentTopic && matchesSearch
       })
       .sort((first, second) => compareFilteredTopics(first, second, sortBy, courseById))
-  }, [courseById, courseFilter, search, sortBy, topicTypeFilter, topics])
+  }, [courseById, courseFilter, parentTopicFilter, search, sortBy, topicTypeFilter, topics])
 
   const filteredTopicStats = useMemo(() => ({
     mainTopics: filteredTopics.filter((topic) => topic.type !== TopicType.SubTopic).length,
@@ -88,7 +101,13 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
 
   useEffect(() => {
     setVisibleCount(24)
-  }, [courseFilter, search, sortBy, topicTypeFilter])
+  }, [courseFilter, parentTopicFilter, search, sortBy, topicTypeFilter])
+
+  useEffect(() => {
+    if (parentTopicFilter && !parentTopicFilterOptions.some((topic) => topic.id === parentTopicFilter)) {
+      setParentTopicFilter('')
+    }
+  }, [parentTopicFilter, parentTopicFilterOptions])
 
   function getCourseName(courseId: string) {
     return courseById.get(courseId)?.name ?? 'Ders bulunamadı'
@@ -128,6 +147,11 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(topic: Topic) {
     setEditingTopic(topic)
     setForm({
@@ -145,6 +169,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       type: topic.type ?? (topic.parentTopicId ? TopicType.SubTopic : TopicType.MainTopic),
     })
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -189,6 +214,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       if (editingTopic) await api.updateTopic(editingTopic.id, payload)
       else await api.createTopic(payload)
       resetForm()
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Konu kaydedilemedi.')
@@ -235,7 +261,7 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
         title="Konuları küçük ve çalışılabilir parçalara ayırın."
         description="Her dersi öğrenci açısından sindirilebilir konu bloklarına bölün. Özet, önemli noktalar, sık hatalar ve formüller alanları hem öğrenci ekranlarını hem de editoryal içerik akışını besler."
         actions={
-          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={resetForm}>
+          <Button startIcon={<AddRoundedIcon />} variant="contained" onClick={openCreateDrawer}>
             Yeni konu
           </Button>
         }
@@ -243,55 +269,14 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
 
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ alignItems: 'start', display: 'grid', gap: 2.5, gridTemplateColumns: { lg: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', xs: 'minmax(0, 1fr)' } }}>
-        <AdminSurface title={editingTopic ? 'Konuyu düzenle' : 'Yeni konu ekle'} description="Ders, sıra ve slug alanları öğrenci yönlendirmesi için kritiktir.">
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <TextField fullWidth label="Ders" required select value={form.courseId} onChange={(event) => setForm((current) => ({ ...current, courseId: event.target.value, parentTopicId: '' }))}>
-                {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
-              </TextField>
-              <TextField fullWidth label="Tür" required select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: Number(event.target.value) as TopicType, parentTopicId: '' }))}>
-                <MenuItem value={TopicType.MainTopic}>Ana konu</MenuItem>
-                <MenuItem value={TopicType.SubTopic}>Alt konu</MenuItem>
-              </TextField>
-              {isSubTopicForm && (
-                <TextField fullWidth label="Ana konu seç" required select value={form.parentTopicId} onChange={(event) => setForm((current) => ({ ...current, parentTopicId: event.target.value }))}>
-                  <MenuItem value="">Ana konu seç</MenuItem>
-                  {availableParentTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{getTopicLabel(topic)}</MenuItem>)}
-                </TextField>
-              )}
-              <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
-              <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField fullWidth label="Kısa kod" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
-                <TextField
-                  fullWidth
-                  label="Sıra"
-                  slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
-                  value={form.order}
-                  onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
-                />
-              </Stack>
-              <TextField fullWidth label={summaryLabel} rows={3} multiline value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} />
-              <TextField fullWidth label={importantPointsLabel} rows={3} multiline value={form.importantPoints} onChange={(event) => setForm((current) => ({ ...current, importantPoints: event.target.value }))} />
-              <TextField fullWidth label={commonMistakesLabel} rows={3} multiline value={form.commonMistakes} onChange={(event) => setForm((current) => ({ ...current, commonMistakes: event.target.value }))} />
-              <TextField fullWidth label={formulasLabel} rows={3} multiline value={form.formulas} onChange={(event) => setForm((current) => ({ ...current, formulas: event.target.value }))} />
-              <TextField fullWidth label={examNotesLabel} rows={3} multiline value={form.examNotes} onChange={(event) => setForm((current) => ({ ...current, examNotes: event.target.value }))} />
-              <TextField fullWidth label="Kritik eşikler" rows={3} multiline value={form.criticalThresholds} onChange={(event) => setForm((current) => ({ ...current, criticalThresholds: event.target.value }))} />
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-                <Button disabled={isSaving || courses.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingTopic ? 'Değişiklikleri kaydet' : 'Konu ekle'}</Button>
-                {editingTopic && <Button onClick={resetForm}>Vazgeç</Button>}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Konu listesi" description="Filtreler, sıralama ve özet bilgilerle konuları daha hızlı tarayın.">
           <Stack spacing={2}>
-            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'minmax(0,1.4fr) minmax(150px,0.9fr)', xs: 'minmax(0,1fr)' } }}>
+            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: 'minmax(0, 1fr)' } }}>
               <TextField
                 fullWidth
                 label="Konu ara"
+                sx={{ gridColumn: '1 / -1' }}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 slotProps={{
@@ -307,6 +292,14 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
               <TextField fullWidth label="Ders filtresi" select value={courseFilter} onChange={(event) => setCourseFilter(event.target.value)}>
                 <MenuItem value="">Tümü</MenuItem>
                 {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
+              </TextField>
+              <TextField fullWidth label="Ana konu filtresi" select value={parentTopicFilter} onChange={(event) => setParentTopicFilter(event.target.value)}>
+                <MenuItem value="">Tümü</MenuItem>
+                {parentTopicFilterOptions.map((topic) => (
+                  <MenuItem key={topic.id} value={topic.id}>
+                    {topic.order}. {topic.title}
+                  </MenuItem>
+                ))}
               </TextField>
               <TextField fullWidth label="Konu türü" select value={topicTypeFilter} onChange={(event) => setTopicTypeFilter(event.target.value)}>
                 <MenuItem value="">Tümü</MenuItem>
@@ -364,6 +357,53 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        description="Ders, sıra ve slug alanları öğrenci yönlendirmesi için kritiktir."
+        open={isFormDrawerOpen}
+        title={editingTopic ? 'Konuyu düzenle' : 'Yeni konu ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <TextField fullWidth label="Ders" required select value={form.courseId} onChange={(event) => setForm((current) => ({ ...current, courseId: event.target.value, parentTopicId: '' }))}>
+              {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
+            </TextField>
+            <TextField fullWidth label="Tür" required select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: Number(event.target.value) as TopicType, parentTopicId: '' }))}>
+              <MenuItem value={TopicType.MainTopic}>Ana konu</MenuItem>
+              <MenuItem value={TopicType.SubTopic}>Alt konu</MenuItem>
+            </TextField>
+            {isSubTopicForm && (
+              <TextField fullWidth label="Ana konu seç" required select value={form.parentTopicId} onChange={(event) => setForm((current) => ({ ...current, parentTopicId: event.target.value }))}>
+                <MenuItem value="">Ana konu seç</MenuItem>
+                {availableParentTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{getTopicLabel(topic)}</MenuItem>)}
+              </TextField>
+            )}
+            <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
+            <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+              <TextField fullWidth label="Kısa kod" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
+              <TextField
+                fullWidth
+                label="Sıra"
+                slotProps={{ htmlInput: { inputMode: 'numeric', pattern: '[0-9]*' } }}
+                value={form.order}
+                onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
+              />
+            </Stack>
+            <TextField fullWidth label={summaryLabel} rows={3} multiline value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} />
+            <TextField fullWidth label={importantPointsLabel} rows={3} multiline value={form.importantPoints} onChange={(event) => setForm((current) => ({ ...current, importantPoints: event.target.value }))} />
+            <TextField fullWidth label={commonMistakesLabel} rows={3} multiline value={form.commonMistakes} onChange={(event) => setForm((current) => ({ ...current, commonMistakes: event.target.value }))} />
+            <TextField fullWidth label={formulasLabel} rows={3} multiline value={form.formulas} onChange={(event) => setForm((current) => ({ ...current, formulas: event.target.value }))} />
+            <TextField fullWidth label={examNotesLabel} rows={3} multiline value={form.examNotes} onChange={(event) => setForm((current) => ({ ...current, examNotes: event.target.value }))} />
+            <TextField fullWidth label="Kritik eşikler" rows={3} multiline value={form.criticalThresholds} onChange={(event) => setForm((current) => ({ ...current, criticalThresholds: event.target.value }))} />
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
+              <Button disabled={isSaving || courses.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingTopic ? 'Değişiklikleri kaydet' : 'Konu ekle'}</Button>
+              {editingTopic && <Button onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailTopic)} onClose={() => setDetailTopic(null)} maxWidth="md" fullWidth>
         <DialogTitle>Konu detayı</DialogTitle>

@@ -2,10 +2,11 @@ import { FormEvent, useMemo, useState } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { ContentAccessLevel, QuestionDifficulty, ReviewStatus, type CreateTrialExam, type License, type Question, type TrialExamSummary } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -50,7 +51,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
   const [form, setForm] = useState<CreateTrialExam>(initialForm)
   const [editingId, setEditingId] = useState('')
   const [error, setError] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [isBusy, setIsBusy] = useState(false)
 
   const approvedQuestions = useMemo(
@@ -62,7 +63,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
     setEditingId('')
     setForm(initialForm)
     setError('')
-    setIsDialogOpen(true)
+    setIsFormDrawerOpen(true)
   }
 
   async function openEditDialog(id: string) {
@@ -89,7 +90,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
         accessLevel: exam.accessLevel,
         questionIds: exam.questionIds,
       })
-      setIsDialogOpen(true)
+      setIsFormDrawerOpen(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Deneme sınavı alınamadı.')
     } finally {
@@ -136,7 +137,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
       }
 
       await onChanged()
-      setIsDialogOpen(false)
+      setIsFormDrawerOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Deneme sınavı kaydedilemedi.')
     } finally {
@@ -204,11 +205,13 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
         )}
       </AdminSurface>
 
-      <Dialog fullWidth maxWidth="md" open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+      <AdminFormDrawer
+        open={isFormDrawerOpen}
+        title={editingId ? 'Deneme düzenle' : 'Deneme ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editingId ? 'Deneme düzenle' : 'Deneme ekle'}</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ pt: 1 }}>
+            <Stack spacing={2}>
               <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value, slug: current.slug || event.target.value.toLowerCase().replace(/\s+/g, '-') }))} />
               <TextField fullWidth label="Slug" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
               <TextField fullWidth label="Açıklama" multiline rows={3} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
@@ -246,14 +249,13 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
               }}>
                 {approvedQuestions.map((question) => <MenuItem key={question.id} value={question.id}>{question.text.slice(0, 110)}</MenuItem>)}
               </TextField>
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button disabled={isBusy} onClick={() => setIsDialogOpen(false)}>Vazgeç</Button>
+              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
             <Button disabled={isBusy} type="submit" variant="contained">{isBusy ? 'Kaydediliyor' : 'Kaydet'}</Button>
-          </DialogActions>
+                <Button disabled={isBusy} onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>
+              </Stack>
+            </Stack>
         </Box>
-      </Dialog>
+      </AdminFormDrawer>
     </Stack>
   )
 }

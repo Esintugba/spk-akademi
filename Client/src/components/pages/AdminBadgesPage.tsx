@@ -26,6 +26,7 @@ import { BadgeCategory, BadgeRequirementType } from '../../models'
 import { api } from '../../shared/api'
 import { resolveApiAssetUrl } from '../../shared/api/assets'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -67,6 +68,7 @@ export function AdminBadgesPage() {
   const [form, setForm] = useState<UpsertBadge>(emptyForm)
   const [editing, setEditing] = useState<Badge | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Badge | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
@@ -116,6 +118,11 @@ export function AdminBadgesPage() {
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(badge: Badge) {
     setEditing(badge)
     setForm({
@@ -129,6 +136,7 @@ export function AdminBadgesPage() {
       isHidden: badge.isHidden,
     })
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -179,6 +187,7 @@ export function AdminBadgesPage() {
       }
 
       resetForm()
+      setIsFormDrawerOpen(false)
       await loadBadges()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rozet kaydedilemedi.')
@@ -213,102 +222,20 @@ export function AdminBadgesPage() {
         title="Rozet katalogu"
         description="Öğrencilerin açabileceği rozetleri, koşul eşiklerini, XP ödüllerini ve gizli rozet davranışlarını yönetin."
         actions={
-          <Button startIcon={<RefreshRoundedIcon />} onClick={() => void loadBadges()} variant="outlined">
-            Yenile
-          </Button>
+          <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+            <Button startIcon={<AddRoundedIcon />} onClick={openCreateDrawer} variant="contained">
+              Yeni rozet
+            </Button>
+            <Button startIcon={<RefreshRoundedIcon />} onClick={() => void loadBadges()} variant="outlined">
+              Yenile
+            </Button>
+          </Stack>
         }
       />
 
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: '0.9fr 1.4fr', xs: '1fr' } }}>
-        <AdminSurface
-          title={editing ? 'Rozeti düzenle' : 'Yeni rozet'}
-          description="Koşul tipi ilerleme verisinin hangi kaynaktan hesaplanacağını belirler."
-        >
-          <Box component="form" onSubmit={(event) => void handleSubmit(event)}>
-            <Stack spacing={2}>
-              <TextField
-                label="Ad"
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-              />
-              <TextField
-                label="Açıklama"
-                rows={3}
-                multiline
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              />
-              <TextField
-                label="İkon yolu"
-                value={form.iconUrl}
-                onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
-              />
-              <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
-                <TextField
-                  label="Kategori"
-                  select
-                  value={form.category}
-                  onChange={(event) => setForm((current) => ({ ...current, category: Number(event.target.value) as BadgeCategoryType }))}
-                >
-                  {Object.values(BadgeCategory).map((value) => (
-                    <MenuItem key={value} value={value}>
-                      {categoryLabels[value]}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  label="Koşul tipi"
-                  select
-                  value={form.requirementType}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, requirementType: Number(event.target.value) as BadgeRequirementTypeValue }))
-                  }
-                >
-                  {Object.values(BadgeRequirementType).map((value) => (
-                    <MenuItem key={value} value={value}>
-                      {requirementLabels[value]}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  label="Koşul değeri"
-                  slotProps={{ htmlInput: { min: 1 } }}
-                  type="number"
-                  value={form.requirementValue}
-                  onChange={(event) => setForm((current) => ({ ...current, requirementValue: Number(event.target.value) }))}
-                />
-                <TextField
-                  label="XP ödülü"
-                  slotProps={{ htmlInput: { min: 0 } }}
-                  type="number"
-                  value={form.xpReward}
-                  onChange={(event) => setForm((current) => ({ ...current, xpReward: Number(event.target.value) }))}
-                />
-              </Box>
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <Switch
-                  checked={form.isHidden}
-                  onChange={(event) => setForm((current) => ({ ...current, isHidden: event.target.checked }))}
-                />
-                <Typography>Gizli rozet</Typography>
-              </Stack>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
-                <Button disabled={isSaving} startIcon={<AddRoundedIcon />} type="submit" variant="contained">
-                  {isSaving ? 'Kaydediliyor' : editing ? 'Değişiklikleri kaydet' : 'Rozet ekle'}
-                </Button>
-                {editing && (
-                  <Button onClick={resetForm} variant="outlined">
-                    Vazgeç
-                  </Button>
-                )}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Rozetler" description={`${badges.length} rozet katalogda kayıtlı.`}>
           <Stack spacing={2}>
             <TextField
@@ -376,6 +303,95 @@ export function AdminBadgesPage() {
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        description="Koşul tipi ilerleme verisinin hangi kaynaktan hesaplanacağını belirler."
+        open={isFormDrawerOpen}
+        title={editing ? 'Rozeti düzenle' : 'Yeni rozet'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={(event) => void handleSubmit(event)}>
+          <Stack spacing={2}>
+            <TextField
+              label="Ad"
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+            />
+            <TextField
+              label="Açıklama"
+              rows={3}
+              multiline
+              value={form.description}
+              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+            />
+            <TextField
+              label="İkon yolu"
+              value={form.iconUrl}
+              onChange={(event) => setForm((current) => ({ ...current, iconUrl: event.target.value }))}
+            />
+            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { sm: '1fr 1fr', xs: '1fr' } }}>
+              <TextField
+                label="Kategori"
+                select
+                value={form.category}
+                onChange={(event) => setForm((current) => ({ ...current, category: Number(event.target.value) as BadgeCategoryType }))}
+              >
+                {Object.values(BadgeCategory).map((value) => (
+                  <MenuItem key={value} value={value}>
+                    {categoryLabels[value]}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                label="Koşul tipi"
+                select
+                value={form.requirementType}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, requirementType: Number(event.target.value) as BadgeRequirementTypeValue }))
+                }
+              >
+                {Object.values(BadgeRequirementType).map((value) => (
+                  <MenuItem key={value} value={value}>
+                    {requirementLabels[value]}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                label="Koşul değeri"
+                slotProps={{ htmlInput: { min: 1 } }}
+                type="number"
+                value={form.requirementValue}
+                onChange={(event) => setForm((current) => ({ ...current, requirementValue: Number(event.target.value) }))}
+              />
+              <TextField
+                label="XP ödülü"
+                slotProps={{ htmlInput: { min: 0 } }}
+                type="number"
+                value={form.xpReward}
+                onChange={(event) => setForm((current) => ({ ...current, xpReward: Number(event.target.value) }))}
+              />
+            </Box>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Switch
+                checked={form.isHidden}
+                onChange={(event) => setForm((current) => ({ ...current, isHidden: event.target.checked }))}
+              />
+              <Typography>Gizli rozet</Typography>
+            </Stack>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
+              <Button disabled={isSaving} startIcon={<AddRoundedIcon />} type="submit" variant="contained">
+                {isSaving ? 'Kaydediliyor' : editing ? 'Değişiklikleri kaydet' : 'Rozet ekle'}
+              </Button>
+              {editing && (
+                <Button onClick={() => setIsFormDrawerOpen(false)} variant="outlined">
+                  Vazgeç
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Rozeti sil</DialogTitle>

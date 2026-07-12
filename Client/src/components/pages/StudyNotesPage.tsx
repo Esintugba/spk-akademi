@@ -8,6 +8,7 @@ import { Box, Button, Card, CardContent, Checkbox, Chip, Dialog, DialogActions, 
 import { ContentAccessLevel, ReviewStatus, type StudyNote, type Topic } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -25,6 +26,7 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
   const [editingNote, setEditingNote] = useState<StudyNote | null>(null)
   const [detailNote, setDetailNote] = useState<StudyNote | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudyNote | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [topicFilter, setTopicFilter] = useState('')
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
@@ -59,6 +61,11 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
     setFieldError('')
   }
 
+  function openCreateDrawer() {
+    resetForm()
+    setIsFormDrawerOpen(true)
+  }
+
   function startEdit(note: StudyNote) {
     setEditingNote(note)
     setForm({
@@ -69,6 +76,7 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
       topicId: note.topicId,
     })
     setFieldError('')
+    setIsFormDrawerOpen(true)
   }
 
   function validateForm() {
@@ -103,6 +111,7 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
       if (editingNote) await api.updateStudyNote(editingNote.id, payload)
       else await api.createStudyNote(payload)
       resetForm()
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Not kaydedilemedi.')
@@ -131,30 +140,11 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
       <AdminPageHero
         title="Çalışma notlarını moderasyona hazır tutun."
         description="Konu bazlı ders özetlerini, kaynak referanslarını ve dış araçlarla hazırlanmış taslak notları tek yerde düzenleyin. Öğrenci tarafında yalnızca onaylı içerikler gösterileceği için not kalitesi burada belirlenir."
-        actions={<Button startIcon={<AddRoundedIcon />} variant="contained" onClick={resetForm}>Yeni not</Button>}
+        actions={<Button startIcon={<AddRoundedIcon />} variant="contained" onClick={openCreateDrawer}>Yeni not</Button>}
       />
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' } }}>
-        <AdminSurface title={editingNote ? 'Notu düzenle' : 'Yeni not ekle'}>
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <TextField fullWidth label="Konu" required select value={form.topicId} onChange={(event) => setForm((current) => ({ ...current, topicId: event.target.value }))}>
-                {topics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.parentTopicId ? `  - ${topic.title}` : topic.title}</MenuItem>)}
-              </TextField>
-              <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
-              <TextField fullWidth label="İçerik" rows={6} multiline required value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} />
-              <TextField fullWidth label="Kaynak referansı" value={form.sourceReference} onChange={(event) => setForm((current) => ({ ...current, sourceReference: event.target.value }))} />
-              <FormControlLabel control={<Checkbox checked={form.isAiGenerated} onChange={(event) => setForm((current) => ({ ...current, isAiGenerated: event.target.checked }))} />} label="Yapay zeka ile üretildi" />
-              <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
-                <Button disabled={isSaving || topics.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingNote ? 'Değişiklikleri kaydet' : 'Not ekle'}</Button>
-                {editingNote && <Button onClick={resetForm}>Vazgeç</Button>}
-              </Stack>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Not arşivi">
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
@@ -197,6 +187,29 @@ export function StudyNotesPage({ notes, topics, onChanged }: StudyNotesPageProps
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        open={isFormDrawerOpen}
+        title={editingNote ? 'Notu düzenle' : 'Yeni not ekle'}
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <TextField fullWidth label="Konu" required select value={form.topicId} onChange={(event) => setForm((current) => ({ ...current, topicId: event.target.value }))}>
+              {topics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.parentTopicId ? `  - ${topic.title}` : topic.title}</MenuItem>)}
+            </TextField>
+            <TextField fullWidth label="Başlık" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
+            <TextField fullWidth label="İçerik" rows={8} multiline required value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} />
+            <TextField fullWidth label="Kaynak referansı" value={form.sourceReference} onChange={(event) => setForm((current) => ({ ...current, sourceReference: event.target.value }))} />
+            <FormControlLabel control={<Checkbox checked={form.isAiGenerated} onChange={(event) => setForm((current) => ({ ...current, isAiGenerated: event.target.checked }))} />} label="Yapay zeka ile üretildi" />
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
+              <Button disabled={isSaving || topics.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingNote ? 'Değişiklikleri kaydet' : 'Not ekle'}</Button>
+              {editingNote && <Button onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>}
+            </Stack>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailNote)} onClose={() => setDetailNote(null)} maxWidth="md" fullWidth>
         <DialogTitle>Not detayı</DialogTitle>

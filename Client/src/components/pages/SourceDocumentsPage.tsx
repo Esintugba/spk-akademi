@@ -9,6 +9,7 @@ import { Box, Button, Card, CardContent, Dialog, DialogContent, DialogTitle, Ico
 import type { Course, SourceDocument, SourceDocumentText } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
+import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
@@ -29,6 +30,7 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
   const [detailDocument, setDetailDocument] = useState<SourceDocument | null>(null)
   const [textPreview, setTextPreview] = useState<SourceDocumentText | null>(null)
   const [pdfPreview, setPdfPreview] = useState<{ title: string; url: string } | null>(null)
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -94,6 +96,7 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
       setTitle('')
       setFile(null)
       setFieldError('')
+      setIsFormDrawerOpen(false)
       await onChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF yüklenemedi.')
@@ -164,31 +167,11 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
       <AdminPageHero
         title="Kaynak PDF akışını yönetin."
         description="SPK veya kurum kaynaklı PDF'leri derslere bağlayın, metnini çıkarın ve içerik üretim pipeline'ına hazır hale getirin."
-        actions={<Button startIcon={<UploadFileRoundedIcon />} variant="contained">PDF yönetimi</Button>}
+        actions={<Button startIcon={<UploadFileRoundedIcon />} variant="contained" onClick={() => setIsFormDrawerOpen(true)}>PDF yükle</Button>}
       />
       {error && <ErrorBanner message={error} />}
 
-      <Box sx={{ display: 'grid', gap: 2.5, gridTemplateColumns: { lg: '0.95fr 1.05fr', xs: '1fr' } }}>
-        <AdminSurface title="PDF yükle">
-          <Box component="form" onSubmit={handleSubmit}>
-            <Stack spacing={2}>
-              {fieldError && <ErrorBanner message={fieldError} />}
-              <TextField fullWidth label="Ders" required select value={courseId} onChange={(event) => setCourseId(event.target.value)}>
-                {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
-              </TextField>
-              <TextField fullWidth label="Başlık" required value={title} onChange={(event) => setTitle(event.target.value)} />
-              <TextField fullWidth label="Kaynak adı" required value={sourceName} onChange={(event) => setSourceName(event.target.value)} />
-              <Button component="label" variant="outlined">
-                {file ? file.name : 'PDF seç'}
-                <input hidden accept="application/pdf" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-              </Button>
-              <Button disabled={isSaving || courses.length === 0} type="submit" variant="contained">
-                {isSaving ? 'Yükleniyor' : 'PDF yükle ve metin çıkar'}
-              </Button>
-            </Stack>
-          </Box>
-        </AdminSurface>
-
+      <Box>
         <AdminSurface title="Kaynak arşivi">
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
@@ -257,6 +240,30 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
           </Stack>
         </AdminSurface>
       </Box>
+
+      <AdminFormDrawer
+        open={isFormDrawerOpen}
+        title="PDF yükle"
+        onClose={() => setIsFormDrawerOpen(false)}
+      >
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            {fieldError && <ErrorBanner message={fieldError} />}
+            <TextField fullWidth label="Ders" required select value={courseId} onChange={(event) => setCourseId(event.target.value)}>
+              {courses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
+            </TextField>
+            <TextField fullWidth label="Başlık" required value={title} onChange={(event) => setTitle(event.target.value)} />
+            <TextField fullWidth label="Kaynak adı" required value={sourceName} onChange={(event) => setSourceName(event.target.value)} />
+            <Button component="label" variant="outlined">
+              {file ? file.name : 'PDF seç'}
+              <input hidden accept="application/pdf" type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+            </Button>
+            <Button disabled={isSaving || courses.length === 0} type="submit" variant="contained">
+              {isSaving ? 'Yükleniyor' : 'PDF yükle ve metin çıkar'}
+            </Button>
+          </Stack>
+        </Box>
+      </AdminFormDrawer>
 
       <Dialog open={Boolean(detailDocument)} onClose={() => setDetailDocument(null)}>
         <DialogTitle>Kaynak detayı</DialogTitle>
