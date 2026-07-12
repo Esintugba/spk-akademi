@@ -178,7 +178,7 @@ public class AccountController(
         {
             AccountServiceError.Unauthorized or AccountServiceError.RefreshTokenInvalid =>
                 Unauthorized(message),
-            _ => BadRequest(message ?? "Hesap islemi tamamlanamadi.")
+            _ => BadRequest(message ?? "Hesap işlemi tamamlanamadı.")
         };
 
     private void SetRefreshTokenCookie(string refreshToken, DateTime expiresAt)

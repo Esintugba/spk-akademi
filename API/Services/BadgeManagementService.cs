@@ -89,7 +89,7 @@ public class BadgeManagementService(DataContext context) : IBadgeManagementServi
         var badge = await context.Badges.FindAsync([id], cancellationToken);
         if (badge is null)
         {
-            return BadgeManagementOutcome<BadgeDto>.Fail(BadgeManagementError.NotFound, "Rozet bulunamadi.");
+            return BadgeManagementOutcome<BadgeDto>.Fail(BadgeManagementError.NotFound, "Rozet bulunamadı.");
         }
 
         var name = dto.Name.Trim();
@@ -110,14 +110,14 @@ public class BadgeManagementService(DataContext context) : IBadgeManagementServi
         var badge = await context.Badges.FindAsync([id], cancellationToken);
         if (badge is null)
         {
-            return BadgeManagementOutcome<bool>.Fail(BadgeManagementError.NotFound, "Rozet bulunamadi.");
+            return BadgeManagementOutcome<bool>.Fail(BadgeManagementError.NotFound, "Rozet bulunamadı.");
         }
 
         if (await context.UserBadges.AnyAsync(x => x.BadgeId == id, cancellationToken))
         {
             return BadgeManagementOutcome<bool>.Fail(
                 BadgeManagementError.InUse,
-                "Bu rozet kullanıcılar tarafından kazanıldiği için silinemez. Gizli yapabilir veya koşullarını güncelleyebilirsiniz.");
+                "Bu rozet kullanıcılar tarafından kazanıldığı için silinemez. Gizli yapabilir veya koşullarını güncelleyebilirsiniz.");
         }
 
         context.Badges.Remove(badge);
@@ -156,7 +156,7 @@ public class BadgeManagementService(DataContext context) : IBadgeManagementServi
 
         if (dto.XpReward < 0)
         {
-            return "XP odulu negatif olamaz.";
+            return "XP ödülü negatif olamaz.";
         }
 
         if (dto.RequirementValue < 1)

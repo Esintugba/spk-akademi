@@ -129,7 +129,7 @@ public class StudyNoteManagementService(
         {
             return StudyNoteManagementOutcome<StudyNoteDto>.Fail(
                 StudyNoteManagementError.InvalidTopic,
-                "TopicId gecersiz.");
+                "TopicId geçersiz.");
         }
 
         var note = new StudyNote
@@ -164,7 +164,7 @@ public class StudyNoteManagementService(
         {
             return StudyNoteManagementOutcome<bool>.Fail(
                 StudyNoteManagementError.InvalidTopic,
-                "TopicId gecersiz.");
+                "TopicId geçersiz.");
         }
 
         note.TopicId = dto.TopicId;

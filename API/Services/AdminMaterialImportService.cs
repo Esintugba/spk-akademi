@@ -61,7 +61,7 @@ public class AdminMaterialImportService(
                 0,
                 1,
                 [],
-                [new ImportErrorDto(0, "File", "PDF metni cikarilamadi.", dto.File.FileName)]);
+                [new ImportErrorDto(0, "File", "PDF metni çıkarılamadı.", dto.File.FileName)]);
         }
 
         var document = new SourceDocument

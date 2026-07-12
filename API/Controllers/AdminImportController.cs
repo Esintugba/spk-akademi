@@ -51,7 +51,7 @@ public class AdminImportController(
             }
             catch (JsonException)
             {
-                return BadRequest(new { message = "Duplicate aksiyon verisi geÃ§ersiz." });
+                return BadRequest(new { message = "Duplicate aksiyon verisi geçersiz." });
             }
         }
 

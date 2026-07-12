@@ -109,7 +109,7 @@ public class TopicManagementService(
         {
             return TopicManagementOutcome<TopicDto>.Fail(
                 TopicManagementError.InvalidCourse,
-                "CourseId gecersiz.");
+                "CourseId geçersiz.");
         }
 
         var slug = dto.Slug.Trim();
@@ -170,7 +170,7 @@ public class TopicManagementService(
         {
             return TopicManagementOutcome<bool>.Fail(
                 TopicManagementError.InvalidCourse,
-                "CourseId gecersiz.");
+                "CourseId geçersiz.");
         }
 
         var slug = dto.Slug.Trim();
@@ -186,7 +186,7 @@ public class TopicManagementService(
         {
             return TopicManagementOutcome<bool>.Fail(
                 TopicManagementError.InvalidType,
-                "Alt konusu olan bir ana konu alt konuya donusturulemez.");
+                "Alt konusu olan bir ana konu alt konuya dönüştürülemez.");
         }
 
         var parentValidation = await ValidateParentTopicAsync(
@@ -234,7 +234,7 @@ public class TopicManagementService(
         {
             return TopicManagementOutcome<bool>.Fail(
                 TopicManagementError.HasSubTopics,
-                "Alt konulari olan bir konu silinemez. Once alt konulari tasiyin veya silin.");
+                "Alt konuları olan bir konu silinemez. Önce alt konuları taşıyın veya silin.");
         }
 
         topics.Remove(topic);
@@ -283,18 +283,18 @@ public class TopicManagementService(
         if (topicType == TopicType.MainTopic)
         {
             return parentTopicId.HasValue
-                ? (TopicManagementError.InvalidParent, "Ana konu baska bir ana konuya baglanamaz.")
+                ? (TopicManagementError.InvalidParent, "Ana konu başka bir ana konuya bağlanamaz.")
                 : null;
         }
 
         if (topicType != TopicType.SubTopic)
         {
-            return (TopicManagementError.InvalidType, "Konu tipi gecersiz.");
+            return (TopicManagementError.InvalidType, "Konu tipi geçersiz.");
         }
 
         if (!parentTopicId.HasValue)
         {
-            return (TopicManagementError.InvalidParent, "Alt konu icin ana konu secmelisin.");
+            return (TopicManagementError.InvalidParent, "Alt konu için ana konu seçmelisin.");
         }
 
         if (topicId.HasValue && parentTopicId.Value == topicId.Value)
@@ -305,17 +305,17 @@ public class TopicManagementService(
         var parent = await topics.GetByIdNoTrackingAsync(parentTopicId.Value, cancellationToken);
         if (parent is null)
         {
-            return (TopicManagementError.InvalidParent, "Ana konu gecersiz.");
+            return (TopicManagementError.InvalidParent, "Ana konu geçersiz.");
         }
 
         if (parent.CourseId != courseId)
         {
-            return (TopicManagementError.InvalidParent, "Alt konu ile ana konu ayni derse bagli olmali.");
+            return (TopicManagementError.InvalidParent, "Alt konu ile ana konu aynı derse bağlı olmalı.");
         }
 
         if (parent.Type == TopicType.SubTopic || parent.ParentTopicId.HasValue)
         {
-            return (TopicManagementError.InvalidParent, "Alt konu yalnizca bir ana konuya baglanabilir.");
+            return (TopicManagementError.InvalidParent, "Alt konu yalnızca bir ana konuya bağlanabilir.");
         }
 
         var ancestorId = parent.ParentTopicId;
@@ -325,12 +325,12 @@ public class TopicManagementService(
         {
             if (topicId.HasValue && ancestorId.Value == topicId.Value)
             {
-                return (TopicManagementError.InvalidParent, "Konu hiyerarsisinde dongu olusamaz.");
+                return (TopicManagementError.InvalidParent, "Konu hiyerarşisinde döngü oluşamaz.");
             }
 
             if (!visited.Add(ancestorId.Value))
             {
-                return (TopicManagementError.InvalidParent, "Konu hiyerarsisinde dongu olusamaz.");
+                return (TopicManagementError.InvalidParent, "Konu hiyerarşisinde döngü oluşamaz.");
             }
 
             var ancestor = await topics.GetByIdNoTrackingAsync(ancestorId.Value, cancellationToken);
@@ -341,7 +341,7 @@ public class TopicManagementService(
 
             if (ancestor.CourseId != courseId)
             {
-                return (TopicManagementError.InvalidParent, "Alt konu zinciri ayni ders icinde kalmali.");
+                return (TopicManagementError.InvalidParent, "Alt konu zinciri aynı ders içinde kalmalı.");
             }
 
             ancestorId = ancestor.ParentTopicId;

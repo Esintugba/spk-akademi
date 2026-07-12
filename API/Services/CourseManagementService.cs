@@ -105,7 +105,7 @@ public class CourseManagementService(
         {
             return CourseManagementOutcome<CourseDto>.Fail(
                 CourseManagementError.InvalidLicense,
-                "LicenseId gecersiz.");
+                "LicenseId geçersiz.");
         }
 
         var course = new Course

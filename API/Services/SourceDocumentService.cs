@@ -139,7 +139,7 @@ public class SourceDocumentService(
     {
         if (!await documents.CourseExistsAsync(dto.CourseId, cancellationToken))
         {
-            return SourceDocumentOutcome<SourceDocumentDto>.Fail(SourceDocumentError.InvalidCourse, "CourseId gecersiz.");
+            return SourceDocumentOutcome<SourceDocumentDto>.Fail(SourceDocumentError.InvalidCourse, "CourseId geçersiz.");
         }
 
         var document = new SourceDocument
@@ -227,7 +227,7 @@ public class SourceDocumentService(
 
         if (!await documents.CourseExistsAsync(dto.CourseId, cancellationToken))
         {
-            return SourceDocumentOutcome<bool>.Fail(SourceDocumentError.InvalidCourse, "CourseId gecersiz.");
+            return SourceDocumentOutcome<bool>.Fail(SourceDocumentError.InvalidCourse, "CourseId geçersiz.");
         }
 
         document.CourseId = dto.CourseId;

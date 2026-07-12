@@ -70,7 +70,7 @@ public class AccountService(
     IOptions<SeoOptions> seoOptions) : IAccountService
 {
     private readonly SeoOptions _seoOptions = seoOptions.Value;
-    private const string InvalidLoginMessage = "E-posta veya sifre hatali.";
+    private const string InvalidLoginMessage = "E-posta veya şifre hatalı.";
 
     public async Task<AccountServiceOutcome<bool>> RegisterAsync(
         RegisterDto dto,

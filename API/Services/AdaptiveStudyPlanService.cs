@@ -656,12 +656,12 @@ public class AdaptiveStudyPlanService(
 
         if (dueReviewCount > 0)
         {
-            tasks.Add($"{dueReviewCount} tekrar sorusunu hafta icinde bitir.");
+            tasks.Add($"{dueReviewCount} tekrar sorusunu hafta içinde bitir.");
         }
 
         if (incompleteCount > 0)
         {
-            tasks.Add($"En az {Math.Min(5, incompleteCount)} eksik konuyu calis.");
+            tasks.Add($"En az {Math.Min(5, incompleteCount)} eksik konuyu çalış.");
         }
 
         if (contextData.Priorities.Any(x => x.WrongCount > 0))

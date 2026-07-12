@@ -49,7 +49,7 @@ public class CoursePracticeController(
             CoursePracticeStartError.DemoQuestionLimitReached => BadRequest("Demo günlük soru limitiniz doldu. Tam erişim için erişim talebi oluşturabilirsiniz."),
             CoursePracticeStartError.NotEnoughQuestions => BadRequest(new
             {
-                message = $"Bu filtrelerle en az 5 soru gerekir. Uygun soru sayisi: {outcome.AvailableQuestionCount}.",
+                message = $"Bu filtrelerle en az 5 soru gerekir. Uygun soru sayısı: {outcome.AvailableQuestionCount}.",
                 availableQuestionCount = outcome.AvailableQuestionCount,
                 requiredMinimum = 5
             }),

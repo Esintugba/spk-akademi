@@ -79,7 +79,7 @@ public class ConsentService(IConsentLogRepository consentLogs) : IConsentService
         {
             return ConsentOutcome.Fail(
                 ConsentError.KvkkRequired,
-                "KVKK aydinlatma metni onayi zorunludur.");
+                "KVKK aydınlatma metni onayı zorunludur.");
         }
 
         await consentLogs.AddAsync(new ConsentLog

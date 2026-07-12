@@ -46,7 +46,7 @@ public class ContactNotificationService(
                 Merhaba {message.Name},
 
                 Mesajınız başarıyla alındı.
-                Ekibimiz sizinle en kısa sürede iletisime geçecektir.
+                Ekibimiz sizinle en kısa sürede iletişime geçecektir.
 
                 Talep numarası: {message.Id}
 
