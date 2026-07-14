@@ -1,4 +1,6 @@
 using System;
+using API.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace API.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(DataContext))]
+    [Migration("20260711194500_AddSupportTicketCounters")]
     public partial class AddSupportTicketCounters : Migration
     {
         /// <inheritdoc />

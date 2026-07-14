@@ -138,6 +138,10 @@ export async function refreshStoredSession() {
 axiosInstance.interceptors.request.use(async (config) => {
   const spkConfig = config as SpkAxiosRequestConfig
 
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   if (isUnsafeMethod(config.method) && !spkConfig.skipCsrf) {
     config.headers[csrfHeaderName] = await ensureCsrfToken()
   }
