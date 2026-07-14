@@ -15,6 +15,10 @@ public enum TrialExamManagementError
     AutoSelectionRequiresLicense,
     NotEnoughLicenseQuestions,
     InvalidLicense,
+    CourseRequiresLicense,
+    TopicsRequireCourse,
+    InvalidCourse,
+    InvalidTopics,
     InvalidQuestions
 }
 
@@ -37,7 +41,7 @@ public interface ITrialExamManagementService
 {
     Task<IReadOnlyList<TrialExamSummaryDto>> GetTrialExamsAsync(CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<TrialExamSummaryDto>> GetFreeTrialExamsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetFreeTrialExamsAsync(CancellationToken cancellationToken = default);
 
     Task<TrialExamManagementOutcome<TrialExamDetailDto>> GetTrialExamAsync(
         Guid id,
@@ -68,11 +72,11 @@ public class TrialExamManagementService(
         return exams.Select(ToSummaryDto).ToList();
     }
 
-    public async Task<IReadOnlyList<TrialExamSummaryDto>> GetFreeTrialExamsAsync(
+    public async Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetFreeTrialExamsAsync(
         CancellationToken cancellationToken = default)
     {
         var exams = await trialExams.GetFreePublishedAsync(cancellationToken);
-        return exams.Select(ToSummaryDto).ToList();
+        return exams.Select(ToPublicSummaryDto).ToList();
     }
 
     public async Task<TrialExamManagementOutcome<TrialExamDetailDto>> GetTrialExamAsync(
@@ -89,8 +93,24 @@ public class TrialExamManagementService(
         CreateTrialExamDto dto,
         CancellationToken cancellationToken = default)
     {
+        var topicIds = NormalizeTopicIds(dto.TopicIds);
+        var scopeValidation = await ValidateSelectionScopeAsync(
+            dto.LicenseId,
+            dto.CourseId,
+            topicIds,
+            cancellationToken);
+
+        if (scopeValidation is not null)
+        {
+            return TrialExamManagementOutcome<TrialExamDetailDto>.Fail(
+                scopeValidation.Value.Error,
+                scopeValidation.Value.Message);
+        }
+
         var questionSelection = await ResolveQuestionIdsAsync(
             dto.LicenseId,
+            dto.CourseId,
+            topicIds,
             dto.QuestionCount,
             dto.QuestionIds,
             dto.AutoSelectQuestions || (dto.QuestionIds.Count == 0 && dto.LicenseId.HasValue),
@@ -106,6 +126,8 @@ public class TrialExamManagementService(
         var questionIds = questionSelection.QuestionIds!;
         var validation = await ValidateAsync(
             dto.LicenseId,
+            dto.CourseId,
+            topicIds,
             dto.DurationMinutes,
             dto.QuestionCount,
             questionIds,
@@ -153,8 +175,24 @@ public class TrialExamManagementService(
             return TrialExamManagementOutcome<bool>.Fail(TrialExamManagementError.NotFound);
         }
 
+        var topicIds = NormalizeTopicIds(dto.TopicIds);
+        var scopeValidation = await ValidateSelectionScopeAsync(
+            dto.LicenseId,
+            dto.CourseId,
+            topicIds,
+            cancellationToken);
+
+        if (scopeValidation is not null)
+        {
+            return TrialExamManagementOutcome<bool>.Fail(
+                scopeValidation.Value.Error,
+                scopeValidation.Value.Message);
+        }
+
         var questionSelection = await ResolveQuestionIdsAsync(
             dto.LicenseId,
+            dto.CourseId,
+            topicIds,
             dto.QuestionCount,
             dto.QuestionIds,
             dto.AutoSelectQuestions || (dto.QuestionIds.Count == 0 && dto.LicenseId.HasValue),
@@ -171,6 +209,8 @@ public class TrialExamManagementService(
 
         var validation = await ValidateAsync(
             dto.LicenseId,
+            dto.CourseId,
+            topicIds,
             dto.DurationMinutes,
             dto.QuestionCount,
             questionIds,
@@ -227,6 +267,8 @@ public class TrialExamManagementService(
 
     private async Task<(TrialExamManagementError Error, string Message)?> ValidateAsync(
         Guid? licenseId,
+        Guid? courseId,
+        IReadOnlyCollection<Guid> topicIds,
         int durationMinutes,
         int questionCount,
         IReadOnlyList<Guid> questionIds,
@@ -261,6 +303,8 @@ public class TrialExamManagementService(
         var eligibleQuestionCount = await trialExams.CountEligibleQuestionsAsync(
             distinctQuestionIds,
             licenseId,
+            courseId,
+            topicIds,
             cancellationToken);
 
         return eligibleQuestionCount == distinctQuestionIds.Count
@@ -273,6 +317,8 @@ public class TrialExamManagementService(
         TrialExamManagementError? Error,
         string? Message)> ResolveQuestionIdsAsync(
         Guid? licenseId,
+        Guid? courseId,
+        IReadOnlyCollection<Guid> topicIds,
         int questionCount,
         IReadOnlyList<Guid> questionIds,
         bool autoSelectQuestions,
@@ -301,8 +347,10 @@ public class TrialExamManagementService(
             return (Array.Empty<Guid>(), null, null);
         }
 
-        var selectedQuestionIds = await trialExams.GetRandomApprovedQuestionIdsForLicenseAsync(
+        var selectedQuestionIds = await trialExams.GetRandomApprovedQuestionIdsAsync(
             licenseId.Value,
+            courseId,
+            topicIds,
             questionCount,
             cancellationToken);
 
@@ -310,9 +358,55 @@ public class TrialExamManagementService(
             ? (
                 null,
                 TrialExamManagementError.NotEnoughLicenseQuestions,
-                $"Seçilen lisans için {questionCount} onaylı soru bulunamadı. Kullanılabilir soru sayısı: {selectedQuestionIds.Count}.")
+                $"Seçilen kapsam için {questionCount} onaylı soru bulunamadı. Kullanılabilir soru sayısı: {selectedQuestionIds.Count}.")
             : (selectedQuestionIds, null, null);
     }
+
+    private async Task<(TrialExamManagementError Error, string Message)?> ValidateSelectionScopeAsync(
+        Guid? licenseId,
+        Guid? courseId,
+        IReadOnlyCollection<Guid> topicIds,
+        CancellationToken cancellationToken)
+    {
+        if (courseId.HasValue && !licenseId.HasValue)
+        {
+            return (TrialExamManagementError.CourseRequiresLicense, "Ders seçimi için önce bir lisans seçilmelidir.");
+        }
+
+        if (topicIds.Count > 0 && !courseId.HasValue)
+        {
+            return (TrialExamManagementError.TopicsRequireCourse, "Konu seçimi için önce bir ders seçilmelidir.");
+        }
+
+        if (licenseId.HasValue && !await trialExams.LicenseExistsAsync(licenseId.Value, cancellationToken))
+        {
+            return (TrialExamManagementError.InvalidLicense, "Seçilen lisans bulunamadı.");
+        }
+
+        if (courseId.HasValue &&
+            !await trialExams.CourseBelongsToLicenseAsync(courseId.Value, licenseId!.Value, cancellationToken))
+        {
+            return (TrialExamManagementError.InvalidCourse, "Seçilen ders, seçilen lisansa ait değil.");
+        }
+
+        if (topicIds.Count > 0)
+        {
+            var matchingTopicCount = await trialExams.CountTopicsInCourseAsync(
+                topicIds,
+                courseId!.Value,
+                cancellationToken);
+
+            if (matchingTopicCount != topicIds.Count)
+            {
+                return (TrialExamManagementError.InvalidTopics, "Seçilen konulardan bazıları seçilen derse ait değil.");
+            }
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<Guid> NormalizeTopicIds(IReadOnlyList<Guid>? topicIds) =>
+        topicIds?.Where(id => id != Guid.Empty).Distinct().ToList() ?? [];
 
     private static List<TrialExamQuestion> BuildQuestions(
         IReadOnlyList<Guid> questionIds,
@@ -359,6 +453,19 @@ public class TrialExamManagementService(
             exam.ReviewedAt,
             exam.ReviewComment);
     }
+
+    private static PublicTrialExamSummaryDto ToPublicSummaryDto(TrialExam exam) =>
+        new(
+            exam.Id,
+            exam.Title,
+            exam.Slug,
+            exam.Description,
+            exam.DurationMinutes,
+            exam.QuestionCount,
+            exam.IsFree,
+            exam.IsFeatured,
+            exam.DifficultyLevel,
+            exam.Tags);
 
     private static TrialExamDetailDto ToDetailDto(TrialExam exam)
     {

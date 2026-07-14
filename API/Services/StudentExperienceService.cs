@@ -357,10 +357,12 @@ public class StudentExperienceService(
                 x.Id,
                 x.TrialExamId!.Value,
                 x.TrialExam != null ? x.TrialExam.Title : "Deneme",
-                x.CorrectCount,
-                x.WrongCount,
+                x.Answers.Count(answer => answer.IsCorrect),
+                x.Answers.Count(answer => !answer.IsCorrect && answer.SelectedOptionId.HasValue),
                 x.TotalQuestions,
-                x.TotalQuestions == 0 ? 0 : Math.Round((decimal)x.CorrectCount / x.TotalQuestions * 100, 1),
+                x.TotalQuestions == 0
+                    ? 0
+                    : Math.Round((decimal)x.Answers.Count(answer => answer.IsCorrect) / x.TotalQuestions * 100, 1),
                 x.TrialExam != null ? x.TrialExam.DurationMinutes : null,
                 x.FinishedAt.HasValue ? (int)Math.Max(1, Math.Round((x.FinishedAt.Value - x.StartedAt).TotalMinutes)) : 0,
                 x.FinishedAt!.Value))
@@ -395,10 +397,12 @@ public class StudentExperienceService(
                 x.Id,
                 x.TrialExamId!.Value,
                 x.TrialExam != null ? x.TrialExam.Title : "Deneme",
-                x.CorrectCount,
-                x.WrongCount,
+                x.Answers.Count(answer => answer.IsCorrect),
+                x.Answers.Count(answer => !answer.IsCorrect && answer.SelectedOptionId.HasValue),
                 x.TotalQuestions,
-                x.TotalQuestions == 0 ? 0 : Math.Round((decimal)x.CorrectCount / x.TotalQuestions * 100, 1),
+                x.TotalQuestions == 0
+                    ? 0
+                    : Math.Round((decimal)x.Answers.Count(answer => answer.IsCorrect) / x.TotalQuestions * 100, 1),
                 x.TrialExam != null ? x.TrialExam.DurationMinutes : null,
                 x.FinishedAt.HasValue ? (int)Math.Max(1, Math.Round((x.FinishedAt.Value - x.StartedAt).TotalMinutes)) : 0,
                 x.StartedAt,
@@ -415,6 +419,7 @@ public class StudentExperienceService(
             .Include(x => x.Topic)
                 .ThenInclude(x => x!.Course)
             .Include(x => x.TrialExam)
+            .Include(x => x.Answers)
             .Where(x => x.UserId == userId && x.FinishedAt.HasValue)
             .OrderByDescending(x => x.FinishedAt)
             .ToListAsync();
@@ -422,9 +427,9 @@ public class StudentExperienceService(
         return attempts
             .Select(attempt =>
             {
-                var emptyCount = Math.Max(
-                    0,
-                    attempt.TotalQuestions - attempt.CorrectCount - attempt.WrongCount);
+                var correctCount = attempt.Answers.Count(answer => answer.IsCorrect);
+                var wrongCount = attempt.Answers.Count(answer => !answer.IsCorrect && answer.SelectedOptionId.HasValue);
+                var emptyCount = attempt.Answers.Count(answer => !answer.SelectedOptionId.HasValue);
                 var course = attempt.Course ?? attempt.Topic?.Course;
 
                 return new QuizResultHistoryItemDto(
@@ -435,13 +440,13 @@ public class StudentExperienceService(
                     course?.Name,
                     attempt.TopicId,
                     attempt.Topic?.Title,
-                    attempt.CorrectCount,
-                    attempt.WrongCount,
+                    correctCount,
+                    wrongCount,
                     emptyCount,
                     attempt.TotalQuestions,
                     attempt.TotalQuestions == 0
                         ? 0
-                        : Math.Round((decimal)attempt.CorrectCount / attempt.TotalQuestions * 100, 1),
+                        : Math.Round((decimal)correctCount / attempt.TotalQuestions * 100, 1),
                     (int)Math.Max(1, (attempt.FinishedAt!.Value - attempt.StartedAt).TotalSeconds),
                     attempt.StartedAt,
                     attempt.FinishedAt.Value);
@@ -504,14 +509,17 @@ public class StudentExperienceService(
             })
             .ToList();
 
+        var correctCount = attempt.Answers.Count(answer => answer.IsCorrect);
+        var wrongCount = attempt.Answers.Count(answer => !answer.IsCorrect && answer.SelectedOptionId.HasValue);
+
         return new TrialAttemptDetailDto(
             attempt.Id,
             attempt.TrialExamId!.Value,
             attempt.TrialExam != null ? attempt.TrialExam.Title : "Deneme",
-            attempt.CorrectCount,
-            attempt.WrongCount,
+            correctCount,
+            wrongCount,
             attempt.TotalQuestions,
-            attempt.TotalQuestions == 0 ? 0 : Math.Round((decimal)attempt.CorrectCount / attempt.TotalQuestions * 100, 1),
+            attempt.TotalQuestions == 0 ? 0 : Math.Round((decimal)correctCount / attempt.TotalQuestions * 100, 1),
             attempt.TrialExam?.DurationMinutes,
             (int)Math.Max(1, Math.Round((attempt.FinishedAt.Value - attempt.StartedAt).TotalMinutes)),
             attempt.StartedAt,

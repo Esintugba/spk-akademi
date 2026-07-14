@@ -30,3 +30,15 @@ public record PublicMiniQuizResultAnswerDto(
     Guid? SelectedOptionId,
     bool IsCorrect,
     string Explanation);
+
+public record PublicTrialExamSummaryDto(
+    Guid Id,
+    string Title,
+    string Slug,
+    string Description,
+    int DurationMinutes,
+    int QuestionCount,
+    bool IsFree,
+    bool IsFeatured,
+    QuestionDifficulty DifficultyLevel,
+    string? Tags);

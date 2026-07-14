@@ -32,6 +32,11 @@ public class PastExamQuestionQueryValidator : AbstractValidator<PastExamQuestion
             .Must(BeValidGuidCsvOrNull)
             .WithMessage("TopicIds geçersiz.");
 
+        RuleFor(x => x.Search)
+            .MaximumLength(200)
+            .When(x => !string.IsNullOrWhiteSpace(x.Search))
+            .WithMessage("Arama metni en fazla 200 karakter olabilir.");
+
         RuleFor(x => x)
             .Must(HaveMeaningfulFilter)
             .WithMessage("Filtre boş olamaz. En az bir filtre seçmelisin (examTypes/years/session/topicIds/difficulty/search).");

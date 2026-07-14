@@ -21,7 +21,7 @@ public class TrialExamsController(ITrialExamManagementService trialExamManagemen
 
     [AllowAnonymous]
     [HttpGet("free")]
-    public async Task<ActionResult<IReadOnlyList<TrialExamSummaryDto>>> GetFreeTrialExams(
+    public async Task<ActionResult<IReadOnlyList<PublicTrialExamSummaryDto>>> GetFreeTrialExams(
         CancellationToken cancellationToken = default)
     {
         var exams = await trialExamManagementService.GetFreeTrialExamsAsync(cancellationToken);

@@ -31,13 +31,27 @@ public interface ITrialExamRepository
 
     Task<bool> LicenseExistsAsync(Guid licenseId, CancellationToken cancellationToken = default);
 
+    Task<bool> CourseBelongsToLicenseAsync(
+        Guid courseId,
+        Guid licenseId,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountTopicsInCourseAsync(
+        IReadOnlyCollection<Guid> topicIds,
+        Guid courseId,
+        CancellationToken cancellationToken = default);
+
     Task<int> CountEligibleQuestionsAsync(
         IReadOnlyCollection<Guid> questionIds,
         Guid? licenseId,
+        Guid? courseId,
+        IReadOnlyCollection<Guid> topicIds,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Guid>> GetRandomApprovedQuestionIdsForLicenseAsync(
+    Task<IReadOnlyList<Guid>> GetRandomApprovedQuestionIdsAsync(
         Guid licenseId,
+        Guid? courseId,
+        IReadOnlyCollection<Guid> topicIds,
         int count,
         CancellationToken cancellationToken = default);
 

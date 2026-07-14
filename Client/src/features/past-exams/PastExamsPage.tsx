@@ -138,6 +138,7 @@ export function PastExamsPage() {
       session: formValues.session ?? undefined,
       difficulty: formValues.difficulty ?? undefined,
       mixedYears: formValues.mixedYears,
+      search: formValues.search.trim() || undefined,
     })
   })
 
@@ -276,7 +277,15 @@ export function PastExamsPage() {
             <Controller
               control={control}
               name="search"
-              render={({ field }) => <TextField {...field} fullWidth label="Arama" placeholder="Soru metni / kaynak / konu" />}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  label="Arama"
+                  placeholder="Soru metni / kaynak / konu"
+                  slotProps={{ htmlInput: { maxLength: 200 } }}
+                />
+              )}
             />
 
             <Controller

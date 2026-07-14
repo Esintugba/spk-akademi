@@ -194,16 +194,16 @@ public class QuizTrialService(
         TrialExam trialExam,
         CancellationToken cancellationToken)
     {
+        if (trialExam.IsFree)
+        {
+            return true;
+        }
+
         if (trialExam.LicenseId.HasValue &&
             await studentLicenseRepository.HasActiveLicenseAccessAsync(
                 userId,
                 trialExam.LicenseId.Value,
                 cancellationToken))
-        {
-            return true;
-        }
-
-        if (!trialExam.LicenseId.HasValue && trialExam.IsFree)
         {
             return true;
         }

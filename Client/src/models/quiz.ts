@@ -98,6 +98,8 @@ export interface CreateTrialExam {
   slug: string
   description: string
   licenseId?: string | null
+  courseId?: string | null
+  topicIds: string[]
   durationMinutes: number
   questionCount: number
   isFree: boolean

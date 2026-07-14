@@ -1,5 +1,6 @@
 import type { ContentAccessLevel } from './enums'
-import type { QuizQuestionOption, TrialExamSummary } from './quiz'
+import type { QuizQuestionOption } from './quiz'
+import type { QuestionDifficulty } from './enums'
 
 export interface PublicQuestion {
   id: string
@@ -31,4 +32,17 @@ export interface PublicMiniQuizResultAnswer {
   explanation: string
 }
 
-export type PublicExampleTrial = TrialExamSummary
+export interface PublicTrialExamSummary {
+  id: string
+  title: string
+  slug: string
+  description: string
+  durationMinutes: number
+  questionCount: number
+  isFree: boolean
+  isFeatured: boolean
+  difficultyLevel: QuestionDifficulty
+  tags?: string | null
+}
+
+export type PublicExampleTrial = PublicTrialExamSummary

@@ -167,8 +167,7 @@ public class DemoAccessService(
             .AsNoTracking()
             .Where(x =>
                 x.UserId == userId &&
-                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
-                x.FinishedAt.HasValue)
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial))
             .CountAsync(cancellationToken);
 
         return new DemoLimitsDto(

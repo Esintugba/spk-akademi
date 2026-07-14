@@ -15,6 +15,11 @@ public interface IQuizRepository
         IReadOnlyCollection<Guid> accessibleLicenseIds,
         IReadOnlyCollection<Guid> purchasedQuizIds);
 
+    IQueryable<TrialExam> ApplyUserStatusFilter(
+        IQueryable<TrialExam> query,
+        string userId,
+        string? status);
+
     Task<TrialExam?> GetPublishedQuizAsync(
         Guid quizId,
         IReadOnlyCollection<Guid> accessibleLicenseIds,

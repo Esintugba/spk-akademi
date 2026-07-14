@@ -37,6 +37,7 @@ public class QuestionRepository(DataContext context) : IQuestionRepository
             .AsNoTracking()
             .Include(x => x.Options)
             .Include(x => x.ReviewedBy)
+            .Where(x => !x.IsDeleted)
             .AsQueryable();
 
         if (topicId.HasValue)

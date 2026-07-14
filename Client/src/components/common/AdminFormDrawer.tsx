@@ -51,7 +51,7 @@ export function AdminFormDrawer({ children, description, onClose, open, title }:
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
-        <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', px: { md: 3, xs: 2.25 }, py: 2.5 }}>
+        <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowX: 'hidden', overflowY: 'auto', px: { md: 3, xs: 2.25 }, py: 2.5 }}>
           {children}
         </Box>
       </Stack>

@@ -182,6 +182,7 @@ public class QuizCatalogService(
 
         var quizzes = quizRepository.QueryPublishedQuizzes(access.AccessibleLicenseIds, access.PurchasedQuizIds);
         quizzes = ApplyFilters(quizzes, query);
+        quizzes = quizRepository.ApplyUserStatusFilter(quizzes, userId, query.Status);
         quizzes = ApplySort(quizzes, query.SortBy);
 
         var totalCount = await quizzes.CountAsync(cancellationToken);
@@ -196,8 +197,7 @@ public class QuizCatalogService(
             .ToDictionary(x => x.TrialExamId!.Value);
         var stats = (await quizRepository.GetStatsAsync(quizIds, cancellationToken)).ToDictionary(x => x.QuizId);
 
-        var filteredItems = pageItems
-            .Where(x => MatchesStatus(query.Status, attempts.GetValueOrDefault(x.Id)))
+        var items = pageItems
             .Select(x =>
             {
                 attempts.TryGetValue(x.Id, out var progress);
@@ -207,7 +207,7 @@ public class QuizCatalogService(
             .ToList();
 
         return new QuizCatalogResponseDto(
-            filteredItems,
+            items,
             page,
             pageSize,
             totalCount,
@@ -314,17 +314,6 @@ public class QuizCatalogService(
             completed ? null : attempt.Id,
             score,
             attempt.StartedAt);
-    }
-
-    private static bool MatchesStatus(string? status, QuizAttempt? attempt)
-    {
-        return status?.Trim().ToLowerInvariant() switch
-        {
-            "completed" => attempt is not null && (attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue),
-            "in-progress" or "inprogress" => attempt is not null && !attempt.FinishedAt.HasValue && attempt.Status is QuizAttemptStatus.Started or QuizAttemptStatus.InProgress,
-            "available" or "incomplete" or "not-completed" or "notcompleted" => attempt is null || (!attempt.FinishedAt.HasValue && attempt.Status != QuizAttemptStatus.Completed),
-            _ => true
-        };
     }
 
     private static bool TryParseDifficulty(string? value, out QuestionDifficulty difficulty)

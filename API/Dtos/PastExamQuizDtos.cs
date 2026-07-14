@@ -10,7 +10,8 @@ public record StartPastExamQuizRequestDto(
     IReadOnlyList<Guid>? TopicIds = null,
     ExamSession? Session = null,
     QuestionDifficulty? Difficulty = null,
-    bool MixedYears = true);
+    bool MixedYears = true,
+    string? Search = null);
 
 public record PastExamQuizStartResponseDto(
     Guid AttemptId,

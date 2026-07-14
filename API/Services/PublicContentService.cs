@@ -20,7 +20,7 @@ public interface IPublicContentService
         SubmitPublicMiniQuizDto dto,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<TrialExamSummaryDto>> GetExampleTrialsAsync(
+    Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetExampleTrialsAsync(
         ContentAccessLevel accessLevel,
         CancellationToken cancellationToken = default);
 }
@@ -76,7 +76,7 @@ public class PublicContentService(IPublicContentRepository publicContent) : IPub
             resultAnswers);
     }
 
-    public Task<IReadOnlyList<TrialExamSummaryDto>> GetExampleTrialsAsync(
+    public Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetExampleTrialsAsync(
         ContentAccessLevel accessLevel,
         CancellationToken cancellationToken = default) =>
         publicContent.GetExampleTrialsAsync(accessLevel, cancellationToken);

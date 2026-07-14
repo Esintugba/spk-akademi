@@ -56,7 +56,7 @@ public class PublicContentController(IPublicContentService publicContentService)
     }
 
     [HttpGet("example-trials")]
-    public async Task<ActionResult<IReadOnlyList<TrialExamSummaryDto>>> GetExampleTrials(
+    public async Task<ActionResult<IReadOnlyList<PublicTrialExamSummaryDto>>> GetExampleTrials(
         [FromQuery] ContentAccessLevel accessLevel = ContentAccessLevel.Free,
         CancellationToken cancellationToken = default)
     {

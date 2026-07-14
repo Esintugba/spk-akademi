@@ -7,7 +7,7 @@ export const pastExamsSchema = z.object({
   session: z.nativeEnum(ExamSession).nullable(),
   topicIds: z.array(z.string()),
   difficulty: z.nativeEnum(QuestionDifficulty).nullable(),
-  search: z.string(),
+  search: z.string().max(200),
   questionCount: z.number().min(5).max(100),
   mixedYears: z.boolean(),
   onlyPastExamQuestions: z.boolean(),

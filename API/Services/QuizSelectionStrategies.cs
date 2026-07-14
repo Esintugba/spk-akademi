@@ -365,6 +365,16 @@ public class PastExamStrategy(
             query = query.Where(x => x.Difficulty == request.Difficulty.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim();
+            query = query.Where(x =>
+                x.Text.Contains(term) ||
+                x.Explanation.Contains(term) ||
+                (x.SourceReference != null && x.SourceReference.Contains(term)) ||
+                (x.Topic != null && x.Topic.Title.Contains(term)));
+        }
+
         var pool = await query.ToListAsync(cancellationToken);
         return new PastExamStrategyResult
         {

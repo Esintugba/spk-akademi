@@ -17,12 +17,63 @@ public class QuizRepository(DataContext context) : IQuizRepository
                 !x.IsDeleted &&
                 x.IsPublished &&
                 x.ReviewStatus == ReviewStatus.Approved &&
-                ((x.LicenseId.HasValue && accessibleLicenseIds.Contains(x.LicenseId.Value)) ||
-                 (!x.LicenseId.HasValue && x.IsFree) ||
+                (x.IsFree ||
+                 (x.LicenseId.HasValue && accessibleLicenseIds.Contains(x.LicenseId.Value)) ||
                  purchasedQuizIds.Contains(x.Id)))
             .Where(x =>
                 x.Questions.Count(q =>
-                    q.Question != null && q.Question.ReviewStatus == ReviewStatus.Approved) >= x.QuestionCount);
+                    q.Question != null &&
+                    !q.Question.IsDeleted &&
+                    q.Question.ReviewStatus == ReviewStatus.Approved) >= x.QuestionCount);
+    }
+
+    public IQueryable<TrialExam> ApplyUserStatusFilter(
+        IQueryable<TrialExam> query,
+        string userId,
+        string? status)
+    {
+        var normalizedStatus = status?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedStatus))
+        {
+            return query;
+        }
+
+        var attempts = context.QuizAttempts
+            .AsNoTracking()
+            .Where(x =>
+                x.UserId == userId &&
+                x.TrialExamId.HasValue &&
+                (x.Mode == QuizMode.TrialExam ||
+                 x.Mode == QuizMode.LicensedQuiz ||
+                 x.Mode == QuizMode.FreeTrial));
+
+        return normalizedStatus switch
+        {
+            "completed" => query.Where(quiz =>
+                attempts
+                    .Where(attempt => attempt.TrialExamId == quiz.Id)
+                    .OrderByDescending(attempt => attempt.StartedAt)
+                    .Select(attempt =>
+                        attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue)
+                    .FirstOrDefault()),
+            "in-progress" or "inprogress" => query.Where(quiz =>
+                attempts
+                    .Where(attempt => attempt.TrialExamId == quiz.Id)
+                    .OrderByDescending(attempt => attempt.StartedAt)
+                    .Select(attempt =>
+                        !attempt.FinishedAt.HasValue &&
+                        (attempt.Status == QuizAttemptStatus.Started ||
+                         attempt.Status == QuizAttemptStatus.InProgress))
+                    .FirstOrDefault()),
+            "available" or "incomplete" or "not-completed" or "notcompleted" => query.Where(quiz =>
+                !attempts
+                    .Where(attempt => attempt.TrialExamId == quiz.Id)
+                    .OrderByDescending(attempt => attempt.StartedAt)
+                    .Select(attempt =>
+                        attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue)
+                    .FirstOrDefault()),
+            _ => query
+        };
     }
 
     public Task<TrialExam?> GetPublishedQuizAsync(

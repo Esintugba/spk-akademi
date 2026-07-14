@@ -30,6 +30,7 @@ export interface StartPastExamQuizRequest {
   session?: ExamSession | null
   difficulty?: QuestionDifficulty | null
   mixedYears?: boolean
+  search?: string | null
 }
 
 export interface PastExamQuizStartResponse {

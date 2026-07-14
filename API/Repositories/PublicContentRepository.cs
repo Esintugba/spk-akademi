@@ -22,7 +22,7 @@ public interface IPublicContentRepository
         IReadOnlyCollection<Guid> questionIds,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<TrialExamSummaryDto>> GetExampleTrialsAsync(
+    Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetExampleTrialsAsync(
         ContentAccessLevel accessLevel,
         CancellationToken cancellationToken = default);
 }
@@ -96,7 +96,7 @@ public class PublicContentRepository(DataContext context) : IPublicContentReposi
             .Include(x => x.Options)
             .ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<TrialExamSummaryDto>> GetExampleTrialsAsync(
+    public async Task<IReadOnlyList<PublicTrialExamSummaryDto>> GetExampleTrialsAsync(
         ContentAccessLevel accessLevel,
         CancellationToken cancellationToken = default) =>
         await context.TrialExams
@@ -109,28 +109,20 @@ public class PublicContentRepository(DataContext context) : IPublicContentReposi
             .Where(x =>
                 x.Questions.Count(question =>
                     question.Question != null &&
+                    !question.Question.IsDeleted &&
                     question.Question.ReviewStatus == ReviewStatus.Approved) >= x.QuestionCount)
             .OrderBy(x => x.Title)
-            .Select(x => new TrialExamSummaryDto(
+            .Select(x => new PublicTrialExamSummaryDto(
                 x.Id,
                 x.Title,
                 x.Slug,
                 x.Description,
-                x.LicenseId,
                 x.DurationMinutes,
                 x.QuestionCount,
                 x.IsFree,
-                x.IsPublished,
                 x.IsFeatured,
                 x.DifficultyLevel,
-                x.Tags,
-                x.PopularityScore,
-                x.Questions.Count,
-                x.ReviewStatus,
-                x.AccessLevel,
-                x.ReviewedBy != null ? x.ReviewedBy.Email : null,
-                x.ReviewedAt,
-                x.ReviewComment))
+                x.Tags))
             .ToListAsync(cancellationToken);
 
     private static IQueryable<Question> ApplyPublicQuestionVisibility(IQueryable<Question> query) =>

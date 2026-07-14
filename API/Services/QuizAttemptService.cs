@@ -24,7 +24,8 @@ public enum QuizAttemptError
     AnswersDoNotMatchAttempt,
     CorrectOptionMissing,
     OptionDoesNotBelongToQuestion,
-    DemoQuestionLimitReached
+    DemoQuestionLimitReached,
+    InvalidQuizMode
 }
 
 public sealed class QuizAttemptOutcome<T>
@@ -98,20 +99,84 @@ public class QuizAttemptService(
                 "Ücretsiz deneme sınavı bulunamadı.");
         }
 
+        var existingAttempt = await attempts.GetUnfinishedTrialAttemptAsync(
+            userId,
+            trialExam.Id,
+            cancellationToken);
+
+        if (existingAttempt is not null)
+        {
+            var now = DateTime.UtcNow;
+            var expiresAt = GetAttemptExpiresAt(existingAttempt);
+
+            if (expiresAt.HasValue && now > expiresAt.Value)
+            {
+                existingAttempt.Status = QuizAttemptStatus.Expired;
+                existingAttempt.FinishedAt = now;
+                existingAttempt.UpdatedAt = now;
+                await attempts.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                existingAttempt.Status = QuizAttemptStatus.InProgress;
+                existingAttempt.LastActivityAt = now;
+                existingAttempt.UpdatedAt = now;
+                await attempts.SaveChangesAsync(cancellationToken);
+
+                var resumableAttempt = await attempts.GetByIdForAttemptDtoAsync(
+                    existingAttempt.Id,
+                    cancellationToken);
+
+                if (resumableAttempt is null)
+                {
+                    return QuizAttemptOutcome<QuizAttemptDto>.Fail(QuizAttemptError.NotFound);
+                }
+
+                var resumableQuestions = resumableAttempt.AttemptQuestions
+                    .OrderBy(x => x.Order)
+                    .Select(x => x.Question)
+                    .Where(x => x is not null)
+                    .Select(x => x!)
+                    .ToList();
+
+                if (resumableQuestions.Count != resumableAttempt.TotalQuestions ||
+                    resumableQuestions.Any(x => x.IsDeleted || x.ReviewStatus != ReviewStatus.Approved))
+                {
+                    existingAttempt.Status = QuizAttemptStatus.Expired;
+                    existingAttempt.FinishedAt = now;
+                    existingAttempt.UpdatedAt = now;
+                    await attempts.SaveChangesAsync(cancellationToken);
+                }
+                else
+                {
+                    return QuizAttemptOutcome<QuizAttemptDto>.Success(
+                        ToAttemptDto(resumableAttempt, resumableQuestions, trialExam.DurationMinutes));
+                }
+            }
+        }
+
+        if (!await demoAccessService.CanStartTrialAsync(userId, cancellationToken))
+        {
+            return QuizAttemptOutcome<QuizAttemptDto>.Fail(
+                QuizAttemptError.DemoQuestionLimitReached,
+                "Demo deneme hakkınız doldu. Tam erişim için erişim talebi oluşturabilirsiniz.");
+        }
+
         var selectedQuestions = trialExam.Questions
             .OrderBy(x => x.Order)
             .Select(x => x.Question)
             .Where(x => x is not null)
             .Select(x => x!)
-            .Where(x => x.ReviewStatus == ReviewStatus.Approved)
+            .Where(x => !x.IsDeleted && x.ReviewStatus == ReviewStatus.Approved)
             .Take(trialExam.QuestionCount)
             .ToList();
 
-        if (selectedQuestions.Count == 0)
+        if (selectedQuestions.Count < trialExam.QuestionCount)
         {
             return QuizAttemptOutcome<QuizAttemptDto>.Fail(
                 QuizAttemptError.NoQuestions,
-                "Bu deneme sınavı için soru bulunamadı.");
+                $"Bu ücretsiz deneme sınavı için {trialExam.QuestionCount} geçerli soru gerekiyor, " +
+                $"ancak {selectedQuestions.Count} soru kullanılabilir durumda.");
         }
 
         var attempt = await quizGenerationService.CreateAttemptAsync(
@@ -137,6 +202,13 @@ public class QuizAttemptService(
         if (string.IsNullOrWhiteSpace(userId))
         {
             return QuizAttemptOutcome<QuizAttemptDto>.Fail(QuizAttemptError.Unauthorized);
+        }
+
+        if (dto.Mode is not (QuizMode.TopicPractice or QuizMode.MixedPractice))
+        {
+            return QuizAttemptOutcome<QuizAttemptDto>.Fail(
+                QuizAttemptError.InvalidQuizMode,
+                "Standart test başlangıcı yalnızca konu pratiği veya karma pratik modunu destekler.");
         }
 
         if (dto.QuestionCount <= 0)
@@ -254,8 +326,14 @@ public class QuizAttemptService(
         }
 
         var expiresAt = GetAttemptExpiresAt(attempt);
-        if (expiresAt.HasValue && DateTime.UtcNow > expiresAt.Value)
+        var now = DateTime.UtcNow;
+        if (expiresAt.HasValue && now > expiresAt.Value)
         {
+            attempt.Status = QuizAttemptStatus.Expired;
+            attempt.FinishedAt = now;
+            attempt.UpdatedAt = now;
+            await attempts.SaveChangesAsync(cancellationToken);
+
             return QuizAttemptOutcome<QuizResultDto>.Fail(
                 QuizAttemptError.Expired,
                 "Sınav süresi doldu. Test otomatik olarak kapatıldı.");
@@ -352,7 +430,7 @@ public class QuizAttemptService(
         attempt.FinishedAt = DateTime.UtcNow;
         attempt.Status = QuizAttemptStatus.Completed;
         attempt.CorrectCount = resultAnswers.Count(x => x.IsCorrect);
-        attempt.WrongCount = resultAnswers.Count(x => !x.IsCorrect);
+        attempt.WrongCount = resultAnswers.Count(x => !x.IsCorrect && x.SelectedOptionId.HasValue);
         attempt.TotalQuestions = resultAnswers.Count;
         attempt.UpdatedAt = DateTime.UtcNow;
 
@@ -478,7 +556,7 @@ public class QuizAttemptService(
                 .ToList();
 
             progress.CorrectCount += topicResults.Count(x => x.IsCorrect);
-            progress.WrongCount += topicResults.Count(x => !x.IsCorrect);
+            progress.WrongCount += topicResults.Count(x => !x.IsCorrect && x.SelectedOptionId.HasValue);
             progress.LastStudiedAt = DateTime.UtcNow;
             progress.NextReviewAt = topicResults.Any(x => !x.IsCorrect)
                 ? DateTime.UtcNow.AddDays(1)

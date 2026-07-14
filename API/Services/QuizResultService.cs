@@ -84,14 +84,16 @@ public class QuizResultService(IQuizResultRepository quizResultRepository) : IQu
             .Select(aq => BuildAnswerDto(aq, answersByQuestionId.GetValueOrDefault(aq.QuestionId), includeExplanations))
             .ToList();
 
+        var correctCount = allAnswerDtos.Count(x => x.IsCorrect);
+        var wrongCount = allAnswerDtos.Count(x => !x.IsCorrect && !x.IsEmpty);
         var emptyCount = allAnswerDtos.Count(x => x.IsEmpty);
         var durationSeconds = attempt.FinishedAt.HasValue
             ? (int)Math.Max(1, (attempt.FinishedAt.Value - attempt.StartedAt).TotalSeconds)
             : 0;
 
-        var score = attempt.TotalQuestions == 0
+        var score = allAnswerDtos.Count == 0
             ? 0
-            : Math.Round((decimal)attempt.CorrectCount / attempt.TotalQuestions * 100, 1);
+            : Math.Round((decimal)correctCount / allAnswerDtos.Count * 100, 1);
 
         var analytics = BuildAnalytics(allAnswerDtos);
         var totalCount = allAnswerDtos.Count;
@@ -107,8 +109,8 @@ public class QuizResultService(IQuizResultRepository quizResultRepository) : IQu
             attempt.CourseId,
             attempt.Course?.Name ?? attempt.Topic?.Course?.Name,
             score,
-            attempt.CorrectCount,
-            attempt.WrongCount,
+            correctCount,
+            wrongCount,
             emptyCount,
             durationSeconds,
             attempt.FinishedAt,

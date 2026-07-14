@@ -80,7 +80,8 @@ public class PastExamQuizService(
             request.TopicIds,
             request.Session,
             request.Difficulty,
-            request.MixedYears
+            request.MixedYears,
+            Search = request.Search?.Trim()
         };
 
         var attempt = await quizGenerationService.CreateAttemptAsync(

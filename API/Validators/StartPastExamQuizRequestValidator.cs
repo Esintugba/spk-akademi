@@ -27,9 +27,14 @@ public class StartPastExamQuizRequestValidator : AbstractValidator<StartPastExam
             .Must(x => x is null || x.Distinct().Count() == x.Count)
             .WithMessage("TopicIds içinde tekrar eden kayıt olamaz.");
 
+        RuleFor(x => x.Search)
+            .MaximumLength(200)
+            .When(x => !string.IsNullOrWhiteSpace(x.Search))
+            .WithMessage("Arama metni en fazla 200 karakter olabilir.");
+
         RuleFor(x => x)
             .Must(HaveMeaningfulFilter)
-            .WithMessage("Filtre boş olamaz. En az bir filtre seçmelisin (examTypes/years/session/topicIds/difficulty).");
+            .WithMessage("Filtre boş olamaz. En az bir filtre seçmelisin (examTypes/years/session/topicIds/difficulty/search).");
     }
 
     private static bool HaveMeaningfulFilter(StartPastExamQuizRequestDto dto) =>
@@ -37,7 +42,8 @@ public class StartPastExamQuizRequestValidator : AbstractValidator<StartPastExam
         (dto.Years?.Count ?? 0) > 0 ||
         (dto.TopicIds?.Count ?? 0) > 0 ||
         dto.Session.HasValue ||
-        dto.Difficulty.HasValue;
+        dto.Difficulty.HasValue ||
+        !string.IsNullOrWhiteSpace(dto.Search);
 
     private static bool BeValidYearsOrNull(IReadOnlyList<int>? years)
     {

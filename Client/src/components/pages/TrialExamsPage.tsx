@@ -25,6 +25,8 @@ const initialForm: CreateTrialExam = {
   slug: '',
   description: '',
   licenseId: null,
+  courseId: null,
+  topicIds: [],
   durationMinutes: 60,
   questionCount: 10,
   isFree: true,
@@ -76,7 +78,23 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
     () => questions.filter((question) => question.reviewStatus === ReviewStatus.Approved),
     [questions],
   )
-  const approvedQuestionsForLicense = useMemo(() => {
+  const approvedQuestionTopicIds = useMemo(
+    () => new Set(approvedQuestions.map((question) => question.topicId)),
+    [approvedQuestions],
+  )
+  const courseById = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses])
+  const topicById = useMemo(() => new Map(topics.map((topic) => [topic.id, topic])), [topics])
+  const availableCourses = useMemo(
+    () => form.licenseId ? courses.filter((course) => course.licenseId === form.licenseId) : [],
+    [courses, form.licenseId],
+  )
+  const availableTopics = useMemo(
+    () => form.courseId
+      ? topics.filter((topic) => topic.courseId === form.courseId && approvedQuestionTopicIds.has(topic.id))
+      : [],
+    [approvedQuestionTopicIds, form.courseId, topics],
+  )
+  const approvedQuestionsForScope = useMemo(() => {
     if (!form.licenseId) {
       return approvedQuestions
     }
@@ -87,8 +105,20 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
     const topicIds = new Set(
       topics.filter((topic) => courseIds.has(topic.courseId)).map((topic) => topic.id),
     )
-    return approvedQuestions.filter((question) => topicIds.has(question.topicId))
-  }, [approvedQuestions, courses, form.licenseId, topics])
+    return approvedQuestions.filter((question) => {
+      const topic = topicById.get(question.topicId)
+      if (!topicIds.has(question.topicId) || !topic) return false
+      if (form.courseId && topic.courseId !== form.courseId) return false
+      if (form.topicIds.length > 0 && !form.topicIds.includes(question.topicId)) return false
+      return true
+    })
+  }, [approvedQuestions, courses, form.courseId, form.licenseId, form.topicIds, topicById, topics])
+
+  function getQuestionScopeLabel(question: Question) {
+    const topic = topicById.get(question.topicId)
+    const course = topic ? courseById.get(topic.courseId) : undefined
+    return [course?.name, topic?.title].filter(Boolean).join(' › ')
+  }
 
   function openCreateDialog() {
     setEditingId('')
@@ -103,12 +133,26 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
 
     try {
       const exam = await api.getTrialExam(id)
+      const selectedQuestions = questions.filter((question) => exam.questionIds.includes(question.id))
+      const selectedTopicIds = [...new Set(selectedQuestions.map((question) => question.topicId))]
+      const selectedCourseIds = [...new Set(
+        selectedTopicIds
+          .map((topicId) => topicById.get(topicId)?.courseId)
+          .filter((courseId): courseId is string => Boolean(courseId)),
+      )]
+      const inferredCourseId = exam.licenseId &&
+        selectedCourseIds.length === 1 &&
+        courseById.get(selectedCourseIds[0])?.licenseId === exam.licenseId
+        ? selectedCourseIds[0]
+        : null
       setEditingId(id)
       setForm({
         title: exam.title,
         slug: exam.slug,
         description: exam.description,
         licenseId: exam.licenseId ?? null,
+        courseId: inferredCourseId,
+        topicIds: inferredCourseId ? selectedTopicIds : [],
         durationMinutes: exam.durationMinutes,
         questionCount: exam.questionCount,
         isFree: exam.isFree,
@@ -159,8 +203,8 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
       return
     }
 
-    if (form.autoSelectQuestions && approvedQuestionsForLicense.length < form.questionCount) {
-      setError(`Seçilen lisansta ${approvedQuestionsForLicense.length} onaylı soru var; ${form.questionCount} soru atanamaz.`)
+    if (form.autoSelectQuestions && approvedQuestionsForScope.length < form.questionCount) {
+      setError(`Seçilen kapsamda ${approvedQuestionsForScope.length} onaylı soru var; ${form.questionCount} soru atanamaz.`)
       return
     }
 
@@ -259,13 +303,79 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
               <TextField fullWidth label="Slug" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
               <TextField fullWidth label="Açıklama" multiline rows={3} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField fullWidth label="Lisans" select value={form.licenseId ?? ''} onChange={(event) => setForm((current) => ({ ...current, licenseId: event.target.value || null, questionIds: [] }))}>
+                <TextField fullWidth label="Lisans" select value={form.licenseId ?? ''} onChange={(event) => setForm((current) => ({
+                  ...current,
+                  licenseId: event.target.value || null,
+                  courseId: null,
+                  topicIds: [],
+                  questionIds: [],
+                }))}>
                   <MenuItem value="">Genel</MenuItem>
                   {licenses.map((license) => <MenuItem key={license.id} value={license.id}>{license.name}</MenuItem>)}
                 </TextField>
                 <TextField fullWidth label="Süre" type="number" value={form.durationMinutes} slotProps={{ htmlInput: { min: 1 } }} onChange={(event) => setForm((current) => ({ ...current, durationMinutes: Number(event.target.value) }))} />
                 <TextField fullWidth label="Soru sayısı" type="number" value={form.questionCount} slotProps={{ htmlInput: { min: 1 } }} onChange={(event) => setForm((current) => ({ ...current, questionCount: Number(event.target.value) }))} />
               </Stack>
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: 'minmax(0, 1fr)' } }}>
+                <TextField
+                  disabled={!form.licenseId}
+                  fullWidth
+                  helperText={form.licenseId ? 'Boş bırakırsan lisansın tüm dersleri kullanılır.' : 'Önce lisans seçmelisin.'}
+                  label="Ders kapsamı"
+                  select
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    select: {
+                      displayEmpty: true,
+                      renderValue: (selected) => {
+                        const selectedCourseId = String(selected ?? '')
+                        if (!form.licenseId) return 'Önce lisans seç'
+                        return selectedCourseId
+                          ? availableCourses.find((course) => course.id === selectedCourseId)?.name ?? 'Ders seç'
+                          : 'Tüm dersler'
+                      },
+                    },
+                  }}
+                  value={form.courseId ?? ''}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    courseId: event.target.value || null,
+                    topicIds: [],
+                    questionIds: [],
+                  }))}
+                >
+                  <MenuItem value="">Tüm dersler</MenuItem>
+                  {availableCourses.map((course) => <MenuItem key={course.id} value={course.id}>{course.name}</MenuItem>)}
+                </TextField>
+                <Autocomplete
+                  disabled={!form.courseId}
+                  getOptionLabel={(topic) => topic.parentTopicTitle ? `${topic.parentTopicTitle} › ${topic.title}` : topic.title}
+                  getLimitTagsText={(more) => `+${more} konu`}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  limitTags={1}
+                  multiple
+                  onChange={(_, selectedTopics) => setForm((current) => ({
+                    ...current,
+                    topicIds: selectedTopics.map((topic) => topic.id),
+                    questionIds: [],
+                  }))}
+                  options={availableTopics}
+                  sx={{
+                    minWidth: 0,
+                    '& .MuiAutocomplete-inputRoot': { minWidth: 0 },
+                    '& .MuiChip-root': { maxWidth: 'calc(100% - 48px)' },
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      helperText={form.courseId ? 'Boş bırakırsan dersin tüm konuları kullanılır.' : 'Önce ders seçmelisin.'}
+                      label="Konu kapsamı"
+                      placeholder={!form.courseId ? 'Önce ders seç' : form.topicIds.length === 0 ? 'Tüm konular' : 'Konu ara ve seç'}
+                    />
+                  )}
+                  value={availableTopics.filter((topic) => form.topicIds.includes(topic.id))}
+                />
+              </Box>
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
                 <TextField fullWidth label="Zorluk" select value={form.difficultyLevel} onChange={(event) => setForm((current) => ({ ...current, difficultyLevel: Number(event.target.value) as QuestionDifficulty }))}>
                   <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
@@ -302,11 +412,11 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
                     }))}
                   />
                 )}
-                label="Soruları seçili lisansın onaylı soru havuzundan rastgele seç"
+                label="Soruları seçilen lisans, ders ve konu kapsamından rastgele seç"
               />
               {form.autoSelectQuestions ? (
-                <Alert severity={approvedQuestionsForLicense.length < form.questionCount ? 'warning' : 'success'}>
-                  Seçili lisansın havuzunda {approvedQuestionsForLicense.length} onaylı soru var. Kaydettiğinde bunlardan {form.questionCount || 0} tanesi rastgele atanır.
+                <Alert severity={approvedQuestionsForScope.length < form.questionCount ? 'warning' : 'success'}>
+                  Seçilen kapsamda {approvedQuestionsForScope.length} onaylı soru var. Kaydettiğinde bunlardan {form.questionCount || 0} tanesi rastgele atanır.
                 </Alert>
               ) : (
                 <Autocomplete
@@ -320,7 +430,7 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
                     ...current,
                     questionIds: selectedQuestions.map((question) => question.id),
                   }))}
-                  options={approvedQuestionsForLicense}
+                  options={approvedQuestionsForScope}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -332,12 +442,13 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
                   renderOption={(props, question, state) => (
                     <Box component="li" {...props} key={question.id}>
                       <Checkbox checked={state.selected} sx={{ mr: 1 }} />
-                      <Typography sx={{ overflowWrap: 'anywhere' }}>
-                        {question.text}
-                      </Typography>
+                      <Box>
+                        <Typography sx={{ overflowWrap: 'anywhere' }}>{question.text}</Typography>
+                        <Typography color="text.secondary" variant="caption">{getQuestionScopeLabel(question)}</Typography>
+                      </Box>
                     </Box>
                   )}
-                  value={approvedQuestionsForLicense.filter((question) => form.questionIds.includes(question.id))}
+                  value={approvedQuestionsForScope.filter((question) => form.questionIds.includes(question.id))}
                 />
               )}
               <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>

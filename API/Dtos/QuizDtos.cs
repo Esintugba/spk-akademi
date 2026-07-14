@@ -118,7 +118,9 @@ public record CreateTrialExamDto(
     ReviewStatus ReviewStatus,
     ContentAccessLevel AccessLevel,
     IReadOnlyList<Guid> QuestionIds,
-    bool AutoSelectQuestions = false);
+    bool AutoSelectQuestions = false,
+    Guid? CourseId = null,
+    IReadOnlyList<Guid>? TopicIds = null);
 
 public record UpdateTrialExamDto(
     string Title,
@@ -136,7 +138,9 @@ public record UpdateTrialExamDto(
     ReviewStatus ReviewStatus,
     ContentAccessLevel AccessLevel,
     IReadOnlyList<Guid> QuestionIds,
-    bool AutoSelectQuestions = false);
+    bool AutoSelectQuestions = false,
+    Guid? CourseId = null,
+    IReadOnlyList<Guid>? TopicIds = null);
 
 public record StartFreeTrialExamDto(Guid TrialExamId);
 
