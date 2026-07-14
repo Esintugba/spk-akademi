@@ -109,7 +109,7 @@ public class QuizCatalogService(
             quiz.IsFeatured,
             SplitTags(quiz.Tags),
             distribution,
-            ToProgress(progress));
+            ToProgress(progress, quiz.DurationMinutes));
     }
 
     public async Task<IReadOnlyList<FeaturedQuizDto>> GetFeaturedAsync(
@@ -294,16 +294,20 @@ public class QuizCatalogService(
             true,
             quiz.IsFeatured,
             SplitTags(quiz.Tags),
-            ToProgress(progress));
+            ToProgress(progress, quiz.DurationMinutes));
 
-    private static StudentQuizProgressDto ToProgress(QuizAttempt? attempt)
+    private static StudentQuizProgressDto ToProgress(QuizAttempt? attempt, int durationMinutes)
     {
         if (attempt is null)
         {
             return new StudentQuizProgressDto(false, false, null, null, null);
         }
 
-        var completed = attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue;
+        var expired = attempt.Status == QuizAttemptStatus.Expired ||
+            (!attempt.FinishedAt.HasValue &&
+             (attempt.Status is QuizAttemptStatus.Started or QuizAttemptStatus.InProgress) &&
+             attempt.StartedAt.AddMinutes(durationMinutes) <= DateTime.UtcNow);
+        var completed = attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue || expired;
         var score = completed && attempt.TotalQuestions > 0
             ? Round((decimal)attempt.CorrectCount / attempt.TotalQuestions * 100)
             : (decimal?)null;

@@ -54,7 +54,9 @@ public class QuizRepository(DataContext context) : IQuizRepository
                     .Where(attempt => attempt.TrialExamId == quiz.Id)
                     .OrderByDescending(attempt => attempt.StartedAt)
                     .Select(attempt =>
-                        attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue)
+                        attempt.Status == QuizAttemptStatus.Completed ||
+                        attempt.Status == QuizAttemptStatus.Expired ||
+                        attempt.FinishedAt.HasValue)
                     .FirstOrDefault()),
             "in-progress" or "inprogress" => query.Where(quiz =>
                 attempts
@@ -63,14 +65,17 @@ public class QuizRepository(DataContext context) : IQuizRepository
                     .Select(attempt =>
                         !attempt.FinishedAt.HasValue &&
                         (attempt.Status == QuizAttemptStatus.Started ||
-                         attempt.Status == QuizAttemptStatus.InProgress))
+                         attempt.Status == QuizAttemptStatus.InProgress) &&
+                        attempt.StartedAt.AddMinutes(quiz.DurationMinutes) > DateTime.UtcNow)
                     .FirstOrDefault()),
             "available" or "incomplete" or "not-completed" or "notcompleted" => query.Where(quiz =>
                 !attempts
                     .Where(attempt => attempt.TrialExamId == quiz.Id)
                     .OrderByDescending(attempt => attempt.StartedAt)
                     .Select(attempt =>
-                        attempt.Status == QuizAttemptStatus.Completed || attempt.FinishedAt.HasValue)
+                        attempt.Status == QuizAttemptStatus.Completed ||
+                        attempt.Status == QuizAttemptStatus.Expired ||
+                        attempt.FinishedAt.HasValue)
                     .FirstOrDefault()),
             _ => query
         };

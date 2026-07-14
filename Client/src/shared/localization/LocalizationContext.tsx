@@ -27,7 +27,7 @@ const english: Record<string, string> = {
   '24 saat': '24-hour',
   '12 saat': '12-hour',
   'Karışık Test': 'Mixed quiz',
-  'Alt Konu Testi': 'Topic quiz',
+  'Konu Testi': 'Topic quiz',
   'Ders Bazlı Test': 'Course quiz',
   Yanlışlarım: 'Wrong answers',
   Deneme: 'Mock exam',

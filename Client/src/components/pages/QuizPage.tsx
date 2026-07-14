@@ -17,7 +17,8 @@ export function QuizPage({ topics }: QuizPageProps) {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const isMixedEntry = location.pathname === '/mixed-practice' || searchParams.get('mode') === 'mixed'
-  const [topicId, setTopicId] = useState(isMixedEntry ? '' : searchParams.get('topicId') ?? '')
+  const requestedTopicId = searchParams.get('topicId') ?? ''
+  const [topicId, setTopicId] = useState(isMixedEntry ? '' : requestedTopicId)
   const [questionCount, setQuestionCount] = useState(10)
   const [questionCountTouched, setQuestionCountTouched] = useState(false)
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null)
@@ -36,8 +37,15 @@ export function QuizPage({ topics }: QuizPageProps) {
   useEffect(() => {
     if (isMixedEntry) {
       setTopicId('')
+      setAttempt(null)
+      setAnswers({})
+      return
     }
-  }, [isMixedEntry])
+
+    if (!attempt) {
+      setTopicId(requestedTopicId)
+    }
+  }, [attempt, isMixedEntry, requestedTopicId])
 
   useEffect(() => {
     if (!settingsQuery.data || questionCountTouched || attempt) {
@@ -87,12 +95,18 @@ export function QuizPage({ topics }: QuizPageProps) {
     event.preventDefault()
     setError('')
     setAnswers({})
+
+    if (!isMixedEntry && !topicId) {
+      setError('Konu testi için ana konu veya alt konu seçmelisin.')
+      return
+    }
+
     setIsBusy(true)
 
     try {
       const startedAttempt = await api.startQuiz({
-        mode: topicId ? QuizMode.TopicPractice : QuizMode.MixedPractice,
-        topicId: topicId || null,
+        mode: isMixedEntry ? QuizMode.MixedPractice : QuizMode.TopicPractice,
+        topicId: isMixedEntry ? null : topicId,
         courseId: null,
         questionCount,
       })
@@ -135,15 +149,19 @@ export function QuizPage({ topics }: QuizPageProps) {
       <Stack spacing={3}>
         <StudentPageHero
           eyebrow="Soru Bankası"
-          title={isMixedEntry ? 'Karışık Test' : 'Test Çöz'}
+          title={isMixedEntry ? 'Karışık Test' : 'Konu Testi'}
           description={
             isMixedEntry
               ? 'Erişimin olan içeriklerden rastgele sorularla hızlı pratik başlat.'
-              : 'Ana konu, alt konu veya karışık kısa testler başlat. Tek derse odaklanmak için Ders Pratiği sayfasını kullan.'
+              : 'Bir ana konu veya alt konu seçerek yalnızca o kapsamdan kısa test başlat. Tek derse odaklanmak için Ders Pratiği sayfasını kullan.'
           }
           actions={
             <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1}>
-              {!isMixedEntry && (
+              {isMixedEntry ? (
+                <Button component={RouterLink} to="/quiz" variant="outlined">
+                  Konu Testi
+                </Button>
+              ) : (
                 <Button component={RouterLink} to="/mixed-practice" variant="outlined">
                   Karışık Test
                 </Button>
@@ -158,14 +176,23 @@ export function QuizPage({ topics }: QuizPageProps) {
 
         <Paper component="form" onSubmit={handleStart} sx={{ borderRadius: 3, p: 3 }} variant="outlined">
           <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-            <TextField fullWidth label="Ana konu / Alt konu" select value={topicId} onChange={(event) => setTopicId(event.target.value)}>
-              <MenuItem value="">Karışık</MenuItem>
-              {topics.map((topic) => (
-                <MenuItem key={topic.id} value={topic.id}>
-                  {topic.type === TopicType.SubTopic ? `  - ${topic.title}` : `Ana konu: ${topic.title}`}
-                </MenuItem>
-              ))}
-            </TextField>
+            {!isMixedEntry && (
+              <TextField
+                fullWidth
+                helperText="Ana konu seçersen bağlı alt konular da kapsama alınır."
+                label="Konu / Alt konu"
+                required
+                select
+                value={topicId}
+                onChange={(event) => setTopicId(event.target.value)}
+              >
+                {topics.map((topic) => (
+                  <MenuItem key={topic.id} value={topic.id}>
+                    {topic.type === TopicType.SubTopic ? `  - ${topic.title}` : `Ana konu: ${topic.title}`}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
             <TextField
               fullWidth
               label="Soru sayısı"
@@ -178,12 +205,17 @@ export function QuizPage({ topics }: QuizPageProps) {
               }}
             />
             <Button disabled={isBusy} type="submit" variant="contained">
-              {isBusy ? 'Hazırlanıyor' : 'Test Başlat'}
+              {isBusy ? 'Hazırlanıyor' : isMixedEntry ? 'Karışık Test Başlat' : 'Konu Testi Başlat'}
             </Button>
           </Stack>
         </Paper>
 
-        {!attempt && <EmptyState title="Aktif test yok" description="Bir konu seçip test başlatabilirsin." />}
+        {!attempt && (
+          <EmptyState
+            title="Aktif test yok"
+            description={isMixedEntry ? 'Soru sayısını belirleyip karışık test başlatabilirsin.' : 'Bir konu seçip test başlatabilirsin.'}
+          />
+        )}
 
         {attempt && (
           <Stack spacing={2}>

@@ -153,6 +153,10 @@ public class QuizTrialService(
                 }
                 else if (IsAttemptExpired(latestAttempt, trial.DurationMinutes))
                 {
+                    latestAttempt.Status = QuizAttemptStatus.Expired;
+                    latestAttempt.FinishedAt = DateTime.UtcNow;
+                    latestAttempt.UpdatedAt = DateTime.UtcNow;
+                    await quizAttemptRepository.SaveChangesAsync(cancellationToken);
                     progressStatus = StudentTrialProgressStatus.Completed;
                 }
                 else

@@ -250,6 +250,13 @@ public class QuizAttemptService(
                 "Bu seçim için soru bulunamadı.");
         }
 
+        if (selectedQuestions.Count < dto.QuestionCount)
+        {
+            return QuizAttemptOutcome<QuizAttemptDto>.Fail(
+                QuizAttemptError.NoQuestions,
+                $"Bu seçim için {dto.QuestionCount} soru gerekiyor, ancak {selectedQuestions.Count} soru kullanılabilir durumda.");
+        }
+
         var attempt = await quizGenerationService.CreateAttemptAsync(
             new QuizGenerationRequest
             {

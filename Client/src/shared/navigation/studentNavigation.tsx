@@ -112,7 +112,7 @@ export const studentNavigation: StudentNavSection[] = [
       },
       {
         id: 'topic-practice',
-        label: 'Alt Konu Testi',
+        label: 'Konu Testi',
         path: '/quiz',
         icon: <QuizOutlinedIcon />,
         exactMatchPaths: ['/quiz'],

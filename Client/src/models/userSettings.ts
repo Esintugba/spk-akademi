@@ -115,7 +115,7 @@ export const timeFormatOptions = [
 
 export const quizModeOptions = [
   { value: UserDefaultQuizMode.Mixed, label: 'Karışık Test' },
-  { value: UserDefaultQuizMode.Topic, label: 'Alt Konu Testi' },
+  { value: UserDefaultQuizMode.Topic, label: 'Konu Testi' },
   { value: UserDefaultQuizMode.Course, label: 'Ders Bazlı Test' },
   { value: UserDefaultQuizMode.WrongAnswers, label: 'Yanlışlarım' },
   { value: UserDefaultQuizMode.TrialExam, label: 'Deneme' },
