@@ -346,7 +346,11 @@ public class StudentExperienceService(
         var trialPerformances = await context.QuizAttempts
             .AsNoTracking()
             .Include(x => x.TrialExam)
-            .Where(x => x.UserId == userId && x.Mode == QuizMode.TrialExam && x.FinishedAt.HasValue && x.TrialExamId.HasValue)
+            .Where(x =>
+                x.UserId == userId &&
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
+                x.FinishedAt.HasValue &&
+                x.TrialExamId.HasValue)
             .OrderByDescending(x => x.FinishedAt)
             .Take(10)
             .Select(x => new StudentTrialPerformanceDto(
@@ -382,7 +386,10 @@ public class StudentExperienceService(
         return await context.QuizAttempts
             .AsNoTracking()
             .Include(x => x.TrialExam)
-            .Where(x => x.UserId == userId && x.Mode == QuizMode.TrialExam && x.TrialExamId.HasValue)
+            .Where(x =>
+                x.UserId == userId &&
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
+                x.TrialExamId.HasValue)
             .OrderByDescending(x => x.StartedAt)
             .Select(x => new TrialAttemptSummaryDto(
                 x.Id,
@@ -468,7 +475,10 @@ public class StudentExperienceService(
             .Include(x => x.AttemptQuestions)
                 .ThenInclude(x => x.Question)
                     .ThenInclude(x => x!.Options)
-            .FirstOrDefaultAsync(x => x.Id == attemptId && x.UserId == userId && x.Mode == QuizMode.TrialExam);
+            .FirstOrDefaultAsync(x =>
+                x.Id == attemptId &&
+                x.UserId == userId &&
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial));
 
         if (attempt is null || !attempt.FinishedAt.HasValue)
         {
@@ -514,7 +524,12 @@ public class StudentExperienceService(
         var attempt = await context.QuizAttempts
             .AsNoTracking()
             .Include(x => x.TrialExam)
-            .Where(x => x.UserId == userId && x.Mode == QuizMode.TrialExam && !x.FinishedAt.HasValue)
+            .Where(x =>
+                x.UserId == userId &&
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
+                !x.FinishedAt.HasValue &&
+                x.Status != QuizAttemptStatus.Completed &&
+                x.Status != QuizAttemptStatus.Expired)
             .OrderByDescending(x => x.StartedAt)
             .FirstOrDefaultAsync();
 

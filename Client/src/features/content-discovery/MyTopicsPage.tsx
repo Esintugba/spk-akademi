@@ -649,7 +649,16 @@ export function MyTopicsPage() {
                 {group.mainTopicGroups.map(({ mainTopic, subTopics }) => (
                   <Paper
                     key={mainTopic.id}
-                    sx={{ alignSelf: 'start', borderRadius: 3, p: 2.5, width: '100%' }}
+                    sx={{
+                      alignSelf: 'start',
+                      borderRadius: 3,
+                      gridColumn: {
+                        lg: collapsedMainTopicIds.has(mainTopic.id) ? 'auto' : '1 / -1',
+                        xs: 'auto',
+                      },
+                      p: 2.5,
+                      width: '100%',
+                    }}
                     variant="outlined"
                   >
                     <Stack spacing={2}>
@@ -739,8 +748,17 @@ export function MyTopicsPage() {
                               Bu ana konuya bağlı alt konu henüz listelenmiyor.
                             </Typography>
                           ) : (
-                            <Stack spacing={1}>
-                          <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+                            <Box
+                              sx={{
+                                display: 'grid',
+                                gap: 1,
+                                gridTemplateColumns: { lg: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+                              }}
+                            >
+                          <Typography
+                            color="text.secondary"
+                            sx={{ fontSize: 13, fontWeight: 800, gridColumn: '1 / -1' }}
+                          >
                             Alt Konular
                           </Typography>
                           {subTopics.map((subTopic) => (
@@ -839,7 +857,7 @@ export function MyTopicsPage() {
                               </Box>
                             </Box>
                           ))}
-                            </Stack>
+                            </Box>
                           )}
                         </Stack>
                       </Collapse>

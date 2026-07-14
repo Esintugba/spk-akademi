@@ -49,7 +49,14 @@ public class QuizAttemptRepository(DataContext context) : IQuizAttemptRepository
             .Include(x => x.Questions)
                 .ThenInclude(x => x.Question)
                     .ThenInclude(x => x!.Options)
-            .FirstOrDefaultAsync(x => x.Id == trialExamId && x.IsFree && x.IsPublished, cancellationToken);
+            .FirstOrDefaultAsync(
+                x =>
+                    x.Id == trialExamId &&
+                    !x.IsDeleted &&
+                    x.ReviewStatus == ReviewStatus.Approved &&
+                    x.IsFree &&
+                    x.IsPublished,
+                cancellationToken);
 
     public IQueryable<Question> QueryQuestions() => context.Questions;
 

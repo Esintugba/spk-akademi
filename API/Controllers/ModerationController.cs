@@ -18,6 +18,8 @@ public class ModerationController(
         [FromQuery] ModerationContentType? contentType,
         [FromQuery] API.Entities.ReviewStatus? reviewStatus,
         [FromQuery] string? search,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -26,6 +28,8 @@ public class ModerationController(
             contentType,
             reviewStatus,
             search,
+            fromDate?.Date,
+            toDate?.Date.AddDays(1),
             Math.Max(page, 1),
             Math.Clamp(pageSize, 1, 100),
             cancellationToken);

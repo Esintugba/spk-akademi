@@ -78,8 +78,8 @@ public class TrialExamRepository(DataContext context) : ITrialExamRepository
                 !x.IsDeleted &&
                 x.IsPublished &&
                 x.ReviewStatus == ReviewStatus.Approved &&
-                (x.IsFree ||
-                 (x.LicenseId.HasValue && licenseIdSet.Contains(x.LicenseId.Value)) ||
+                ((x.LicenseId.HasValue && licenseIdSet.Contains(x.LicenseId.Value)) ||
+                 (!x.LicenseId.HasValue && x.IsFree) ||
                  purchasedSet.Contains(x.Id)))
             .Where(x =>
                 x.Questions.Count(q =>
@@ -110,10 +110,37 @@ public class TrialExamRepository(DataContext context) : ITrialExamRepository
     public Task<bool> LicenseExistsAsync(Guid licenseId, CancellationToken cancellationToken = default) =>
         context.Licenses.AnyAsync(x => x.Id == licenseId, cancellationToken);
 
-    public Task<int> CountExistingQuestionsAsync(
+    public Task<int> CountEligibleQuestionsAsync(
         IReadOnlyCollection<Guid> questionIds,
+        Guid? licenseId,
         CancellationToken cancellationToken = default) =>
-        context.Questions.CountAsync(x => questionIds.Contains(x.Id), cancellationToken);
+        context.Questions.CountAsync(
+            question =>
+                questionIds.Contains(question.Id) &&
+                !question.IsDeleted &&
+                question.ReviewStatus == ReviewStatus.Approved &&
+                (!licenseId.HasValue ||
+                 (question.Topic != null &&
+                  question.Topic.Course != null &&
+                  question.Topic.Course.LicenseId == licenseId.Value)),
+            cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> GetRandomApprovedQuestionIdsForLicenseAsync(
+        Guid licenseId,
+        int count,
+        CancellationToken cancellationToken = default) =>
+        await context.Questions
+            .AsNoTracking()
+            .Where(question =>
+                !question.IsDeleted &&
+                question.ReviewStatus == ReviewStatus.Approved &&
+                question.Topic != null &&
+                question.Topic.Course != null &&
+                question.Topic.Course.LicenseId == licenseId)
+            .OrderBy(_ => EF.Functions.Random())
+            .Select(question => question.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken);
 
     public async Task AddAsync(TrialExam exam, CancellationToken cancellationToken = default) =>
         await context.TrialExams.AddAsync(exam, cancellationToken);

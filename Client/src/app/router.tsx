@@ -34,7 +34,6 @@ const DashboardPage = lazy(() => import('../components/pages/DashboardPage').the
 const FaqPage = lazy(() => import('../components/pages/FaqPage').then((m) => ({ default: m.FaqPage })))
 const FeaturesPage = lazy(() => import('../components/pages/FeaturesPage').then((m) => ({ default: m.FeaturesPage })))
 const ForgotPasswordPage = lazy(() => import('../components/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
-const FreeTrialPage = lazy(() => import('../components/pages/FreeTrialPage').then((m) => ({ default: m.FreeTrialPage })))
 const LandingPage = lazy(() => import('../components/pages/LandingPage').then((m) => ({ default: m.LandingPage })))
 const LegalPage = lazy(() => import('../components/pages/LegalPage').then((m) => ({ default: m.LegalPage })))
 const LicenseDetailPage = lazy(() => import('../components/pages/LicenseDetailPage').then((m) => ({ default: m.LicenseDetailPage })))
@@ -226,18 +225,22 @@ function QuizCatalogRoute() {
 }
 
 function TrialExamsRoute() {
+  const coursesQuery = useCourses()
   const licensesQuery = useLicenses()
   const questionsQuery = useQuestions()
+  const topicsQuery = useTopics()
   const trialExamsQuery = useTrialExams()
   const { reloadTrialExams } = useAdminCatalogInvalidation()
 
-  if (licensesQuery.isLoading || questionsQuery.isLoading || trialExamsQuery.isLoading) return <RouteDataFallback />
-  if (licensesQuery.isError || questionsQuery.isError || trialExamsQuery.isError) return <RouteDataError />
+  if (coursesQuery.isLoading || licensesQuery.isLoading || questionsQuery.isLoading || topicsQuery.isLoading || trialExamsQuery.isLoading) return <RouteDataFallback />
+  if (coursesQuery.isError || licensesQuery.isError || questionsQuery.isError || topicsQuery.isError || trialExamsQuery.isError) return <RouteDataError />
 
   return (
     <TrialExamsPage
+      courses={coursesQuery.data ?? []}
       licenses={licensesQuery.data ?? []}
       questions={questionsQuery.data ?? []}
+      topics={topicsQuery.data ?? []}
       trialExams={trialExamsQuery.data ?? []}
       onChanged={reloadTrialExams}
     />
@@ -432,16 +435,6 @@ export const router = createBrowserRouter([
               seo: {
                 title: 'Ders Notları',
                 description: 'SPK lisanslarına yönelik yayınlanmış ders notlarını lisans, ders ve konu bazında inceleyin.',
-              },
-            },
-          },
-          {
-            path: 'free-trial',
-            element: <FreeTrialPage />,
-            handle: {
-              seo: {
-                title: 'Ücretsiz Deneme',
-                description: 'Süreli ücretsiz deneme sınavı ile seviyenizi ölçün ve kayıtlı kullanıcı olarak denemeye devam edin.',
               },
             },
           },

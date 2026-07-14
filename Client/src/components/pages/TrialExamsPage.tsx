@@ -2,8 +2,8 @@ import { FormEvent, useMemo, useState } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { Box, Button, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import { ContentAccessLevel, QuestionDifficulty, ReviewStatus, type CreateTrialExam, type License, type Question, type TrialExamSummary } from '../../models'
+import { Alert, Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { ContentAccessLevel, QuestionDifficulty, ReviewStatus, type Course, type CreateTrialExam, type License, type Question, type Topic, type TrialExamSummary } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminFormDrawer } from '../common/AdminFormDrawer'
@@ -12,8 +12,10 @@ import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
 
 interface TrialExamsPageProps {
+  courses: Course[]
   licenses: License[]
   questions: Question[]
+  topics: Topic[]
   trialExams: TrialExamSummary[]
   onChanged: () => Promise<void>
 }
@@ -31,9 +33,10 @@ const initialForm: CreateTrialExam = {
   difficultyLevel: QuestionDifficulty.Medium,
   tags: '',
   popularityScore: 0,
-  reviewStatus: ReviewStatus.Draft,
+  reviewStatus: ReviewStatus.PendingReview,
   accessLevel: ContentAccessLevel.Free,
   questionIds: [],
+  autoSelectQuestions: true,
 }
 
 function difficultyLabel(value: QuestionDifficulty) {
@@ -47,7 +50,22 @@ function difficultyLabel(value: QuestionDifficulty) {
   }
 }
 
-export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: TrialExamsPageProps) {
+function reviewStatusLabel(value: ReviewStatus) {
+  switch (value) {
+    case ReviewStatus.Approved:
+      return 'Onaylandı'
+    case ReviewStatus.PendingReview:
+      return 'Onay bekliyor'
+    case ReviewStatus.NeedsRevision:
+      return 'Düzeltme gerekli'
+    case ReviewStatus.Rejected:
+      return 'Reddedildi'
+    default:
+      return 'Taslak'
+  }
+}
+
+export function TrialExamsPage({ courses, licenses, questions, topics, trialExams, onChanged }: TrialExamsPageProps) {
   const [form, setForm] = useState<CreateTrialExam>(initialForm)
   const [editingId, setEditingId] = useState('')
   const [error, setError] = useState('')
@@ -55,9 +73,22 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
   const [isBusy, setIsBusy] = useState(false)
 
   const approvedQuestions = useMemo(
-    () => questions.filter((question) => question.reviewStatus === 2),
+    () => questions.filter((question) => question.reviewStatus === ReviewStatus.Approved),
     [questions],
   )
+  const approvedQuestionsForLicense = useMemo(() => {
+    if (!form.licenseId) {
+      return approvedQuestions
+    }
+
+    const courseIds = new Set(
+      courses.filter((course) => course.licenseId === form.licenseId).map((course) => course.id),
+    )
+    const topicIds = new Set(
+      topics.filter((topic) => courseIds.has(topic.courseId)).map((topic) => topic.id),
+    )
+    return approvedQuestions.filter((question) => topicIds.has(question.topicId))
+  }, [approvedQuestions, courses, form.licenseId, topics])
 
   function openCreateDialog() {
     setEditingId('')
@@ -89,6 +120,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
         reviewStatus: exam.reviewStatus,
         accessLevel: exam.accessLevel,
         questionIds: exam.questionIds,
+        autoSelectQuestions: false,
       })
       setIsFormDrawerOpen(true)
     } catch (err) {
@@ -122,7 +154,17 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
       return
     }
 
-    if (form.questionIds.length < form.questionCount) {
+    if (form.autoSelectQuestions && !form.licenseId) {
+      setError('Otomatik soru seçimi için bir lisans seçmelisin.')
+      return
+    }
+
+    if (form.autoSelectQuestions && approvedQuestionsForLicense.length < form.questionCount) {
+      setError(`Seçilen lisansta ${approvedQuestionsForLicense.length} onaylı soru var; ${form.questionCount} soru atanamaz.`)
+      return
+    }
+
+    if (!form.autoSelectQuestions && form.questionIds.length < form.questionCount) {
       setError('Seçilen soru sayısı, sınav soru sayısından az olamaz.')
       return
     }
@@ -192,6 +234,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
                   <Chip label={`${exam.assignedQuestionCount} atanmış soru`} />
                   <Chip color={exam.isFree ? 'success' : 'default'} label={exam.isFree ? 'Ücretsiz' : 'Özel'} />
                   <Chip color={exam.isPublished ? 'primary' : 'default'} label={exam.isPublished ? 'Yayında' : 'Taslak'} />
+                  <Chip color={exam.reviewStatus === ReviewStatus.Approved ? 'success' : 'warning'} label={reviewStatusLabel(exam.reviewStatus)} />
                   {exam.isFeatured && <Chip color="warning" label="Öne çıkan" />}
                   <Chip label={difficultyLabel(exam.difficultyLevel)} variant="outlined" />
                   <Chip label={`Popülerlik ${exam.popularityScore}`} variant="outlined" />
@@ -216,7 +259,7 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
               <TextField fullWidth label="Slug" required value={form.slug} onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))} />
               <TextField fullWidth label="Açıklama" multiline rows={3} value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField fullWidth label="Lisans" select value={form.licenseId ?? ''} onChange={(event) => setForm((current) => ({ ...current, licenseId: event.target.value || null }))}>
+                <TextField fullWidth label="Lisans" select value={form.licenseId ?? ''} onChange={(event) => setForm((current) => ({ ...current, licenseId: event.target.value || null, questionIds: [] }))}>
                   <MenuItem value="">Genel</MenuItem>
                   {licenses.map((license) => <MenuItem key={license.id} value={license.id}>{license.name}</MenuItem>)}
                 </TextField>
@@ -239,16 +282,64 @@ export function TrialExamsPage({ licenses, questions, trialExams, onChanged }: T
                 onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
               />
               <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>
-                <FormControlLabel control={<Checkbox checked={form.isFree} onChange={(event) => setForm((current) => ({ ...current, isFree: event.target.checked }))} />} label="Ücretsiz" />
+                <FormControlLabel control={<Checkbox checked={form.isFree} onChange={(event) => setForm((current) => ({ ...current, isFree: event.target.checked }))} />} label="Ücretsiz (erişim izni gerekir)" />
                 <FormControlLabel control={<Checkbox checked={form.isPublished} onChange={(event) => setForm((current) => ({ ...current, isPublished: event.target.checked }))} />} label="Yayında" />
                 <FormControlLabel control={<Checkbox checked={form.isFeatured} onChange={(event) => setForm((current) => ({ ...current, isFeatured: event.target.checked }))} />} label="Öne çıkar" />
               </Stack>
-              <TextField fullWidth helperText="Yalnızca onaylı sorular listelenir." label="Sorular" select slotProps={{ select: { multiple: true } }} value={form.questionIds} onChange={(event) => {
-                const value = event.target.value
-                setForm((current) => ({ ...current, questionIds: typeof value === 'string' ? value.split(',') : (value as string[]) }))
-              }}>
-                {approvedQuestions.map((question) => <MenuItem key={question.id} value={question.id}>{question.text.slice(0, 110)}</MenuItem>)}
-              </TextField>
+              {form.isPublished && form.reviewStatus !== ReviewStatus.Approved && (
+                <Alert severity="info">
+                  Deneme kaydedildikten sonra Moderasyon ekranından onaylanana kadar öğrencilere görünmez.
+                </Alert>
+              )}
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    checked={form.autoSelectQuestions}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      autoSelectQuestions: event.target.checked,
+                      questionIds: event.target.checked ? [] : current.questionIds,
+                    }))}
+                  />
+                )}
+                label="Soruları seçili lisansın onaylı soru havuzundan rastgele seç"
+              />
+              {form.autoSelectQuestions ? (
+                <Alert severity={approvedQuestionsForLicense.length < form.questionCount ? 'warning' : 'success'}>
+                  Seçili lisansın havuzunda {approvedQuestionsForLicense.length} onaylı soru var. Kaydettiğinde bunlardan {form.questionCount || 0} tanesi rastgele atanır.
+                </Alert>
+              ) : (
+                <Autocomplete
+                  disableCloseOnSelect
+                  filterSelectedOptions={false}
+                  getOptionLabel={(question) => question.text}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  limitTags={2}
+                  multiple
+                  onChange={(_, selectedQuestions) => setForm((current) => ({
+                    ...current,
+                    questionIds: selectedQuestions.map((question) => question.id),
+                  }))}
+                  options={approvedQuestionsForLicense}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      helperText={`${form.questionIds.length} soru seçildi. Yalnızca onaylı sorular listelenir.`}
+                      label="Sorular"
+                      placeholder="Soru ara ve seç"
+                    />
+                  )}
+                  renderOption={(props, question, state) => (
+                    <Box component="li" {...props} key={question.id}>
+                      <Checkbox checked={state.selected} sx={{ mr: 1 }} />
+                      <Typography sx={{ overflowWrap: 'anywhere' }}>
+                        {question.text}
+                      </Typography>
+                    </Box>
+                  )}
+                  value={approvedQuestionsForLicense.filter((question) => form.questionIds.includes(question.id))}
+                />
+              )}
               <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
             <Button disabled={isBusy} type="submit" variant="contained">{isBusy ? 'Kaydediliyor' : 'Kaydet'}</Button>
                 <Button disabled={isBusy} onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>

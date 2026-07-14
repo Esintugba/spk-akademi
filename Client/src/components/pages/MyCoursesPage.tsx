@@ -152,7 +152,14 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
               </AccordionSummary>
 
               <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
-              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: 'repeat(2, 1fr)', xs: '1fr' } }}>
+              <Box
+                sx={{
+                  alignItems: 'start',
+                  display: 'grid',
+                  gap: 2,
+                  gridTemplateColumns: { lg: 'repeat(2, minmax(0, 1fr))', xs: 'minmax(0, 1fr)' },
+                }}
+              >
                 {licenseCourses.map((course) => {
                   const courseTopics = topicsByCourse.get(course.id) || []
                   const mainTopics = courseTopics.filter((topic) => topic.type === TopicType.MainTopic || !topic.parentTopicId)
@@ -180,10 +187,10 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                   const firstQuizTopic = mainTopics[0] ?? orphanSubTopics[0]
 
                   return (
-                    <Paper key={course.id} sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
+                    <Paper key={course.id} sx={{ borderRadius: 3, minWidth: 0, p: 2.5 }} variant="outlined">
                       <Stack spacing={1.5}>
-                        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+                        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                          <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
                             <Box
                               sx={{
                                 alignItems: 'center',
@@ -191,6 +198,7 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                                 borderRadius: 2.5,
                                 color: 'primary.main',
                                 display: 'flex',
+                                flexShrink: 0,
                                 height: 42,
                                 justifyContent: 'center',
                                 width: 42,
@@ -198,17 +206,38 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                             >
                               <MenuBookOutlinedIcon fontSize="small" />
                             </Box>
-                            <Box>
-                              <Typography sx={{ fontWeight: 800 }}>{course.name}</Typography>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  display: '-webkit-box',
+                                  fontWeight: 800,
+                                  minHeight: '3em',
+                                  overflow: 'hidden',
+                                  WebkitBoxOrient: 'vertical',
+                                  WebkitLineClamp: 2,
+                                }}
+                              >
+                                {course.name}
+                              </Typography>
                               <Typography color="text.secondary" variant="body2">
                                 {course.topicCount} konu
                               </Typography>
                             </Box>
                           </Stack>
-                          <Chip label={`Sıra ${course.order}`} size="small" variant="outlined" />
+                          <Chip label={`Sıra ${course.order}`} size="small" sx={{ flexShrink: 0 }} variant="outlined" />
                         </Stack>
 
-                        <Typography color="text.secondary" sx={{ lineHeight: 1.75 }}>
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            display: '-webkit-box',
+                            lineHeight: 1.75,
+                            minHeight: '3.5em',
+                            overflow: 'hidden',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: 2,
+                          }}
+                        >
                           {course.description || 'Bu ders için açıklama henüz eklenmedi.'}
                         </Typography>
 
@@ -240,13 +269,22 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                                     <Accordion disableGutters elevation={0} key={mainTopic.id} sx={{ border: '1px solid rgba(148,163,184,0.14)', borderRadius: '12px !important', '&:before': { display: 'none' } }}>
                                       <AccordionSummary expandIcon={<ExpandMoreOutlinedIcon />}>
                                         <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between', width: '100%' }}>
-                                          <Box>
+                                          <Box sx={{ flex: 1, minWidth: 0 }}>
                                             <Typography sx={{ fontWeight: 800 }}>{mainTopic.title}</Typography>
                                             <Typography color="text.secondary" variant="body2">
                                               {subTopics.length} alt konu · {totalQuestionCount} soru
                                             </Typography>
                                           </Box>
-                                          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                          <Stack
+                                            direction="row"
+                                            spacing={1}
+                                            sx={{
+                                              flexShrink: 0,
+                                              flexWrap: 'nowrap',
+                                              justifyContent: { sm: 'flex-end', xs: 'flex-start' },
+                                              minWidth: { sm: 220 },
+                                            }}
+                                          >
                                             <Chip label="Ana konu" size="small" variant="outlined" />
                                             <Button component={RouterLink} size="small" to={`/quiz?topicId=${mainTopic.id}`} variant="text">
                                               Ana konu testi
@@ -264,13 +302,22 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                                             {subTopics.map((subTopic) => (
                                               <Box key={subTopic.id} sx={{ border: '1px solid rgba(148,163,184,0.12)', borderRadius: 2, p: 1.5 }}>
                                                 <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
-                                                  <Box>
+                                                  <Box sx={{ flex: 1, minWidth: 0 }}>
                                                     <Typography sx={{ fontWeight: 700 }}>{subTopic.title}</Typography>
                                                     <Typography color="text.secondary" variant="body2">
                                                       {subTopic.questionCount} soru
                                                     </Typography>
                                                   </Box>
-                                                  <Stack direction="row" spacing={1}>
+                                                  <Stack
+                                                    direction="row"
+                                                    spacing={1}
+                                                    sx={{
+                                                      flexShrink: 0,
+                                                      flexWrap: 'nowrap',
+                                                      justifyContent: { sm: 'flex-end', xs: 'flex-start' },
+                                                      minWidth: { sm: 210 },
+                                                    }}
+                                                  >
                                                     <Chip label="Alt konu" size="small" variant="outlined" />
                                                     <Button component={RouterLink} size="small" to={`/study/${subTopic.id}`} variant="outlined">
                                                       Çalış
@@ -291,13 +338,22 @@ export function MyCoursesPage({ courses, licenses, topics }: MyCoursesPageProps)
                                 {orphanSubTopics.map((topic) => (
                                   <Box key={topic.id} sx={{ border: '1px solid rgba(148,163,184,0.12)', borderRadius: 2, p: 1.5 }}>
                                     <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
-                                      <Box>
+                                      <Box sx={{ flex: 1, minWidth: 0 }}>
                                         <Typography sx={{ fontWeight: 700 }}>{topic.title}</Typography>
                                         <Typography color="text.secondary" variant="body2">
                                           Ana konu bağlantısı yok · {topic.questionCount} soru
                                         </Typography>
                                       </Box>
-                                      <Stack direction="row" spacing={1}>
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{
+                                          flexShrink: 0,
+                                          flexWrap: 'nowrap',
+                                          justifyContent: { sm: 'flex-end', xs: 'flex-start' },
+                                          minWidth: { sm: 210 },
+                                        }}
+                                      >
                                         <Chip label="Alt konu" size="small" variant="outlined" />
                                         <Button component={RouterLink} size="small" to={`/study/${topic.id}`} variant="outlined">
                                           Çalış

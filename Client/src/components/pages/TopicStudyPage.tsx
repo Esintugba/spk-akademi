@@ -9,18 +9,14 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
   Paper,
   Skeleton,
   Stack,
   Typography,
 } from '@mui/material'
 import { Link as RouterLink, useParams } from 'react-router'
-import { TopicType, type TopicStudyPageData } from '../../models'
+import { QuestionDifficulty, QuestionType, TopicType, type TopicStudyPageData } from '../../models'
 import { api } from '../../shared/api'
 import { EmptyState } from '../common/EmptyState'
 import { StudentPageHero } from '../common/StudentPageHero'
@@ -196,7 +192,10 @@ export function TopicStudyPage() {
 
           {showSubTopics && (
             <Paper sx={{ borderRadius: 3, p: 3 }} variant="outlined">
-              <Typography variant="h2">Alt Konular</Typography>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="h2">Alt Konular</Typography>
+                <Chip label={`${subTopics.length} alt konu`} size="small" variant="outlined" />
+              </Stack>
               <Typography color="text.secondary" sx={{ mt: 1 }} variant="body2">
                 Bu ana konunun alt başlıklarını sırayla çalışabilir veya her biri için test çözebilirsin.
               </Typography>
@@ -207,30 +206,74 @@ export function TopicStudyPage() {
               ) : (
                 <Stack spacing={1.5} sx={{ mt: 2 }}>
                   {subTopics.map((subTopic) => (
-                    <Paper key={subTopic.topicId} sx={{ borderRadius: 2.5, p: 2 }} variant="outlined">
-                      <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.5} sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Typography sx={{ fontWeight: 800 }}>{subTopic.title}</Typography>
-                            <Chip color={subTopic.isCompleted ? 'success' : 'default'} label={subTopic.isCompleted ? 'Tamamlandı' : 'Alt konu'} size="small" />
-                          </Stack>
-                          <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
-                            {subTopic.questionCount} soru · %{subTopic.successRate} başarı · {subTopic.correctCount} doğru · {subTopic.wrongCount} yanlış
+                    <Paper
+                      key={subTopic.topicId}
+                      sx={{
+                        bgcolor: 'rgba(248,250,252,0.72)',
+                        borderRadius: 2.5,
+                        p: 2,
+                        transition: 'border-color 160ms ease, box-shadow 160ms ease',
+                        '&:hover': {
+                          borderColor: 'rgba(15,118,110,0.35)',
+                          boxShadow: '0 8px 22px rgba(15,23,42,0.05)',
+                        },
+                      }}
+                      variant="outlined"
+                    >
+                      <Stack spacing={1.5}>
+                        <Stack
+                          direction={{ sm: 'row', xs: 'column' }}
+                          spacing={1}
+                          sx={{ alignItems: { sm: 'flex-start', xs: 'flex-start' }, justifyContent: 'space-between' }}
+                        >
+                          <Typography sx={{ fontWeight: 800, lineHeight: 1.4, minWidth: 0 }}>
+                            {subTopic.title}
                           </Typography>
-                          {subTopic.summary && (
-                            <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
-                              {subTopic.summary.length > 150 ? `${subTopic.summary.slice(0, 150)}...` : subTopic.summary}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Stack direction="row" spacing={1}>
-                          <Button component={RouterLink} size="small" to={`/study/${subTopic.topicId}`} variant="outlined">
+                          <Chip
+                            color={subTopic.isCompleted ? 'success' : 'default'}
+                            label={subTopic.isCompleted ? 'Tamamlandı' : 'Alt konu'}
+                            size="small"
+                            sx={{ flexShrink: 0 }}
+                          />
+                        </Stack>
+
+                        <Typography color="text.secondary" variant="body2">
+                          {subTopic.questionCount} soru · %{subTopic.successRate} başarı · {subTopic.correctCount} doğru · {subTopic.wrongCount} yanlış
+                        </Typography>
+
+                        <Typography
+                          color="text.secondary"
+                          sx={{
+                            display: '-webkit-box',
+                            lineHeight: 1.55,
+                            minHeight: '3.1em',
+                            overflow: 'hidden',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: 2,
+                          }}
+                          variant="body2"
+                        >
+                          {subTopic.summary || 'Bu alt konu için henüz kısa açıklama eklenmedi.'}
+                        </Typography>
+
+                        <Box
+                          sx={{
+                            borderTop: '1px solid',
+                            borderColor: 'divider',
+                            display: 'grid',
+                            gap: 1,
+                            gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+                            pt: 1.5,
+                            '& .MuiButton-root': { minHeight: 40 },
+                          }}
+                        >
+                          <Button component={RouterLink} fullWidth size="small" to={`/study/${subTopic.topicId}`} variant="contained">
                             Çalış
                           </Button>
-                          <Button component={RouterLink} size="small" to={`/quiz?topicId=${subTopic.topicId}`} variant="text">
+                          <Button component={RouterLink} fullWidth size="small" to={`/quiz?topicId=${subTopic.topicId}`} variant="outlined">
                             Test Çöz
                           </Button>
-                        </Stack>
+                        </Box>
                       </Stack>
                     </Paper>
                   ))}
@@ -320,25 +363,141 @@ export function TopicStudyPage() {
             </Box>
           </Paper>
 
-          <Paper sx={{ borderRadius: 3, p: 3 }} variant="outlined">
-            <Typography variant="h2">İlgili Sorular</Typography>
-            {data.relatedQuestions.length === 0 ? (
-              <EmptyState title="Henüz soru yok" description="Bu konu için onaylı sorular eklendiğinde burada görünecek." />
-            ) : (
-              <List disablePadding sx={{ mt: 1.5 }}>
-                {data.relatedQuestions.map((question, index) => (
-                  <Box key={question.questionId}>
-                    {index > 0 && <Divider />}
-                    <ListItem disableGutters sx={{ py: 1.5 }}>
-                      <ListItemText primary={question.text} secondary={`${question.difficulty} · ${question.type}`} />
-                    </ListItem>
-                  </Box>
-                ))}
-              </List>
-            )}
-          </Paper>
         </Stack>
       </Box>
+
+      <Paper sx={{ borderRadius: 3, p: 3 }} variant="outlined">
+        <Stack
+          direction={{ sm: 'row', xs: 'column' }}
+          spacing={2}
+          sx={{ alignItems: { sm: 'center', xs: 'flex-start' }, justifyContent: 'space-between' }}
+        >
+          <Box>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <QuizOutlinedIcon color="primary" />
+              <Typography variant="h2">İlgili Sorular</Typography>
+              <Chip label={`${data.relatedQuestions.length} soru`} size="small" variant="outlined" />
+            </Stack>
+            <Typography color="text.secondary" sx={{ mt: 0.75 }} variant="body2">
+              Konuyla ilişkili soruları incele veya hazır olduğunda konu testine geç.
+            </Typography>
+          </Box>
+          {data.relatedQuestions.length > 0 && (
+            <Button
+              component={RouterLink}
+              startIcon={<QuizOutlinedIcon />}
+              to={`/quiz?topicId=${data.topicId}`}
+              variant="contained"
+            >
+              Konu testini çöz
+            </Button>
+          )}
+        </Stack>
+
+        {data.relatedQuestions.length === 0 ? (
+          <Box sx={{ mt: 2 }}>
+            <EmptyState title="Henüz soru yok" description="Bu konu için onaylı sorular eklendiğinde burada görünecek." />
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+              mt: 2.5,
+            }}
+          >
+            {data.relatedQuestions.map((question, index) => (
+              <Paper
+                key={question.questionId}
+                sx={{ bgcolor: 'rgba(248,250,252,0.72)', borderRadius: 2.5, height: '100%', p: 2 }}
+                variant="outlined"
+              >
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+                  <Box
+                    sx={{
+                      alignItems: 'center',
+                      bgcolor: 'rgba(15,118,110,0.1)',
+                      borderRadius: 2,
+                      color: 'primary.main',
+                      display: 'flex',
+                      flexShrink: 0,
+                      fontSize: 13,
+                      fontWeight: 900,
+                      height: 34,
+                      justifyContent: 'center',
+                      width: 34,
+                    }}
+                  >
+                    {index + 1}
+                  </Box>
+                  <Stack spacing={1.25} sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        display: '-webkit-box',
+                        fontWeight: 700,
+                        lineHeight: 1.5,
+                        overflow: 'hidden',
+                        WebkitBoxOrient: 'vertical',
+                        WebkitLineClamp: 3,
+                      }}
+                    >
+                      {question.text}
+                    </Typography>
+                    <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+                      <Chip
+                        color={questionDifficultyColor(question.difficulty)}
+                        label={questionDifficultyLabel(question.difficulty)}
+                        size="small"
+                      />
+                      <Chip label={questionTypeLabel(question.type)} size="small" variant="outlined" />
+                    </Stack>
+                  </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Box>
+        )}
+      </Paper>
     </Stack>
   )
+}
+
+function questionDifficultyLabel(value: QuestionDifficulty) {
+  switch (value) {
+    case QuestionDifficulty.Easy:
+      return 'Kolay'
+    case QuestionDifficulty.Hard:
+      return 'Zor'
+    default:
+      return 'Orta'
+  }
+}
+
+function questionDifficultyColor(value: QuestionDifficulty): 'success' | 'warning' | 'error' {
+  switch (value) {
+    case QuestionDifficulty.Easy:
+      return 'success'
+    case QuestionDifficulty.Hard:
+      return 'error'
+    default:
+      return 'warning'
+  }
+}
+
+function questionTypeLabel(value: QuestionType) {
+  switch (value) {
+    case QuestionType.Definition:
+      return 'Tanım'
+    case QuestionType.Legislation:
+      return 'Mevzuat'
+    case QuestionType.Formula:
+      return 'Formül'
+    case QuestionType.Comparison:
+      return 'Karşılaştırma'
+    case QuestionType.Interpretation:
+      return 'Yorum'
+    default:
+      return 'Kavram'
+  }
 }

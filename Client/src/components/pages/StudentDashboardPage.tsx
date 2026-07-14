@@ -270,11 +270,11 @@ export function StudentDashboardPage() {
                 to={
                   program.continueTrial
                     ? `/quiz/session/${program.continueTrial.attemptId}`
-                    : '/free-trial'
+                    : '/my-trials'
                 }
                 variant="outlined"
               >
-                {program.continueTrial ? 'Denemeye devam et' : 'Demo dene'}
+                {program.continueTrial ? 'Denemeye devam et' : 'Denemeleri keşfet'}
               </Button>
             </Stack>
           </Box>
@@ -425,14 +425,14 @@ export function StudentDashboardPage() {
           subtitle={
             program.continueTrial
               ? `${program.continueTrial.questionCount} soru · ${program.continueTrial.durationMinutes || 0} dakika`
-              : 'Ücretsiz veya kayıtlı deneme akışına panelden devam edebilirsin.'
+              : 'Erişebildiğin denemeleri panelden inceleyebilirsin.'
           }
           tag="Denemeye devam et"
-          title={program.continueTrial?.trialTitle || 'Aktif ücretsiz deneme yok'}
+          title={program.continueTrial?.trialTitle || 'Aktif deneme yok'}
           to={
             program.continueTrial
               ? `/quiz/session/${program.continueTrial.attemptId}`
-              : '/free-trial'
+              : '/my-trials'
           }
           tone="accent"
         />
@@ -642,12 +642,13 @@ function AdaptivePlanCard({
     .reduce((total, task) => total + Math.max(0, task.targetQuestions), 0)
 
   return (
-    <Paper sx={{ borderRadius: 3, overflow: 'hidden', p: { md: 3, xs: 2 } }} variant="outlined">
+    <Paper sx={{ borderRadius: 3, p: { md: 3, xs: 2 } }} variant="outlined">
       <Box
         sx={{
           display: 'grid',
           gap: { md: 3, xs: 2 },
           gridTemplateColumns: { xl: 'minmax(0, 1.05fr) minmax(320px, 0.95fr)', xs: '1fr' },
+          alignItems: 'start',
           minWidth: 0,
         }}
       >
@@ -669,44 +670,90 @@ function AdaptivePlanCard({
           </Box>
 
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', mt: 2.5 }}>
-            <Chip label={`Sınavaya kalan: ${plan?.daysUntilExam ?? 0} gün`} sx={{ maxWidth: '100%' }} />
-            <Chip color="primary" label={`Tahmini tamamlama: %${Math.round(Number(plan?.estimatedTargetCompletionRate ?? 0))}`} sx={{ maxWidth: '100%' }} />
+            <Chip
+              label={(plan?.daysUntilExam ?? 0) > 0
+                ? `Sınava kalan: ${plan?.daysUntilExam} gün`
+                : 'Sınav tarihi belirlenmedi'}
+              sx={{ maxWidth: '100%' }}
+            />
+            {(plan?.estimatedTargetCompletionRate ?? 0) > 0 && (
+              <Chip
+                color="primary"
+                label={`Tahmini tamamlama: %${Math.round(Number(plan?.estimatedTargetCompletionRate ?? 0))}`}
+                sx={{ maxWidth: '100%' }}
+              />
+            )}
           </Stack>
 
           {plan?.riskyTopics?.length ? (
-            <Stack spacing={1} sx={{ mt: 2.5 }}>
+            <Stack spacing={1.25} sx={{ mt: 2.5 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 900 }}>Riskli Alt Konular</Typography>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', minWidth: 0 }}>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gap: 1,
+                  gridTemplateColumns: { sm: 'repeat(2, minmax(0, 1fr))', xs: '1fr' },
+                }}
+              >
                 {plan.riskyTopics.slice(0, 4).map((topic) => (
-                  <Chip
+                  <Paper
                     component={RouterLink}
                     key={topic.topicId}
-                    label={`${topic.mainTopicTitle ? `${topic.mainTopicTitle} > ` : ''}${topic.topicTitle} - %${Math.round(topic.successRate)}`}
-                    size="small"
                     sx={{
-                      alignItems: 'flex-start',
-                      fontWeight: 700,
-                      height: 'auto',
-                      maxWidth: '100%',
-                      py: 0.35,
-                      '& .MuiChip-label': {
-                        display: 'block',
-                        overflow: 'visible',
-                        overflowWrap: 'anywhere',
-                        whiteSpace: 'normal',
-                      },
+                      borderRadius: 2,
+                      color: 'text.primary',
+                      minWidth: 0,
+                      p: 1.25,
+                      textDecoration: 'none',
+                      '&:hover': { borderColor: 'rgba(15,118,110,0.35)' },
                     }}
                     to={`/study/${topic.topicId}`}
                     variant="outlined"
-                    clickable
-                  />
+                  >
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: 800, lineHeight: 1.35 }}>
+                          {topic.topicTitle}
+                        </Typography>
+                        {topic.mainTopicTitle && (
+                          <Typography color="text.secondary" noWrap sx={{ fontSize: 11.5, mt: 0.4 }}>
+                            {topic.mainTopicTitle}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Chip
+                        color={topic.successRate < 50 ? 'error' : 'warning'}
+                        label={`%${Math.round(topic.successRate)}`}
+                        size="small"
+                        sx={{ flexShrink: 0 }}
+                      />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Box>
+            </Stack>
+          ) : null}
+
+          {plan?.criticalWeeklyTasks?.length ? (
+            <Box sx={{ bgcolor: 'action.hover', borderRadius: 2.5, mt: 2.5, p: 1.75 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 900, mb: 1 }}>Bu Hafta Kritik</Typography>
+              <Stack spacing={0.75}>
+                {plan.criticalWeeklyTasks.slice(0, 3).map((item) => (
+                  <Stack direction="row" key={item} spacing={1} sx={{ alignItems: 'flex-start' }}>
+                    <CheckCircleOutlineOutlinedIcon color="success" fontSize="small" sx={{ mt: 0.1 }} />
+                    <Typography color="text.secondary" variant="body2">{item}</Typography>
+                  </Stack>
                 ))}
               </Stack>
-            </Stack>
+            </Box>
           ) : null}
         </Box>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
+            <Typography sx={{ fontWeight: 900 }}>Bugünkü görevler</Typography>
+            <Chip label={`${tasks.filter((task) => task.completed).length}/${tasks.length} tamamlandı`} size="small" />
+          </Stack>
           <Stack spacing={1.25}>
             {tasks.length === 0 ? (
               <EmptyState title="Bugün için görev yok" description="Yeni ilerleme, tekrar veya quiz verisi oluştuğunda plan otomatik güncellenir." />
@@ -722,17 +769,6 @@ function AdaptivePlanCard({
             )}
           </Stack>
 
-          {plan?.criticalWeeklyTasks?.length ? (
-            <Stack spacing={0.75} sx={{ mt: 2.5 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 900 }}>Bu Hafta Kritik</Typography>
-              {plan.criticalWeeklyTasks.slice(0, 3).map((item) => (
-                <Stack direction="row" key={item} spacing={1} sx={{ alignItems: 'center' }}>
-                  <CheckCircleOutlineOutlinedIcon color="success" fontSize="small" />
-                  <Typography color="text.secondary" variant="body2">{item}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          ) : null}
         </Box>
       </Box>
     </Paper>
@@ -760,7 +796,7 @@ function PlanTaskRow({
   return (
     <Paper sx={{ borderRadius: 2, p: 1.5 }} variant="outlined">
       <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25} sx={{ alignItems: { sm: 'center', xs: 'stretch' }, justifyContent: 'space-between' }}>
-        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start', minWidth: 0 }}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
           <Box
             sx={{
               alignItems: 'center',
@@ -776,12 +812,22 @@ function PlanTaskRow({
           >
             {getTaskIcon(task.type)}
           </Box>
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
               <Typography sx={{ fontWeight: 900 }}>{task.title}</Typography>
               {task.completed && <Chip color="success" label="Tamamlandı" size="small" />}
             </Stack>
-            <Typography color="text.secondary" sx={{ fontSize: 12.5, lineHeight: 1.45 }}>
+            <Typography
+              color="text.secondary"
+              sx={{
+                display: '-webkit-box',
+                fontSize: 12.5,
+                lineHeight: 1.45,
+                overflow: 'hidden',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 2,
+              }}
+            >
               {(task.actualMinutes || task.targetMinutes)} dk
               {(task.actualQuestions || task.targetQuestions) > 0 ? ` - ${task.actualQuestions || task.targetQuestions} soru` : ''}
               {task.courseName ? ` - ${task.courseName}` : ''}
@@ -789,7 +835,14 @@ function PlanTaskRow({
             </Typography>
           </Box>
         </Stack>
-        <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ flexShrink: 0, '& .MuiButton-root': { width: { sm: 'auto', xs: '100%' } } }}>
+        <Stack
+          direction={{ sm: 'row', xs: 'column' }}
+          spacing={1}
+          sx={{
+            flexShrink: 0,
+            '& .MuiButton-root': { minWidth: { sm: 74 }, width: { sm: 'auto', xs: '100%' } },
+          }}
+        >
           <Button component={RouterLink} size="small" to={task.actionUrl || '/my-courses'} variant="outlined">
             Başla
           </Button>

@@ -177,7 +177,11 @@ public class AdminDashboardService(
                 todayActiveUsers,
                 todayActiveUsers,
                 await context.QuizAnswers.CountAsync(x => x.AnsweredAt >= today, cancellationToken),
-                await context.QuizAttempts.CountAsync(x => x.Mode == QuizMode.TrialExam && x.FinishedAt >= today, cancellationToken)),
+                await context.QuizAttempts.CountAsync(
+                    x =>
+                        (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
+                        x.FinishedAt >= today,
+                    cancellationToken)),
             licenseAccess,
             new SystemHealthDto(
                 "Healthy",

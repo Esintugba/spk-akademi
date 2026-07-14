@@ -1,16 +1,20 @@
 import { Alert, Skeleton, Stack } from '@mui/material'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
 import { useQuizSessionNavigate } from '../../hooks/useQuizSessionNavigate'
 
 export function QuizSessionRedirectPage() {
   const { attemptId = '' } = useParams()
   const { goToSession, isResolving } = useQuizSessionNavigate()
+  const requestedAttemptIdRef = useRef('')
 
   useEffect(() => {
-    if (attemptId) {
-      goToSession(attemptId)
+    if (!attemptId || requestedAttemptIdRef.current === attemptId) {
+      return
     }
+
+    requestedAttemptIdRef.current = attemptId
+    goToSession(attemptId)
   }, [attemptId, goToSession])
 
   return (

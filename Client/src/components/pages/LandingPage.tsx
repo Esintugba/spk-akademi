@@ -53,14 +53,9 @@ export function LandingPage() {
         title={t('SPK hazırlığını tek sistemde planla, çalış ve ölç.')}
         description={t("Ders notları, kaynak PDF'ler, onaylı soru bankası, ücretsiz deneme sınavları ve öğrenci odaklı panel deneyimiyle sınav hazırlığını dağınık araçlardan çıkarıp tek akışta topla.")}
         actions={
-          <>
-            <Button component={RouterLink} endIcon={<ArrowForwardOutlinedIcon />} size="large" to="/register" variant="contained">
-              {t('Ücretsiz başla')}
-            </Button>
-            <Button component={RouterLink} size="large" to="/free-trial" variant="outlined">
-              {t('Ücretsiz denemeyi aç')}
-            </Button>
-          </>
+          <Button component={RouterLink} endIcon={<ArrowForwardOutlinedIcon />} size="large" to="/register" variant="contained">
+            {t('Ücretsiz başla')}
+          </Button>
         }
         sideContent={
           <Paper sx={{ borderRadius: 3, p: { sm: 3.25, xs: 2 } }} variant="outlined">

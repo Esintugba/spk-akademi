@@ -46,14 +46,25 @@ export function TrialCard({ trial, isStarting, onStart, onContinue, onViewResult
 
   const action =
     trial.progressStatus === StudentTrialProgressStatus.Completed ? (
-      <Button
-        fullWidth
-        onClick={() => onViewResults(trial)}
-        startIcon={<VisibilityOutlinedIcon />}
-        variant="outlined"
-      >
-        Sonuçları Gör
-      </Button>
+      <Stack spacing={1}>
+        <Button
+          fullWidth
+          onClick={() => onViewResults(trial)}
+          startIcon={<VisibilityOutlinedIcon />}
+          variant="outlined"
+        >
+          Sonuçları Gör
+        </Button>
+        <Button
+          disabled={isStarting}
+          fullWidth
+          onClick={() => onStart(trial)}
+          startIcon={<ReplayOutlinedIcon />}
+          variant="contained"
+        >
+          Tekrar Çöz
+        </Button>
+      </Stack>
     ) : trial.progressStatus === StudentTrialProgressStatus.InProgress ? (
       <Button
         color="warning"

@@ -17,8 +17,8 @@ public class QuizRepository(DataContext context) : IQuizRepository
                 !x.IsDeleted &&
                 x.IsPublished &&
                 x.ReviewStatus == ReviewStatus.Approved &&
-                (x.IsFree ||
-                 (x.LicenseId.HasValue && accessibleLicenseIds.Contains(x.LicenseId.Value)) ||
+                ((x.LicenseId.HasValue && accessibleLicenseIds.Contains(x.LicenseId.Value)) ||
+                 (!x.LicenseId.HasValue && x.IsFree) ||
                  purchasedQuizIds.Contains(x.Id)))
             .Where(x =>
                 x.Questions.Count(q =>

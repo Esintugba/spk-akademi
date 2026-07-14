@@ -12,6 +12,8 @@ public enum TrialExamManagementError
     InvalidQuestionCount,
     NoQuestions,
     NotEnoughAssignedQuestions,
+    AutoSelectionRequiresLicense,
+    NotEnoughLicenseQuestions,
     InvalidLicense,
     InvalidQuestions
 }
@@ -87,11 +89,26 @@ public class TrialExamManagementService(
         CreateTrialExamDto dto,
         CancellationToken cancellationToken = default)
     {
+        var questionSelection = await ResolveQuestionIdsAsync(
+            dto.LicenseId,
+            dto.QuestionCount,
+            dto.QuestionIds,
+            dto.AutoSelectQuestions || (dto.QuestionIds.Count == 0 && dto.LicenseId.HasValue),
+            cancellationToken);
+
+        if (questionSelection.Error is not null)
+        {
+            return TrialExamManagementOutcome<TrialExamDetailDto>.Fail(
+                questionSelection.Error.Value,
+                questionSelection.Message);
+        }
+
+        var questionIds = questionSelection.QuestionIds!;
         var validation = await ValidateAsync(
             dto.LicenseId,
             dto.DurationMinutes,
             dto.QuestionCount,
-            dto.QuestionIds,
+            questionIds,
             cancellationToken);
 
         if (validation is not null)
@@ -115,7 +132,7 @@ public class TrialExamManagementService(
             PopularityScore = dto.PopularityScore,
             ReviewStatus = dto.ReviewStatus,
             AccessLevel = dto.AccessLevel,
-            Questions = BuildQuestions(dto.QuestionIds, null)
+            Questions = BuildQuestions(questionIds, null)
         };
 
         await trialExams.AddAsync(exam, cancellationToken);
@@ -136,11 +153,27 @@ public class TrialExamManagementService(
             return TrialExamManagementOutcome<bool>.Fail(TrialExamManagementError.NotFound);
         }
 
+        var questionSelection = await ResolveQuestionIdsAsync(
+            dto.LicenseId,
+            dto.QuestionCount,
+            dto.QuestionIds,
+            dto.AutoSelectQuestions || (dto.QuestionIds.Count == 0 && dto.LicenseId.HasValue),
+            cancellationToken);
+
+        if (questionSelection.Error is not null)
+        {
+            return TrialExamManagementOutcome<bool>.Fail(
+                questionSelection.Error.Value,
+                questionSelection.Message);
+        }
+
+        var questionIds = questionSelection.QuestionIds!;
+
         var validation = await ValidateAsync(
             dto.LicenseId,
             dto.DurationMinutes,
             dto.QuestionCount,
-            dto.QuestionIds,
+            questionIds,
             cancellationToken);
 
         if (validation is not null)
@@ -165,7 +198,7 @@ public class TrialExamManagementService(
         exam.UpdatedAt = DateTime.UtcNow;
 
         trialExams.RemoveQuestions(exam.Questions);
-        exam.Questions = BuildQuestions(dto.QuestionIds, exam.Id);
+        exam.Questions = BuildQuestions(questionIds, exam.Id);
 
         await trialExams.SaveChangesAsync(cancellationToken);
         licenseCatalogCache.Invalidate();
@@ -214,7 +247,7 @@ public class TrialExamManagementService(
             return (TrialExamManagementError.NoQuestions, "Deneme sınavına en az bir soru eklenmelidir.");
         }
 
-        if (questionIds.Count < questionCount)
+        if (questionIds.Distinct().Count() < questionCount)
         {
             return (TrialExamManagementError.NotEnoughAssignedQuestions, "Atanan soru sayısı, sınav soru sayısından az olamaz.");
         }
@@ -225,11 +258,60 @@ public class TrialExamManagementService(
         }
 
         var distinctQuestionIds = questionIds.Distinct().ToList();
-        var existingQuestionCount = await trialExams.CountExistingQuestionsAsync(distinctQuestionIds, cancellationToken);
+        var eligibleQuestionCount = await trialExams.CountEligibleQuestionsAsync(
+            distinctQuestionIds,
+            licenseId,
+            cancellationToken);
 
-        return existingQuestionCount == distinctQuestionIds.Count
+        return eligibleQuestionCount == distinctQuestionIds.Count
             ? null
-            : (TrialExamManagementError.InvalidQuestions, "Seçilen sorulardan bazıları bulunamadı.");
+            : (TrialExamManagementError.InvalidQuestions, "Seçilen sorulardan bazıları onaylı değil veya seçilen lisansa ait değil.");
+    }
+
+    private async Task<(
+        IReadOnlyList<Guid>? QuestionIds,
+        TrialExamManagementError? Error,
+        string? Message)> ResolveQuestionIdsAsync(
+        Guid? licenseId,
+        int questionCount,
+        IReadOnlyList<Guid> questionIds,
+        bool autoSelectQuestions,
+        CancellationToken cancellationToken)
+    {
+        if (!autoSelectQuestions)
+        {
+            return (questionIds, null, null);
+        }
+
+        if (!licenseId.HasValue)
+        {
+            return (
+                null,
+                TrialExamManagementError.AutoSelectionRequiresLicense,
+                "Otomatik soru seçimi için bir lisans seçilmelidir.");
+        }
+
+        if (!await trialExams.LicenseExistsAsync(licenseId.Value, cancellationToken))
+        {
+            return (null, TrialExamManagementError.InvalidLicense, "Seçilen lisans bulunamadı.");
+        }
+
+        if (questionCount <= 0)
+        {
+            return (Array.Empty<Guid>(), null, null);
+        }
+
+        var selectedQuestionIds = await trialExams.GetRandomApprovedQuestionIdsForLicenseAsync(
+            licenseId.Value,
+            questionCount,
+            cancellationToken);
+
+        return selectedQuestionIds.Count < questionCount
+            ? (
+                null,
+                TrialExamManagementError.NotEnoughLicenseQuestions,
+                $"Seçilen lisans için {questionCount} onaylı soru bulunamadı. Kullanılabilir soru sayısı: {selectedQuestionIds.Count}.")
+            : (selectedQuestionIds, null, null);
     }
 
     private static List<TrialExamQuestion> BuildQuestions(

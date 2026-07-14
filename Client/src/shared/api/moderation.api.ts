@@ -6,6 +6,8 @@ export const moderationApi = {
     contentType?: ModerationContentType
     reviewStatus?: number
     search?: string
+    fromDate?: string
+    toDate?: string
     page?: number
     pageSize?: number
   }) => request.get<ModerationListResponse>('/api/moderation/items', { params }),

@@ -66,7 +66,13 @@ export function ModerationPage() {
   const [search, setSearch] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
   const [contentType, setContentType] = useState<number | ''>('')
+  const [appliedContentType, setAppliedContentType] = useState<number | ''>('')
   const [reviewStatus, setReviewStatus] = useState<number | ''>('')
+  const [appliedReviewStatus, setAppliedReviewStatus] = useState<number | ''>('')
+  const [fromDate, setFromDate] = useState('')
+  const [appliedFromDate, setAppliedFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [appliedToDate, setAppliedToDate] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeItem, setActiveItem] = useState<ModerationItem | null>(null)
@@ -81,9 +87,11 @@ export function ModerationPage() {
 
     try {
       const response = await api.getModerationItems({
-        contentType: contentType || undefined,
-        reviewStatus: reviewStatus || undefined,
+        contentType: appliedContentType || undefined,
+        reviewStatus: appliedReviewStatus || undefined,
         search: appliedSearch || undefined,
+        fromDate: appliedFromDate || undefined,
+        toDate: appliedToDate || undefined,
         page: 1,
         pageSize: 100,
       })
@@ -95,14 +103,38 @@ export function ModerationPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [appliedSearch, contentType, reviewStatus])
+  }, [appliedContentType, appliedFromDate, appliedReviewStatus, appliedSearch, appliedToDate])
 
   useEffect(() => {
     void loadItems()
   }, [loadItems])
 
   function applyFilters() {
+    if (fromDate && toDate && fromDate > toDate) {
+      setError('Başlangıç tarihi bitiş tarihinden sonra olamaz.')
+      return
+    }
+
+    setError('')
     setAppliedSearch(search.trim())
+    setAppliedContentType(contentType)
+    setAppliedReviewStatus(reviewStatus)
+    setAppliedFromDate(fromDate)
+    setAppliedToDate(toDate)
+  }
+
+  function resetFilters() {
+    setSearch('')
+    setContentType('')
+    setReviewStatus('')
+    setFromDate('')
+    setToDate('')
+    setAppliedSearch('')
+    setAppliedContentType('')
+    setAppliedReviewStatus('')
+    setAppliedFromDate('')
+    setAppliedToDate('')
+    setError('')
   }
 
   const selectedItems = useMemo(
@@ -178,7 +210,7 @@ export function ModerationPage() {
             <Button startIcon={<RestartAltOutlinedIcon />} variant="outlined" onClick={() => void loadItems()}>
               Yenile
             </Button>
-            <Button startIcon={<CheckCircleOutlineOutlinedIcon />} variant="contained" onClick={() => void runBulkReview(ReviewStatus.Approved)}>
+            <Button disabled={selectedItems.length === 0} startIcon={<CheckCircleOutlineOutlinedIcon />} variant="contained" onClick={() => void runBulkReview(ReviewStatus.Approved)}>
               Toplu onayla
             </Button>
           </>
@@ -188,9 +220,25 @@ export function ModerationPage() {
       {error && <Alert severity="error">{error}</Alert>}
 
       <AdminSurface title="Filtreler ve toplu aksiyonlar">
-        <Stack spacing={2}>
-          <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-            <TextField fullWidth label="Ara" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <Stack spacing={2.5}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { lg: 'minmax(280px, 2fr) repeat(2, minmax(180px, 1fr))', xs: '1fr' },
+            }}
+          >
+            <TextField
+              fullWidth
+              label="Ara"
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  applyFilters()
+                }
+              }}
+              value={search}
+            />
             <FormControl fullWidth>
               <InputLabel>İçerik tipi</InputLabel>
               <Select label="İçerik tipi" value={contentType} onChange={(event) => setContentType(event.target.value as number | '')}>
@@ -213,27 +261,73 @@ export function ModerationPage() {
                 ))}
               </Select>
             </FormControl>
-            <Button variant="outlined" onClick={applyFilters}>
-              Uygula
-            </Button>
-          </Stack>
+          </Box>
 
-          <Stack direction={{ md: 'row', xs: 'column' }} spacing={1.25} sx={{ alignItems: { md: 'center', xs: 'stretch' } }}>
+          <Box
+            sx={{
+              alignItems: 'stretch',
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { md: 'minmax(200px, 1fr) minmax(200px, 1fr) auto', xs: '1fr' },
+            }}
+          >
+            <TextField
+              fullWidth
+              label="Başlangıç tarihi"
+              onChange={(event) => setFromDate(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              type="date"
+              value={fromDate}
+            />
+            <TextField
+              fullWidth
+              label="Bitiş tarihi"
+              onChange={(event) => setToDate(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+              type="date"
+              value={toDate}
+            />
+            <Stack direction="row" spacing={1.25} sx={{ alignItems: 'stretch', justifyContent: { md: 'flex-end', xs: 'stretch' } }}>
+              <Button onClick={resetFilters} startIcon={<RestartAltOutlinedIcon />} sx={{ minHeight: 56, whiteSpace: 'nowrap' }} variant="text">
+                Temizle
+              </Button>
+              <Button onClick={applyFilters} sx={{ minHeight: 56, minWidth: 120, whiteSpace: 'nowrap' }} variant="contained">
+                Uygula
+              </Button>
+            </Stack>
+          </Box>
+
+          <Typography color="text.secondary" variant="caption">
+            Tarih aralığı kayıtların son işlem zamanına göre uygulanır ve bitiş günü filtreye dahildir.
+          </Typography>
+
+          <Stack
+            spacing={1.5}
+            sx={{ borderTop: '1px solid rgba(148,163,184,0.18)', pt: 2.5 }}
+          >
             <TextField
               fullWidth
               label="Toplu moderasyon notu"
               value={reviewComment}
               onChange={(event) => setReviewComment(event.target.value)}
             />
-            <Button color="success" startIcon={<CheckCircleOutlineOutlinedIcon />} variant="contained" onClick={() => void runBulkReview(ReviewStatus.Approved)}>
-              Onayla
-            </Button>
-            <Button color="warning" startIcon={<RateReviewOutlinedIcon />} variant="outlined" onClick={() => void runBulkReview(ReviewStatus.NeedsRevision)}>
-              Revizyona gönder
-            </Button>
-            <Button color="error" startIcon={<DoNotDisturbOnOutlinedIcon />} variant="outlined" onClick={() => void runBulkReview(ReviewStatus.Rejected)}>
-              Reddet
-            </Button>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1.25,
+                gridTemplateColumns: { md: 'repeat(3, minmax(180px, 1fr))', xs: '1fr' },
+              }}
+            >
+              <Button disabled={selectedItems.length === 0} color="success" startIcon={<CheckCircleOutlineOutlinedIcon />} sx={{ minHeight: 48, whiteSpace: 'nowrap' }} variant="contained" onClick={() => void runBulkReview(ReviewStatus.Approved)}>
+                Onayla ({selectedItems.length})
+              </Button>
+              <Button disabled={selectedItems.length === 0} color="warning" startIcon={<RateReviewOutlinedIcon />} sx={{ minHeight: 48, whiteSpace: 'nowrap' }} variant="outlined" onClick={() => void runBulkReview(ReviewStatus.NeedsRevision)}>
+                Revizyona gönder
+              </Button>
+              <Button disabled={selectedItems.length === 0} color="error" startIcon={<DoNotDisturbOnOutlinedIcon />} sx={{ minHeight: 48, whiteSpace: 'nowrap' }} variant="outlined" onClick={() => void runBulkReview(ReviewStatus.Rejected)}>
+                Reddet
+              </Button>
+            </Box>
           </Stack>
         </Stack>
       </AdminSurface>
@@ -244,14 +338,22 @@ export function ModerationPage() {
         ) : items.length === 0 ? (
           <EmptyState title="Moderasyon öğesi yok" description="Filtreleri değiştirerek farklı durumdaki içerikleri görebilirsin." />
         ) : (
-          <Table size="small">
+          <Box sx={{ overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 960 }}>
             <TableHead>
               <TableRow>
-                <TableCell padding="checkbox" />
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={items.length > 0 && selectedIds.length === items.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < items.length}
+                    onChange={(_, checked) => setSelectedIds(checked ? items.map(getKey) : [])}
+                  />
+                </TableCell>
                 <TableCell>İçerik</TableCell>
                 <TableCell>Tip</TableCell>
                 <TableCell>Durum</TableCell>
                 <TableCell>Erişim</TableCell>
+                <TableCell>Son işlem</TableCell>
                 <TableCell>İnceleyen</TableCell>
                 <TableCell align="right">İşlem</TableCell>
               </TableRow>
@@ -275,6 +377,11 @@ export function ModerationPage() {
                   <TableCell>
                     <Chip color="primary" label={accessLabels[item.accessLevel]} size="small" variant="outlined" />
                   </TableCell>
+                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <Typography sx={{ fontSize: 13 }}>
+                      {new Date(item.updatedAt || item.createdAt).toLocaleString('tr-TR')}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 13 }}>{item.reviewedBy || '-'}</Typography>
                   </TableCell>
@@ -287,6 +394,7 @@ export function ModerationPage() {
               ))}
             </TableBody>
           </Table>
+          </Box>
         )}
       </AdminSurface>
 

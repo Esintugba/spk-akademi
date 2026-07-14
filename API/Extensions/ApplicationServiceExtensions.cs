@@ -14,7 +14,7 @@ public static class ApplicationServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddAutoMapper(_ => { }, typeof(QuizTrialMappingProfile).Assembly);
+        services.AddAutoMapper(_ => { }, typeof(GamificationMappingProfile).Assembly);
 
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<StartLicensedQuizRequestValidator>();

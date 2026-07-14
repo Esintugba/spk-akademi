@@ -427,12 +427,13 @@ public class QuizAttemptService(
 
     private static DateTime? GetAttemptExpiresAt(QuizAttempt attempt)
     {
-        if (attempt.Mode != QuizMode.TrialExam || attempt.TrialExam is null)
+        if (attempt.TrialExam is null ||
+            attempt.Mode is not (QuizMode.TrialExam or QuizMode.LicensedQuiz or QuizMode.FreeTrial or QuizMode.MockExam))
         {
             return null;
         }
 
-        return attempt.StartedAt.AddMinutes(attempt.TrialExam.DurationMinutes);
+        return AsUtc(attempt.StartedAt).AddMinutes(attempt.TrialExam.DurationMinutes);
     }
 
     private async Task<bool> GetAutoAddWrongAnswersPreferenceAsync(
@@ -494,8 +495,9 @@ public class QuizAttemptService(
         IReadOnlyList<Question> questions,
         int? durationMinutes)
     {
+        var startedAt = AsUtc(attempt.StartedAt);
         var expiresAt = durationMinutes.HasValue
-            ? attempt.StartedAt.AddMinutes(durationMinutes.Value)
+            ? startedAt.AddMinutes(durationMinutes.Value)
             : (DateTime?)null;
 
         var filters = CoursePracticeFilterHelper.TryParse(attempt.GeneratedFiltersJson);
@@ -507,8 +509,8 @@ public class QuizAttemptService(
             attempt.CourseId,
             attempt.TopicId,
             attempt.TrialExamId,
-            attempt.StartedAt,
-            attempt.FinishedAt,
+            startedAt,
+            attempt.FinishedAt.HasValue ? AsUtc(attempt.FinishedAt.Value) : null,
             durationMinutes,
             expiresAt,
             expiresAt.HasValue && DateTime.UtcNow > expiresAt.Value,
@@ -535,4 +537,9 @@ public class QuizAttemptService(
                     options.Select(option => new QuizQuestionOptionDto(option.Id, option.Label, option.Text)).ToList());
             }).ToList());
     }
+
+    private static DateTime AsUtc(DateTime value) =>
+        value.Kind == DateTimeKind.Utc
+            ? value
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 }

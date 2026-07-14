@@ -31,8 +31,14 @@ public interface ITrialExamRepository
 
     Task<bool> LicenseExistsAsync(Guid licenseId, CancellationToken cancellationToken = default);
 
-    Task<int> CountExistingQuestionsAsync(
+    Task<int> CountEligibleQuestionsAsync(
         IReadOnlyCollection<Guid> questionIds,
+        Guid? licenseId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Guid>> GetRandomApprovedQuestionIdsForLicenseAsync(
+        Guid licenseId,
+        int count,
         CancellationToken cancellationToken = default);
 
     Task AddAsync(TrialExam exam, CancellationToken cancellationToken = default);

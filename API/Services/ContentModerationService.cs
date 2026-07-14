@@ -12,6 +12,8 @@ public interface IContentModerationService
         ModerationContentType? contentType,
         ReviewStatus? reviewStatus,
         string? search,
+        DateTime? fromDate,
+        DateTime? toDateExclusive,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default);
@@ -34,6 +36,8 @@ public class ContentModerationService(
         ModerationContentType? contentType,
         ReviewStatus? reviewStatus,
         string? search,
+        DateTime? fromDate,
+        DateTime? toDateExclusive,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -47,6 +51,8 @@ public class ContentModerationService(
                 .Where(x => !x.IsDeleted)
                 .Where(x => !reviewStatus.HasValue || x.ReviewStatus == reviewStatus.Value)
                 .Where(x => string.IsNullOrWhiteSpace(search) || x.Text.Contains(search) || (x.SourceReference ?? string.Empty).Contains(search))
+                .Where(x => !fromDate.HasValue || (x.UpdatedAt ?? x.CreatedAt) >= fromDate.Value)
+                .Where(x => !toDateExclusive.HasValue || (x.UpdatedAt ?? x.CreatedAt) < toDateExclusive.Value)
                 .Include(x => x.Topic)
                 .Include(x => x.ReviewedBy)
                 .Select(x => new ModerationItemDto(
@@ -72,6 +78,8 @@ public class ContentModerationService(
                 .Where(x => !x.IsDeleted)
                 .Where(x => !reviewStatus.HasValue || x.ReviewStatus == reviewStatus.Value)
                 .Where(x => string.IsNullOrWhiteSpace(search) || x.Title.Contains(search) || x.Content.Contains(search))
+                .Where(x => !fromDate.HasValue || (x.UpdatedAt ?? x.CreatedAt) >= fromDate.Value)
+                .Where(x => !toDateExclusive.HasValue || (x.UpdatedAt ?? x.CreatedAt) < toDateExclusive.Value)
                 .Include(x => x.Topic)
                 .Include(x => x.ReviewedBy)
                 .Select(x => new ModerationItemDto(
@@ -97,6 +105,8 @@ public class ContentModerationService(
                 .Where(x => !x.IsDeleted)
                 .Where(x => !reviewStatus.HasValue || x.ReviewStatus == reviewStatus.Value)
                 .Where(x => string.IsNullOrWhiteSpace(search) || x.Title.Contains(search) || x.FileName.Contains(search))
+                .Where(x => !fromDate.HasValue || (x.UpdatedAt ?? x.CreatedAt) >= fromDate.Value)
+                .Where(x => !toDateExclusive.HasValue || (x.UpdatedAt ?? x.CreatedAt) < toDateExclusive.Value)
                 .Include(x => x.Course)
                 .Include(x => x.ReviewedBy)
                 .Select(x => new ModerationItemDto(
@@ -122,6 +132,8 @@ public class ContentModerationService(
                 .Where(x => !x.IsDeleted)
                 .Where(x => !reviewStatus.HasValue || x.ReviewStatus == reviewStatus.Value)
                 .Where(x => string.IsNullOrWhiteSpace(search) || x.Title.Contains(search) || x.Description.Contains(search))
+                .Where(x => !fromDate.HasValue || (x.UpdatedAt ?? x.CreatedAt) >= fromDate.Value)
+                .Where(x => !toDateExclusive.HasValue || (x.UpdatedAt ?? x.CreatedAt) < toDateExclusive.Value)
                 .Include(x => x.License)
                 .Include(x => x.ReviewedBy)
                 .Select(x => new ModerationItemDto(

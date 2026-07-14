@@ -1,7 +1,6 @@
 using API.Dtos;
 using API.Entities;
 using API.Repositories;
-using AutoMapper;
 
 namespace API.Services;
 
@@ -44,7 +43,6 @@ public class QuizTrialService(
     IStudentLicenseRepository studentLicenseRepository,
     IQuizAttemptRepository quizAttemptRepository,
     IDemoAccessService demoAccessService,
-    IMapper mapper,
     IQuizGenerationService quizGenerationService) : IQuizTrialService
 {
     public async Task<TrialStartOutcome> StartLicensedTrialAsync(
@@ -62,25 +60,6 @@ public class QuizTrialService(
         if (!await HasTrialAccessAsync(userId, trialExam, cancellationToken))
         {
             return TrialStartOutcome.Fail(TrialStartError.Forbidden);
-        }
-
-        if (!await demoAccessService.CanStartTrialAsync(userId, cancellationToken))
-        {
-            return TrialStartOutcome.Fail(TrialStartError.DemoLimitReached);
-        }
-
-        var selectedQuestions = trialExam.Questions
-            .OrderBy(x => x.Order)
-            .Select(x => x.Question)
-            .Where(x => x is not null)
-            .Select(x => x!)
-            .Where(x => x.ReviewStatus == ReviewStatus.Approved)
-            .Take(trialExam.QuestionCount)
-            .ToList();
-
-        if (selectedQuestions.Count == 0)
-        {
-            return TrialStartOutcome.Fail(TrialStartError.NoQuestions);
         }
 
         var existingAttempt = await quizAttemptRepository.GetUnfinishedTrialAttemptAsync(
@@ -103,8 +82,27 @@ public class QuizTrialService(
                 existingAttempt.LastActivityAt = DateTime.UtcNow;
                 existingAttempt.UpdatedAt = DateTime.UtcNow;
                 await quizAttemptRepository.SaveChangesAsync(cancellationToken);
-                return TrialStartOutcome.Success(mapper.Map<QuizAttemptResponseDto>(existingAttempt));
+                return TrialStartOutcome.Success(ToResponse(existingAttempt));
             }
+        }
+
+        if (!await demoAccessService.CanStartTrialAsync(userId, cancellationToken))
+        {
+            return TrialStartOutcome.Fail(TrialStartError.DemoLimitReached);
+        }
+
+        var selectedQuestions = trialExam.Questions
+            .OrderBy(x => x.Order)
+            .Select(x => x.Question)
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .Where(x => !x.IsDeleted && x.ReviewStatus == ReviewStatus.Approved)
+            .Take(trialExam.QuestionCount)
+            .ToList();
+
+        if (selectedQuestions.Count < trialExam.QuestionCount)
+        {
+            return TrialStartOutcome.Fail(TrialStartError.NoQuestions);
         }
 
         var attempt = await quizGenerationService.CreateAttemptAsync(
@@ -118,7 +116,7 @@ public class QuizTrialService(
             cancellationToken);
 
         attempt.TrialExam = trialExam;
-        return TrialStartOutcome.Success(mapper.Map<QuizAttemptResponseDto>(attempt));
+        return TrialStartOutcome.Success(ToResponse(attempt));
     }
 
     public async Task<IReadOnlyList<StudentAccessibleTrialDto>> GetAccessibleTrialsAsync(
@@ -196,16 +194,16 @@ public class QuizTrialService(
         TrialExam trialExam,
         CancellationToken cancellationToken)
     {
-        if (trialExam.IsFree)
-        {
-            return true;
-        }
-
         if (trialExam.LicenseId.HasValue &&
             await studentLicenseRepository.HasActiveLicenseAccessAsync(
                 userId,
                 trialExam.LicenseId.Value,
                 cancellationToken))
+        {
+            return true;
+        }
+
+        if (!trialExam.LicenseId.HasValue && trialExam.IsFree)
         {
             return true;
         }
@@ -224,5 +222,27 @@ public class QuizTrialService(
         var expiresAt = attempt.StartedAt.AddMinutes(durationMinutes);
         var remaining = (int)Math.Max(0, (expiresAt - DateTime.UtcNow).TotalSeconds);
         return remaining;
+    }
+
+    private static QuizAttemptResponseDto ToResponse(QuizAttempt attempt)
+    {
+        var remainingTime = attempt.TrialExam is null || attempt.FinishedAt.HasValue
+            ? 0
+            : CalculateRemainingSeconds(attempt, attempt.TrialExam.DurationMinutes);
+
+        var status = attempt.FinishedAt.HasValue || attempt.Status == QuizAttemptStatus.Completed
+            ? QuizAttemptStatus.Completed
+            : remainingTime == 0 && attempt.TrialExam is not null
+                ? QuizAttemptStatus.Expired
+                : attempt.Status is QuizAttemptStatus.NotStarted
+                    ? QuizAttemptStatus.Started
+                    : attempt.Status;
+
+        return new QuizAttemptResponseDto(
+            attempt.Id,
+            attempt.TrialExamId ?? Guid.Empty,
+            attempt.StartedAt,
+            remainingTime,
+            status);
     }
 }

@@ -109,6 +109,7 @@ export interface CreateTrialExam {
   reviewStatus: ReviewStatus
   accessLevel: ContentAccessLevel
   questionIds: string[]
+  autoSelectQuestions: boolean
 }
 
 export type UpdateTrialExam = CreateTrialExam

@@ -19,6 +19,11 @@ function formatRemainingTime(remainingMs: number | null) {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 }
 
+function parseApiDateTime(value: string) {
+  const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+  return new Date(hasTimeZone ? value : `${value}Z`).getTime()
+}
+
 export function TrialExamSessionPage() {
   const { attemptId = '' } = useParams()
   const navigate = useNavigate()
@@ -99,7 +104,7 @@ export function TrialExamSessionPage() {
     }
 
     const updateRemaining = () => {
-      setRemainingMs(new Date(attempt.expiresAt as string).getTime() - Date.now())
+      setRemainingMs(parseApiDateTime(attempt.expiresAt as string) - Date.now())
     }
 
     updateRemaining()

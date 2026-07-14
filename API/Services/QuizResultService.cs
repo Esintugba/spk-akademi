@@ -134,6 +134,9 @@ public class QuizResultService(IQuizResultRepository quizResultRepository) : IQu
         attempt.Mode switch
         {
             QuizMode.TrialExam when attempt.TrialExam is not null => attempt.TrialExam.Title,
+            QuizMode.LicensedQuiz when attempt.TrialExam is not null => attempt.TrialExam.Title,
+            QuizMode.FreeTrial when attempt.TrialExam is not null => attempt.TrialExam.Title,
+            QuizMode.MockExam when attempt.TrialExam is not null => attempt.TrialExam.Title,
             QuizMode.TopicPractice when attempt.Topic is not null =>
                 $"{attempt.Topic.Course?.Name ?? "Ders"} · {attempt.Topic.Title}",
             QuizMode.CoursePractice when attempt.Course is not null => attempt.Course.Name,

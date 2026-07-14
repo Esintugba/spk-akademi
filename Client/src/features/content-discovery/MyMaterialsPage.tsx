@@ -131,8 +131,12 @@ export function MyMaterialsPage() {
             const progress = Math.round(Number(material.progressPercentage ?? 0))
 
             return (
-              <Paper key={material.materialId} sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
-                <Stack spacing={2}>
+              <Paper
+                key={material.materialId}
+                sx={{ borderRadius: 3, display: 'flex', height: '100%', p: 2.5 }}
+                variant="outlined"
+              >
+                <Stack spacing={2} sx={{ flex: 1, width: '100%' }}>
                   <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
                     <Box
                       sx={{
@@ -149,9 +153,19 @@ export function MyMaterialsPage() {
                     >
                       <PictureAsPdfOutlinedIcon />
                     </Box>
-                    <Box sx={{ minWidth: 0 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontWeight: 900 }}>{material.title}</Typography>
-                      <Typography color="text.secondary" variant="body2">
+                      <Typography
+                        color="text.secondary"
+                        sx={{
+                          display: '-webkit-box',
+                          minHeight: '2.86em',
+                          overflow: 'hidden',
+                          WebkitBoxOrient: 'vertical',
+                          WebkitLineClamp: 2,
+                        }}
+                        variant="body2"
+                      >
                         {material.courseName} · {material.sourceName}
                       </Typography>
                     </Box>
@@ -177,6 +191,7 @@ export function MyMaterialsPage() {
                   <Button
                     component={RouterLink}
                     endIcon={<ArrowForwardOutlinedIcon />}
+                    sx={{ mt: 'auto' }}
                     to={`/materials/viewer/${material.materialId}`}
                     variant="contained"
                   >

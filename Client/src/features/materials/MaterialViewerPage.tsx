@@ -17,10 +17,13 @@ import {
 } from '@mui/material'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import BookmarkAddOutlinedIcon from '@mui/icons-material/BookmarkAddOutlined'
+import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined'
 import NavigateBeforeOutlinedIcon from '@mui/icons-material/NavigateBeforeOutlined'
 import NavigateNextOutlinedIcon from '@mui/icons-material/NavigateNextOutlined'
 import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import VerticalSplitOutlinedIcon from '@mui/icons-material/VerticalSplitOutlined'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
@@ -431,10 +434,14 @@ export function MaterialViewerPage() {
         >
           <Tab icon={<PictureAsPdfOutlinedIcon />} iconPosition="start" label="Orijinal PDF" value="pdf" />
           <Tab icon={<ArticleOutlinedIcon />} iconPosition="start" label="Metin" value="text" />
-          <Tab icon={<ArticleOutlinedIcon />} iconPosition="start" label="Bölünmüş" value="split" />
+          <Tab icon={<VerticalSplitOutlinedIcon />} iconPosition="start" label="Bölünmüş" value="split" />
         </Tabs>
 
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: { md: 'center' } }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1.5}
+          sx={{ alignItems: { md: 'center' }, flexWrap: { md: 'wrap' }, rowGap: 1.5 }}
+        >
           {viewerMode !== 'text' && (
             <>
               <TextField
@@ -442,7 +449,7 @@ export function MaterialViewerPage() {
                 type="number"
                 value={page}
                 onChange={(e) => goToPage(Number(e.target.value))}
-                sx={{ width: 140 }}
+                sx={{ width: { md: 112, xs: '100%' } }}
                 slotProps={{ htmlInput: { min: 1, max: Math.max(1, numPages || viewer.pageCount || 1) } }}
               />
               <TextField
@@ -450,23 +457,33 @@ export function MaterialViewerPage() {
                 type="number"
                 value={scale}
                 onChange={(e) => setScale(Math.max(0.6, Math.min(2.2, Number(e.target.value))))}
-                sx={{ width: 140 }}
+                sx={{ width: { md: 112, xs: '100%' } }}
                 slotProps={{ htmlInput: { min: 0.6, max: 2.2, step: 0.1 } }}
               />
-              <Button onClick={() => containerRef.current?.requestFullscreen?.()} variant="outlined">
-                Fullscreen
+              <Button
+                onClick={() => containerRef.current?.requestFullscreen?.()}
+                startIcon={<FullscreenOutlinedIcon />}
+                sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                variant="outlined"
+              >
+                Tam ekran
               </Button>
             </>
           )}
           {viewerMode !== 'pdf' && (
             <TextField
-              fullWidth
               label="Metinde ara"
               onChange={(e) => setTextSearch(e.target.value)}
+              sx={{ flex: '1 1 280px', minWidth: { md: 240 } }}
               value={textSearch}
             />
           )}
-          <Button onClick={() => tickProgress()} variant="outlined">
+          <Button
+            onClick={() => tickProgress()}
+            startIcon={<SaveOutlinedIcon />}
+            sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+            variant="outlined"
+          >
             Kaldığım Yeri Kaydet
           </Button>
         </Stack>
@@ -476,7 +493,10 @@ export function MaterialViewerPage() {
         sx={{
           display: 'grid',
           gap: 2.5,
-          gridTemplateColumns: { lg: viewerMode === 'split' ? '1fr 1fr' : '1.7fr 1fr', xs: '1fr' },
+          gridTemplateColumns: {
+            lg: viewerMode === 'split' ? 'minmax(0, 1.15fr) minmax(360px, 0.85fr)' : 'minmax(0, 1.7fr) minmax(320px, 1fr)',
+            xs: 'minmax(0, 1fr)',
+          },
         }}
       >
         <Paper
@@ -486,7 +506,10 @@ export function MaterialViewerPage() {
           sx={{
             borderRadius: 3,
             display: viewerMode === 'text' ? 'none' : 'block',
-            maxHeight: { md: 'calc(100vh - 220px)', xs: '72vh' },
+            height: viewerMode === 'split'
+              ? { lg: 'clamp(560px, calc(100vh - 220px), 860px)', xs: '72vh' }
+              : 'auto',
+            maxHeight: viewerMode === 'split' ? 'none' : { md: 'calc(100vh - 220px)', xs: '72vh' },
             overflow: 'auto',
             position: 'relative',
           }}
@@ -552,7 +575,17 @@ export function MaterialViewerPage() {
         {viewerMode !== 'pdf' && (
           <Paper
             onMouseUpCapture={onMouseUpCapture}
-            sx={{ borderRadius: 3, minHeight: 520, overflow: 'hidden', p: 2.5 }}
+            sx={{
+              borderRadius: 3,
+              height: viewerMode === 'split'
+                ? { lg: 'clamp(560px, calc(100vh - 220px), 860px)', xs: '72vh' }
+                : 'auto',
+              minHeight: viewerMode === 'split' ? 0 : 520,
+              overflow: viewerMode === 'split' ? 'auto' : 'hidden',
+              overscrollBehavior: 'contain',
+              p: 2.5,
+              scrollbarGutter: 'stable',
+            }}
             variant="outlined"
           >
             {extractedTextQuery.isLoading ? (

@@ -451,11 +451,11 @@ export function MyNotesPage() {
           <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
             <InsightsOutlinedIcon />
             <Box>
-              <Typography sx={{ fontWeight: 900 }}>Not çalışma içgörüleri</Typography>
+              <Typography sx={{ fontWeight: 900 }}>Not arşivi özeti</Typography>
               <Typography color="text.secondary" variant="body2">
                 {activeFilterCount > 0
-                  ? `${filteredNotes.length} filtrelenmiş not üzerinden hesaplanıyor`
-                  : 'Tüm not arşivin üzerinden hesaplanıyor'}
+                  ? `${filteredNotes.length} filtrelenmiş not gösteriliyor`
+                  : 'Kaynakların, düzenin ve tekrar planın tek bakışta'}
               </Typography>
             </Box>
           </Stack>
@@ -467,64 +467,105 @@ export function MyNotesPage() {
               <Alert severity="info">İçgörü oluşturmak için filtrelere uyan en az bir not gerekli.</Alert>
             ) : (
               <Stack spacing={2.5}>
-                <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(4, 1fr)', sm: 'repeat(2, 1fr)', xs: '1fr' } }}>
+                <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(3, 1fr)', xs: '1fr' } }}>
                   <InsightMetric
-                    detail={`${noteInsights.uniqueCourseCount} farklı ders`}
-                    label="İncelenen not"
+                    detail={`${noteInsights.uniqueMaterialCount} PDF · ${noteInsights.uniqueCourseCount} ders`}
+                    label="Toplam not"
                     value={String(filteredNotes.length)}
                   />
                   <InsightMetric
-                    detail={`${noteInsights.uniqueMaterialCount} PDF içinde`}
-                    label="Çalışılan sayfa"
+                    detail={`${noteInsights.recentCount} tanesi son 7 günde güncellendi`}
+                    label="Not alınan sayfa"
                     value={String(noteInsights.uniquePageCount)}
                   />
                   <InsightMetric
-                    detail="Son 7 gündeki hareket"
-                    label="Yeni / güncellenen"
-                    value={String(noteInsights.recentCount)}
-                  />
-                  <InsightMetric
-                    detail={`${noteInsights.reviewCount} tekrar listesinde`}
-                    label="Favori not"
-                    value={String(noteInsights.favoriteCount)}
+                    detail="Favori · tekrar listesi"
+                    label="Favori / tekrar"
+                    value={`${noteInsights.favoriteCount} / ${noteInsights.reviewCount}`}
                   />
                 </Box>
 
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { lg: '1.15fr 1fr 1fr', xs: '1fr' } }}>
-                  <InsightRanking
-                    emptyText="PDF dağılımı oluşmadı."
-                    items={noteInsights.topMaterials}
-                    title="En çok not alınan PDF'ler"
-                  />
-                  <InsightRanking
-                    emptyText="Ders dağılımı oluşmadı."
-                    items={noteInsights.topCourses}
-                    title="Ders dağılımı"
-                  />
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 2.5,
+                    gridTemplateColumns: { lg: 'minmax(0, 1.25fr) minmax(320px, 1fr)', xs: '1fr' },
+                  }}
+                >
                   <Stack spacing={2}>
-                    <InsightProgress
-                      label="Klasör veya etiketle düzenlenen"
-                      value={noteInsights.organizedPercentage}
-                    />
-                    <InsightProgress
-                      label="Tekrar programına alınan"
-                      value={noteInsights.reviewPercentage}
-                    />
-                    <Box>
+                    {noteInsights.topMaterials.length === 1 ? (
+                      <Box sx={{ bgcolor: 'action.hover', borderRadius: 2.5, p: 2 }}>
+                        <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+                          NOTLARININ BULUNDUĞU KAYNAK
+                        </Typography>
+                        <Typography sx={{ fontWeight: 900, mt: 0.75 }}>
+                          {noteInsights.topMaterials[0].label}
+                        </Typography>
+                        <Typography color="text.secondary" variant="body2">
+                          {noteInsights.topMaterials[0].count} not bu PDF üzerinde
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <InsightRanking
+                        emptyText="PDF dağılımı oluşmadı."
+                        items={noteInsights.topMaterials}
+                        title="Notların kaynaklara dağılımı"
+                      />
+                    )}
+
+                    {noteInsights.topCourses.length > 1 && (
+                      <InsightRanking
+                        emptyText="Ders dağılımı oluşmadı."
+                        items={noteInsights.topCourses}
+                        title="Notların derslere dağılımı"
+                      />
+                    )}
+                  </Stack>
+
+                  <Stack spacing={1.75}>
+                    <Typography sx={{ fontWeight: 900 }}>Arşiv düzeni</Typography>
+
+                    {noteInsights.organizedPercentage > 0 ? (
+                      <InsightProgress
+                        label="Klasör veya etiketle düzenlenen"
+                        value={noteInsights.organizedPercentage}
+                      />
+                    ) : (
+                      <Box sx={{ bgcolor: 'action.hover', borderRadius: 2.5, p: 1.5 }}>
+                        <Typography sx={{ fontWeight: 800 }} variant="body2">Henüz sınıflandırılmamış</Typography>
+                        <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
+                          Notlarını klasör veya etiketlerle gruplandırarak daha hızlı bulabilirsin.
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {noteInsights.reviewPercentage > 0 ? (
+                      <InsightProgress
+                        label="Tekrar programına alınan"
+                        value={noteInsights.reviewPercentage}
+                      />
+                    ) : (
+                      <Typography color="text.secondary" variant="body2">
+                        Tekrar etmek istediğin notları “Tekrara ekle” ile çalışma listene alabilirsin.
+                      </Typography>
+                    )}
+
+                    {noteInsights.topTags.length > 0 && (
+                      <Box>
                       <Typography sx={{ fontWeight: 800, mb: 1 }} variant="body2">
-                        En çok kullanılan etiketler
+                          En çok kullanılan etiketler
                       </Typography>
                       <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
-                        {noteInsights.topTags.length > 0
-                          ? noteInsights.topTags.map((item) => (
+                          {noteInsights.topTags.map((item) => (
                             <Chip key={item.label} label={`#${item.label} · ${item.count}`} size="small" />
-                          ))
-                          : <Typography color="text.secondary" variant="body2">Henüz etiket kullanılmamış.</Typography>}
+                          ))}
                       </Stack>
                     </Box>
+                    )}
+
                     <Box>
                       <Typography sx={{ fontWeight: 800, mb: 1 }} variant="body2">
-                        Vurgu renkleri
+                        Kullanılan vurgu renkleri
                       </Typography>
                       <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
                         {noteInsights.colorCounts.map((item) => (

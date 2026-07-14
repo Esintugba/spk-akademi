@@ -34,7 +34,6 @@ const footerSections = [
       { label: 'Özellikler', path: '/features' },
       { label: 'Soru Bankası', path: '/question-bank' },
       { label: 'Lisanslar', path: '/plans' },
-      { label: 'Ücretsiz Deneme', path: '/free-trial' },
       { label: 'Ders Notları', path: '/study-notes' },
     ],
   },

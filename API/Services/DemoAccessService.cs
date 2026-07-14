@@ -165,7 +165,10 @@ public class DemoAccessService(
 
         var trialAttemptsUsed = await context.QuizAttempts
             .AsNoTracking()
-            .Where(x => x.UserId == userId && x.Mode == QuizMode.TrialExam && x.FinishedAt.HasValue)
+            .Where(x =>
+                x.UserId == userId &&
+                (x.Mode == QuizMode.TrialExam || x.Mode == QuizMode.LicensedQuiz || x.Mode == QuizMode.FreeTrial) &&
+                x.FinishedAt.HasValue)
             .CountAsync(cancellationToken);
 
         return new DemoLimitsDto(

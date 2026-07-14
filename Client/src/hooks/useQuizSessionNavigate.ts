@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 import { QuizMode } from '../models/enums'
@@ -36,16 +37,18 @@ export function useQuizSessionNavigate() {
     },
   })
 
-  function goToSession(attemptId: string) {
+  const { mutate: resolveSession, isPending: isResolving } = resolveMutation
+
+  const goToSession = useCallback((attemptId: string) => {
     if (!attemptId) {
       return
     }
 
-    resolveMutation.mutate(attemptId)
-  }
+    resolveSession(attemptId)
+  }, [resolveSession])
 
   return {
     goToSession,
-    isResolving: resolveMutation.isPending,
+    isResolving,
   }
 }
