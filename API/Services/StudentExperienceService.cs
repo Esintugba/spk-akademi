@@ -144,7 +144,10 @@ public class StudentExperienceService(
 
         var sourceDocuments = await context.SourceDocuments
             .AsNoTracking()
-            .Where(x => x.CourseId == topic.CourseId)
+            .Where(x =>
+                x.CourseId == topic.CourseId &&
+                !x.IsDeleted &&
+                x.ReviewStatus == ReviewStatus.Approved)
             .OrderBy(x => x.Title)
             .Select(x => new SourceDocumentDto(
                 x.Id,

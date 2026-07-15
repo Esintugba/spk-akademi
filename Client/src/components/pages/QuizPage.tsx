@@ -35,17 +35,10 @@ export function QuizPage({ topics }: QuizPageProps) {
   })
 
   useEffect(() => {
-    if (isMixedEntry) {
-      setTopicId('')
-      setAttempt(null)
-      setAnswers({})
-      return
-    }
-
-    if (!attempt) {
-      setTopicId(requestedTopicId)
-    }
-  }, [attempt, isMixedEntry, requestedTopicId])
+    setTopicId(isMixedEntry ? '' : requestedTopicId)
+    setAttempt(null)
+    setAnswers({})
+  }, [isMixedEntry, requestedTopicId])
 
   useEffect(() => {
     if (!settingsQuery.data || questionCountTouched || attempt) {
@@ -175,7 +168,7 @@ export function QuizPage({ topics }: QuizPageProps) {
         {error && <ErrorBanner message={error} />}
 
         <Paper component="form" onSubmit={handleStart} sx={{ borderRadius: 3, p: 3 }} variant="outlined">
-          <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
+          <Stack direction={{ md: 'row', xs: 'column' }} spacing={2} sx={{ alignItems: { md: 'flex-start', xs: 'stretch' } }}>
             {!isMixedEntry && (
               <TextField
                 fullWidth
@@ -204,7 +197,12 @@ export function QuizPage({ topics }: QuizPageProps) {
                 setQuestionCount(Number(event.target.value))
               }}
             />
-            <Button disabled={isBusy} type="submit" variant="contained">
+            <Button
+              disabled={isBusy}
+              sx={{ flexShrink: 0, minHeight: 56, minWidth: { md: 190 }, whiteSpace: 'nowrap' }}
+              type="submit"
+              variant="contained"
+            >
               {isBusy ? 'Hazırlanıyor' : isMixedEntry ? 'Karışık Test Başlat' : 'Konu Testi Başlat'}
             </Button>
           </Stack>
