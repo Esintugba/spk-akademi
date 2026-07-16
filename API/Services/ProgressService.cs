@@ -196,7 +196,10 @@ public class ProgressService(
         var courseIds = topicCatalog.Select(x => x.CourseId).Distinct().ToList();
         var sourceDocumentCounts = await context.SourceDocuments
             .AsNoTracking()
-            .Where(x => courseIds.Contains(x.CourseId) && x.ReviewStatus == ReviewStatus.Approved)
+            .Where(x =>
+                courseIds.Contains(x.CourseId) &&
+                !x.IsDeleted &&
+                x.ReviewStatus == ReviewStatus.Approved)
             .GroupBy(x => x.CourseId)
             .Select(group => new { CourseId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(x => x.CourseId, x => x.Count);
