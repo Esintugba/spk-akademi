@@ -325,7 +325,7 @@ export function StudentDashboardPage() {
               <Chip label={`Gunluk hedef: ${userSettings?.dailyGoalQuestionCount ?? 25} soru`} size="small" />
               <Chip
                 color={userSettings?.reviewReminder === false ? 'default' : 'primary'}
-                label={userSettings?.reviewReminder === false ? 'Tekrar bildirimi kapali' : 'Tekrar bildirimi acik'}
+                label={userSettings?.reviewReminder === false ? 'Tekrar bildirimi kapalı' : 'Tekrar bildirimi açık'}
                 size="small"
               />
             </Stack>
