@@ -17,7 +17,7 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
                 "img-src 'self' data: https:; " +
                 "font-src 'self' data:; " +
                 "style-src 'self' 'unsafe-inline'; " +
-                "script-src 'self'; " +
+                "connect-src 'self' https: http: https://cloudflareinsights.com; " +
                 "object-src 'none'; " +
                 "connect-src 'self' https: http:; " +
                 "frame-ancestors 'none'; " +
