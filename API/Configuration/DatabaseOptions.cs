@@ -16,6 +16,8 @@ public class DatabaseOptions
 
     public bool AllowProductionAutoMigrate { get; set; }
 
+    public int SqliteDefaultTimeoutSeconds { get; set; } = 30;
+
     public string SqliteMigrationsAssembly { get; set; } = "API";
 
     public string PostgresMigrationsAssembly { get; set; } = "API.Migrations.Postgres";

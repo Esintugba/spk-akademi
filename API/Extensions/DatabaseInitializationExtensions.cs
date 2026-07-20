@@ -3,6 +3,7 @@ using API.Data;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Data;
 
 namespace API.Extensions;
 
@@ -15,6 +16,11 @@ public static class DatabaseInitializationExtensions
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseInitialiser");
         var databaseOptions = services.GetRequiredService<IOptions<DatabaseOptions>>().Value;
         var dbContext = services.GetRequiredService<DataContext>();
+
+        if (DatabaseOptions.IsSqliteProvider(databaseOptions.Provider))
+        {
+            await EnableSqliteWriteAheadLoggingAsync(dbContext, logger);
+        }
 
         if (!app.Environment.IsDevelopment() &&
             databaseOptions.AutoMigrate &&
@@ -39,5 +45,36 @@ public static class DatabaseInitializationExtensions
         var badgeService = services.GetRequiredService<IBadgeService>();
         await badgeService.SeedDefaultsAsync();
         logger.LogInformation("Database migration completed successfully.");
+    }
+
+    private static async Task EnableSqliteWriteAheadLoggingAsync(
+        DataContext dbContext,
+        ILogger logger)
+    {
+        var connection = dbContext.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+
+        if (shouldClose)
+        {
+            await connection.OpenAsync();
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA journal_mode=WAL;";
+            var journalMode = await command.ExecuteScalarAsync();
+
+            logger.LogInformation(
+                "SQLite journal mode configured as {JournalMode}.",
+                journalMode?.ToString() ?? "unknown");
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 }

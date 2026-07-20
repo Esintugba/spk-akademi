@@ -51,6 +51,10 @@ public static class DatabaseProviderConfigurator
 
         var builder = new SqliteConnectionStringBuilder(connectionString);
 
+        builder.DefaultTimeout = Math.Max(
+            builder.DefaultTimeout,
+            databaseOptions.SqliteDefaultTimeoutSeconds);
+
         if (!string.IsNullOrWhiteSpace(builder.DataSource) && !Path.IsPathRooted(builder.DataSource))
         {
             builder.DataSource = Path.GetFullPath(Path.Combine(basePath, builder.DataSource));

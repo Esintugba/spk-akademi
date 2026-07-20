@@ -13,16 +13,16 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
             headers["X-Xss-Protection"] = "0";
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
             headers["Content-Security-Policy"] =
-                "default-src 'self'; " +
-                "img-src 'self' data: https:; " +
-                "font-src 'self' data:; " +
-                "style-src 'self' 'unsafe-inline'; " +
-                "connect-src 'self' https: http: https://cloudflareinsights.com; " +
-                "object-src 'none'; " +
-                "connect-src 'self' https: http:; " +
-                "frame-ancestors 'none'; " +
-                "base-uri 'self'; " +
-                "form-action 'self'";
+               "default-src 'self'; " +
+               "script-src 'self' https://static.cloudflareinsights.com; " +
+               "style-src 'self' 'unsafe-inline'; " +
+               "img-src 'self' data: https:; " +
+               "font-src 'self' data:; " +
+               "connect-src 'self' https: http: https://cloudflareinsights.com; " +
+               "object-src 'none'; " +
+               "frame-ancestors 'none'; " +
+               "base-uri 'self'; " +
+               "form-action 'self';";
 
             return Task.CompletedTask;
         });
