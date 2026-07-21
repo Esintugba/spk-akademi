@@ -93,11 +93,22 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
       .sort((first, second) => compareFilteredTopics(first, second, sortBy, courseById))
   }, [courseById, courseFilter, parentTopicFilter, search, sortBy, topicTypeFilter, topics])
 
-  const filteredTopicStats = useMemo(() => ({
-    mainTopics: filteredTopics.filter((topic) => topic.type !== TopicType.SubTopic).length,
-    questions: filteredTopics.reduce((total, topic) => total + topic.questionCount, 0),
-    subTopics: filteredTopics.filter((topic) => topic.type === TopicType.SubTopic).length,
-  }), [filteredTopics])
+  const filteredTopicStats = useMemo(() => {
+    const visibleParentIds = new Set(
+      filteredTopics
+        .filter((topic) => topic.type === TopicType.SubTopic && topic.parentTopicId)
+        .map((topic) => topic.parentTopicId),
+    )
+
+    return {
+      mainTopics: filteredTopics.filter((topic) => topic.type !== TopicType.SubTopic).length,
+      questions: filteredTopics.reduce(
+        (total, topic) => total + (visibleParentIds.has(topic.id) ? 0 : topic.questionCount),
+        0,
+      ),
+      subTopics: filteredTopics.filter((topic) => topic.type === TopicType.SubTopic).length,
+    }
+  }, [filteredTopics])
 
   useEffect(() => {
     setVisibleCount(24)

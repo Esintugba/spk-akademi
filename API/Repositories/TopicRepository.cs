@@ -69,7 +69,8 @@ public class TopicRepository(DataContext context) : ITopicRepository
                 x.ExamNotes,
                 x.CriticalThresholds,
                 x.SubTopics.Count,
-                x.Questions.Count))
+                x.Questions.Count(question => !question.IsDeleted) +
+                x.SubTopics.SelectMany(subTopic => subTopic.Questions).Count(question => !question.IsDeleted)))
             .ToListAsync(cancellationToken);
 
         return SortTopics(rows);
@@ -96,7 +97,8 @@ public class TopicRepository(DataContext context) : ITopicRepository
                 x.ExamNotes,
                 x.CriticalThresholds,
                 x.SubTopics.Count,
-                x.Questions.Count))
+                x.Questions.Count(question => !question.IsDeleted) +
+                x.SubTopics.SelectMany(subTopic => subTopic.Questions).Count(question => !question.IsDeleted)))
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<Topic?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
