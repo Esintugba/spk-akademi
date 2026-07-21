@@ -53,4 +53,10 @@ export interface CreateQuestionOption {
   isCorrect: boolean
 }
 
-export type UpdateQuestion = CreateQuestion
+export interface UpdateQuestionOption extends CreateQuestionOption {
+  id: string
+}
+
+export interface UpdateQuestion extends Omit<CreateQuestion, 'options'> {
+  options: UpdateQuestionOption[]
+}

@@ -28,6 +28,8 @@ const defaultOptions: CreateQuestionOption[] = [
 
 const minPastExamYear = 1990
 
+type EditableQuestionOption = CreateQuestionOption & { id?: string }
+
 export function QuestionsPage({ questions, topics, onChanged }: QuestionsPageProps) {
   const [topicId, setTopicId] = useState('')
   const [text, setText] = useState('')
@@ -40,7 +42,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   const [examYear, setExamYear] = useState('')
   const [examType, setExamType] = useState<ExamType | ''>('')
   const [examSession, setExamSession] = useState<ExamSession | ''>('')
-  const [options, setOptions] = useState<CreateQuestionOption[]>(defaultOptions)
+  const [options, setOptions] = useState<EditableQuestionOption[]>(defaultOptions)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [detailQuestion, setDetailQuestion] = useState<Question | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Question | null>(null)
@@ -146,7 +148,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setExamYear(question.examYear?.toString() ?? '')
     setExamType(question.examType ?? '')
     setExamSession(question.examSession ?? '')
-    setOptions(question.options.map((option) => ({ label: option.label, text: option.text, isCorrect: option.isCorrect })))
+    setOptions(question.options.map((option) => ({ id: option.id, label: option.label, text: option.text, isCorrect: option.isCorrect })))
     setFieldError('')
     setIsFormDrawerOpen(true)
   }
@@ -200,8 +202,19 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     }
 
     try {
-      if (editingQuestion) await api.updateQuestion(editingQuestion.id, payload)
-      else await api.createQuestion(payload)
+      if (editingQuestion) {
+        await api.updateQuestion(editingQuestion.id, {
+          ...payload,
+          options: options.map((option) => ({
+            id: option.id as string,
+            label: option.label,
+            text: option.text.trim(),
+            isCorrect: option.isCorrect,
+          })),
+        })
+      } else {
+        await api.createQuestion(payload)
+      }
       resetForm()
       setIsFormDrawerOpen(false)
       await onChanged()

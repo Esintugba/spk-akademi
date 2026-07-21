@@ -70,4 +70,10 @@ public record UpdateQuestionDto(
     bool IsAiGenerated,
     ReviewStatus ReviewStatus,
     ContentAccessLevel AccessLevel,
-    IReadOnlyList<CreateQuestionOptionDto> Options);
+    IReadOnlyList<UpdateQuestionOptionDto> Options);
+
+public record UpdateQuestionOptionDto(
+    Guid Id,
+    string Label,
+    string Text,
+    bool IsCorrect);

@@ -32,6 +32,7 @@ public class CoursePracticeFilterHelperTests
         Assert.Null(result);
     }
 
+    [Fact]
     public void TryParse_WhenJsonIsValid_ReturnsSnapshotWithExpectedValues()
     {
         //Arrange

@@ -11,7 +11,8 @@ public enum QuestionServiceError
     InvalidTopic,
     TooFewOptions,
     InvalidCorrectOptionCount,
-    DuplicateOptionLabels
+    DuplicateOptionLabels,
+    InvalidOption
 }
 
 public sealed class QuestionServiceOutcome<T>
@@ -129,10 +130,26 @@ public class QuestionService(
             return QuestionServiceOutcome<bool>.Fail(QuestionServiceError.NotFound);
         }
 
-        var validation = await ValidateQuestionAsync(dto.TopicId, dto.Options, cancellationToken);
+        var validation = await ValidateQuestionAsync(
+            dto.TopicId,
+            dto.Options.Select(option => new CreateQuestionOptionDto(
+                option.Label,
+                option.Text,
+                option.IsCorrect)).ToList(),
+            cancellationToken);
         if (validation is not null)
         {
             return QuestionServiceOutcome<bool>.Fail(validation.Value.Error, validation.Value.Message);
+        }
+
+        var optionIds = dto.Options.Select(option => option.Id).ToList();
+        if (optionIds.Distinct().Count() != optionIds.Count ||
+            optionIds.Count != question.Options.Count ||
+            question.Options.Any(option => !optionIds.Contains(option.Id)))
+        {
+            return QuestionServiceOutcome<bool>.Fail(
+                QuestionServiceError.InvalidOption,
+                "Güncellenecek şıklardan biri bu soruya ait değil.");
         }
 
         question.TopicId = dto.TopicId;
@@ -151,14 +168,15 @@ public class QuestionService(
         question.AccessLevel = dto.AccessLevel;
         question.UpdatedAt = DateTime.UtcNow;
 
-        questions.RemoveOptions(question.Options);
-        question.Options = dto.Options.Select(option => new QuestionOption
+        var optionsById = question.Options.ToDictionary(option => option.Id);
+        foreach (var optionDto in dto.Options)
         {
-            QuestionId = question.Id,
-            Label = option.Label,
-            Text = option.Text,
-            IsCorrect = option.IsCorrect
-        }).ToList();
+            var option = optionsById[optionDto.Id];
+            option.Label = optionDto.Label;
+            option.Text = optionDto.Text;
+            option.IsCorrect = optionDto.IsCorrect;
+            option.UpdatedAt = DateTime.UtcNow;
+        }
 
         await questions.SaveChangesAsync(cancellationToken);
         licenseCatalogCache.Invalidate();
