@@ -16,6 +16,25 @@ import { router } from './app/router.tsx'
 import { store } from './app/store.ts'
 import { AppThemeProvider } from './app/AppThemeProvider.tsx'
 
+const chunkReloadKey = 'spk:chunk-reload-at'
+const chunkReloadCooldownMs = 60_000
+
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    const lastReloadAt = Number(window.sessionStorage.getItem(chunkReloadKey) ?? 0)
+    if (Number.isFinite(lastReloadAt) && Date.now() - lastReloadAt < chunkReloadCooldownMs) {
+      return
+    }
+
+    window.sessionStorage.setItem(chunkReloadKey, String(Date.now()))
+  } catch {
+    return
+  }
+
+  event.preventDefault()
+  window.location.reload()
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
