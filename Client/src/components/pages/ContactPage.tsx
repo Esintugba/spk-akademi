@@ -159,8 +159,8 @@ export function ContactPage() {
               icon={<EmailOutlinedIcon color="primary" />}
               title="E-posta"
             >
-              <Link href="mailto:iletisim@spkakademi.com" underline="hover">
-                iletisim@spkakademi.com
+              <Link href="mailto:akademispk@gmail.com" underline="hover">
+                akademispk@gmail.com
               </Link>
             </ContactCard>
             <ContactCard
@@ -168,8 +168,8 @@ export function ContactPage() {
               icon={<HeadsetMicOutlinedIcon color="primary" />}
               title="Destek"
             >
-              <Link href="mailto:destek@spkakademi.com" underline="hover">
-                destek@spkakademi.com
+              <Link href="mailto:akademispk@gmail.com" underline="hover">
+                akademispk@gmail.com
               </Link>
             </ContactCard>
             <ContactCard

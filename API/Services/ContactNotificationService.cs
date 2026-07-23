@@ -17,7 +17,7 @@ public class ContactNotificationService(
     {
         var settings = emailOptions.Value;
         var adminEmail = string.IsNullOrWhiteSpace(settings.AdminNotificationAddress)
-            ? "destek@spkakademi.com"
+            ? "akademispk@gmail.com"
             : settings.AdminNotificationAddress;
 
         await queue.EnqueueAsync(

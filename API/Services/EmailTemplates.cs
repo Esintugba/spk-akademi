@@ -6,7 +6,7 @@ public static class EmailTemplates
 
         —
         SPK Akademi
-        destek@spkakademi.com
+        akademispk@gmail.com
         """;
     private static string Subject(string title) => $"[SPK Akademi] {title}";
 

@@ -6,7 +6,7 @@ public class BrandingOptions
 
     public string AppName { get; set; } = "SPK Akademi";
 
-    public string SupportEmail { get; set; } = "destek@spkakademi.com";
+    public string SupportEmail { get; set; } = "akademispk@gmail.com";
 
     public string ApiTitle { get; set; } = "SPK Akademi API";
 }

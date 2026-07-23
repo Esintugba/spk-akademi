@@ -6,7 +6,7 @@ export const branding = {
   defaultDescription: 'SPK sınavlarına profesyonel hazırlık platformu.',
   defaultKeywords:
     'SPK, lisans, sermaye piyasası, ders notları, deneme sınavı, soru bankası, çalışma platformu',
-  supportEmail: 'destek@spkakademi.com',
+  supportEmail: 'akademispk@gmail.com',
   copyrightYear: 2026,
   apiTitle: 'SPK Akademi API',
   themeColor: '#0f766e',

@@ -10,7 +10,7 @@ public class EmailOptions
 
     public string FromName { get; set; } = "SPK Akademi";
 
-    public string AdminNotificationAddress { get; set; } = "destek@spkakademi.com";
+    public string AdminNotificationAddress { get; set; } = "akademispk@gmail.com";
 
     public string? SmtpHost { get; set; }
 
