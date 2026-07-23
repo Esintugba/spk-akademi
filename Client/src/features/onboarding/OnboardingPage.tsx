@@ -1,7 +1,9 @@
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
+import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined'
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import PlayCircleOutlineOutlinedIcon from '@mui/icons-material/PlayCircleOutlineOutlined'
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined'
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined'
@@ -17,10 +19,11 @@ import {
   Typography,
 } from '@mui/material'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
-import { selectCurrentUser } from '../../app/authSlice'
-import { useAppSelector } from '../../app/hooks'
+import { logout, selectCurrentUser } from '../../app/authSlice'
+import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import type { Plan } from '../../models'
 import { AccessRequestStatus } from '../../models/accessRequest'
 import { useAccessRequestStore } from '../../stores/accessRequestStore'
@@ -31,10 +34,62 @@ import { OnboardingErrorBoundary } from './OnboardingErrorBoundary'
 const STATUS_KEY = ['onboarding', 'status'] as const
 
 export function OnboardingPage() {
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const currentUser = useAppSelector(selectCurrentUser)
   const openAccessRequest = useAccessRequestStore((s) => s.openModal)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  async function handleLogout() {
+    if (isLoggingOut) {
+      return
+    }
+
+    setIsLoggingOut(true)
+    await api.logoutSession().catch(() => undefined)
+    dispatch(logout())
+    toast.success('Çıkış yapıldı.')
+    navigate('/login', { replace: true })
+  }
+
+  const accountActions = (
+    <Paper sx={{ borderRadius: 3, p: 1.5 }} variant="outlined">
+      <Stack
+        direction={{ sm: 'row', xs: 'column' }}
+        spacing={1.25}
+        sx={{ alignItems: { sm: 'center', xs: 'stretch' }, justifyContent: 'space-between' }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 800 }}>Öğrenci hesabı</Typography>
+          <Typography color="text.secondary" noWrap sx={{ fontSize: 12 }}>
+            {currentUser?.email}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button
+            component={RouterLink}
+            fullWidth
+            startIcon={<AccountCircleOutlinedIcon />}
+            to="/profile"
+            variant="outlined"
+          >
+            Profil
+          </Button>
+          <Button
+            color="inherit"
+            disabled={isLoggingOut}
+            fullWidth
+            onClick={() => void handleLogout()}
+            startIcon={<LogoutOutlinedIcon />}
+            variant="outlined"
+          >
+            {isLoggingOut ? 'Çıkılıyor' : 'Çıkış yap'}
+          </Button>
+        </Stack>
+      </Stack>
+    </Paper>
+  )
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: STATUS_KEY,
@@ -67,6 +122,7 @@ export function OnboardingPage() {
   if (isLoading) {
     return (
       <Stack spacing={2}>
+        {accountActions}
         <Skeleton height={200} variant="rounded" />
         <Skeleton height={180} variant="rounded" />
         <Skeleton height={140} variant="rounded" />
@@ -76,16 +132,19 @@ export function OnboardingPage() {
 
   if (isError || !data) {
     return (
-      <Alert
-        action={
-          <Button color="inherit" onClick={() => void refetch()} size="small">
-            Tekrar dene
-          </Button>
-        }
-        severity="error"
-      >
-        Onboarding bilgisi yüklenemedi.
-      </Alert>
+      <Stack spacing={2}>
+        {accountActions}
+        <Alert
+          action={
+            <Button color="inherit" onClick={() => void refetch()} size="small">
+              Tekrar dene
+            </Button>
+          }
+          severity="error"
+        >
+          Onboarding bilgisi yüklenemedi.
+        </Alert>
+      </Stack>
     )
   }
 
@@ -127,6 +186,7 @@ export function OnboardingPage() {
   return (
     <OnboardingErrorBoundary>
       <Stack spacing={3}>
+        {accountActions}
         <AccessRequestModal />
         <Paper sx={{ borderRadius: 4, overflow: 'hidden', p: { md: 4, xs: 3 } }} variant="outlined">
           <Stack spacing={2}>
