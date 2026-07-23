@@ -201,8 +201,10 @@ public class AccessRequestService(
                 adminUserId);
         }
 
-        request.History.Add(new AccessRequestHistory
+        context.AccessRequestHistories.Add(new AccessRequestHistory
         {
+            AccessRequestId = request.Id,
+            AccessRequest = request,
             FromStatus = previousStatus,
             ToStatus = dto.Status,
             AdminNote = request.AdminNote,
@@ -280,8 +282,10 @@ public class AccessRequestService(
         request.UpdatedAt = now;
         request.EmailSent = false;
 
-        request.History.Add(new AccessRequestHistory
+        context.AccessRequestHistories.Add(new AccessRequestHistory
         {
+            AccessRequestId = request.Id,
+            AccessRequest = request,
             FromStatus = previousStatus,
             ToStatus = dto.Status,
             AdminNote = request.AdminNote,
