@@ -41,6 +41,10 @@ services:
       Cors__AllowedOrigins__1: ${Cors__AllowedOrigins__1:-https://localhost}
       Seo__PublicBaseUrl: ${Seo__PublicBaseUrl:-http://localhost}
       Email__Enabled: ${Email__Enabled:-false}
+      AiQuestionGeneration__Enabled: ${AiQuestionGeneration__Enabled:-false}
+      AiQuestionGeneration__ApiKey: ${AiQuestionGeneration__ApiKey:-}
+      AiQuestionGeneration__BaseUrl: ${AiQuestionGeneration__BaseUrl:-https://api.openai.com/v1/}
+      AiQuestionGeneration__Model: ${AiQuestionGeneration__Model:-gpt-5.6}
       DataProtection__KeysPath: /keys
       Serilog__WriteTo__1__Args__path: /logs/spk-.log
     depends_on:

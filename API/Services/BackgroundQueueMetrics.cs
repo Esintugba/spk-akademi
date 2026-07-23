@@ -7,6 +7,7 @@ public static class BackgroundQueueNames
     public const string Import = "Import";
     public const string Contact = "Contact";
     public const string Gamification = "Gamification";
+    public const string AiQuestionGeneration = "AiQuestionGeneration";
 }
 
 public record BackgroundQueueSnapshot(

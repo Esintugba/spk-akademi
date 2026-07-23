@@ -20,11 +20,16 @@ services:
       Email__Enabled: ${Email__Enabled:-false}
       Email__FromAddress: ${Email__FromAddress}
       Email__FromName: ${Email__FromName}
+      Email__AdminNotificationAddress: ${Email__AdminNotificationAddress:-akademispk@gmail.com}
       Email__SmtpHost: ${Email__SmtpHost}
       Email__SmtpPort: ${Email__SmtpPort}
       Email__SmtpUser: ${Email__SmtpUser}
       Email__SmtpPassword: ${Email__SmtpPassword}
       Email__UseSsl: ${Email__UseSsl}
+      AiQuestionGeneration__Enabled: ${AiQuestionGeneration__Enabled:-false}
+      AiQuestionGeneration__ApiKey: ${AiQuestionGeneration__ApiKey:-}
+      AiQuestionGeneration__BaseUrl: ${AiQuestionGeneration__BaseUrl:-https://api.openai.com/v1/}
+      AiQuestionGeneration__Model: ${AiQuestionGeneration__Model:-gpt-5.6}
       DataProtection__KeysPath: /keys
       Serilog__WriteTo__1__Args__path: /logs/spk-.log
     ports:

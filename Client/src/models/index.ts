@@ -1,5 +1,6 @@
 export * from './account'
 export * from './adaptiveStudyPlan'
+export * from './aiQuestionGeneration'
 export * from './adminDashboard'
 export * from './blog'
 export * from './contact'

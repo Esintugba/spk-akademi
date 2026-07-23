@@ -341,8 +341,24 @@ public class AccessRequestService(
             return false;
         }
 
-        await emailService.SendAsync(student.Email, subject, body, cancellationToken);
-        return true;
+        try
+        {
+            await emailService.SendAsync(student.Email, subject, body, cancellationToken);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Access request email could not be sent. StudentId: {StudentId}, Subject: {Subject}",
+                student.Id,
+                subject);
+            return false;
+        }
     }
 
     private static AccessRequestResponseDto ToResponse(AccessRequest request, string planName) =>

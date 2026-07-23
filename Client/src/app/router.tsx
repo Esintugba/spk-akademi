@@ -65,6 +65,7 @@ const AchievementsPage = lazy(() => import('../features/gamification/Achievement
 const AdminAccessRequestsPage = lazy(() => import('../features/access-requests/AdminAccessRequestsPage').then((m) => ({ default: m.AdminAccessRequestsPage })))
 const AdminContactMessagesPage = lazy(() => import('../features/contact/AdminContactMessagesPage').then((m) => ({ default: m.AdminContactMessagesPage })))
 const AdminImportPage = lazy(() => import('../features/import/AdminImportPage').then((m) => ({ default: m.AdminImportPage })))
+const AiQuestionGenerationPage = lazy(() => import('../features/ai-questions/AiQuestionGenerationPage').then((m) => ({ default: m.AiQuestionGenerationPage })))
 const CoursePracticePage = lazy(() => import('../features/course-practice/CoursePracticePage').then((m) => ({ default: m.CoursePracticePage })))
 const CoursePracticeSessionPage = lazy(() => import('../features/course-practice/CoursePracticeSessionPage').then((m) => ({ default: m.CoursePracticeSessionPage })))
 const GamificationPage = lazy(() => import('../features/gamification/GamificationPage').then((m) => ({ default: m.GamificationPage })))
@@ -589,6 +590,7 @@ export const router = createBrowserRouter([
                   { path: 'support-tickets', element: <AdminSupportTicketsPage /> },
                   { path: 'blog', element: <AdminBlogPage /> },
                   { path: 'import', element: <AdminImportPage /> },
+                  { path: 'ai-questions', element: <AiQuestionGenerationPage /> },
                   { path: 'consents', element: <AdminConsentsPage /> },
                   { path: 'badges', element: <AdminBadgesPage /> },
                 ],

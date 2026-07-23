@@ -7,4 +7,6 @@ public class BackgroundQueueOptions
     public int ImportCapacity { get; set; } = 100;
 
     public int ContactCapacity { get; set; } = 500;
+
+    public int AiQuestionGenerationCapacity { get; set; } = 20;
 }

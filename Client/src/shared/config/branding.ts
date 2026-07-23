@@ -70,6 +70,7 @@ export const appRouteTitles: Record<string, string> = {
   '/admin/support-tickets': 'Destek Talepleri',
   '/admin/blog': 'Blog CMS',
   '/admin/import': 'Toplu Import',
+  '/admin/ai-questions': 'AI Soru Üretimi',
   '/admin/consents': 'Çerez/KVKK',
   '/admin/badges': 'Rozetler',
   '/login': 'Giriş Yap',

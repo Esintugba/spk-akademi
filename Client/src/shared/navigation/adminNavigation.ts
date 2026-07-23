@@ -15,6 +15,7 @@ export type PageKey =
   | 'supportTickets'
   | 'blog'
   | 'import'
+  | 'aiQuestions'
   | 'consents'
   | 'badges'
   | 'login'
@@ -43,6 +44,7 @@ export const navigationItems: NavigationItem[] = [
   { key: 'supportTickets', label: 'Destek Talepleri', path: '/admin/support-tickets' },
   { key: 'blog', label: 'Blog CMS', path: '/admin/blog' },
   { key: 'import', label: 'Toplu Import', path: '/admin/import' },
+  { key: 'aiQuestions', label: 'AI Soru Üretimi', path: '/admin/ai-questions' },
   { key: 'badges', label: 'Rozetler', path: '/admin/badges' },
   { key: 'consents', label: 'Çerez/KVKK', path: '/admin/consents' },
   { key: 'login', label: 'Giriş', path: '/login' },

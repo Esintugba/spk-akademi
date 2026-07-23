@@ -125,6 +125,9 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IDuplicateDetectionService, DuplicateDetectionService>();
         services.AddScoped<IQuestionImportService, QuestionImportService>();
         services.AddScoped<IAdminMaterialImportService, AdminMaterialImportService>();
+        services.AddScoped<IPdfSourcePageService, PdfSourcePageService>();
+        services.AddScoped<IAiQuestionProvider, OpenAiQuestionProvider>();
+        services.AddScoped<IAiQuestionGenerationService, AiQuestionGenerationService>();
         services.AddSingleton<BackgroundQueueMetrics>();
         services.AddSingleton(sp => CreateBoundedChannel<ContactEmailNotification>(
             sp,
@@ -134,12 +137,20 @@ public static class ApplicationServiceExtensions
             sp,
             BackgroundQueueNames.Import,
             options => options.ImportCapacity));
+        services.AddSingleton(sp => CreateBoundedChannel<AiQuestionGenerationQueueItem>(
+            sp,
+            BackgroundQueueNames.AiQuestionGeneration,
+            options => options.AiQuestionGenerationCapacity));
         services.AddSingleton<ImportJobQueue>();
         services.AddSingleton<IImportJobQueue>(sp => sp.GetRequiredService<ImportJobQueue>());
         services.AddHostedService(sp => sp.GetRequiredService<ImportJobQueue>());
         services.AddSingleton<ContactNotificationQueue>();
         services.AddSingleton<IContactNotificationQueue>(sp => sp.GetRequiredService<ContactNotificationQueue>());
         services.AddHostedService(sp => sp.GetRequiredService<ContactNotificationQueue>());
+        services.AddSingleton<AiQuestionGenerationJobQueue>();
+        services.AddSingleton<IAiQuestionGenerationJobQueue>(
+            sp => sp.GetRequiredService<AiQuestionGenerationJobQueue>());
+        services.AddHostedService(sp => sp.GetRequiredService<AiQuestionGenerationJobQueue>());
         services.AddSingleton<ILeaderboardCache, LeaderboardCache>();
 
         return services;

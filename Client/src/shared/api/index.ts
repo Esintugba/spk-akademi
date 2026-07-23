@@ -1,4 +1,5 @@
 export { accessRequestApi } from './access-requests.api'
+export { aiQuestionGenerationApi } from './ai-question-generation.api'
 export { authApi } from './auth.api'
 export { resolveApiAssetUrl } from './assets'
 export { adminBlogApi, blogApi } from './blog.api'

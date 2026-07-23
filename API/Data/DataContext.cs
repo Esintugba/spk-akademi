@@ -36,6 +36,10 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
 
     public DbSet<SourceDocument> SourceDocuments => Set<SourceDocument>();
 
+    public DbSet<AiQuestionGenerationJob> AiQuestionGenerationJobs => Set<AiQuestionGenerationJob>();
+
+    public DbSet<AiQuestionDraft> AiQuestionDrafts => Set<AiQuestionDraft>();
+
     public DbSet<UserMaterialProgress> UserMaterialProgresses => Set<UserMaterialProgress>();
 
     public DbSet<MaterialBookmark> MaterialBookmarks => Set<MaterialBookmark>();
@@ -355,6 +359,65 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
             entity.HasOne(x => x.ReviewedBy)
                 .WithMany()
                 .HasForeignKey(x => x.ReviewedById)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AiQuestionGenerationJob>(entity =>
+        {
+            entity.Property(x => x.Model).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.Status).HasConversion<int>();
+            entity.Property(x => x.ErrorMessage).HasMaxLength(4000);
+            entity.Property(x => x.RequestedByUserId).HasMaxLength(450);
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
+            entity.HasIndex(x => x.SourceDocumentId);
+            entity.HasIndex(x => x.TopicId);
+
+            entity.HasOne(x => x.SourceDocument)
+                .WithMany()
+                .HasForeignKey(x => x.SourceDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Topic)
+                .WithMany()
+                .HasForeignKey(x => x.TopicId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.RequestedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AiQuestionDraft>(entity =>
+        {
+            entity.Property(x => x.QuestionText).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.OptionA).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.OptionB).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.OptionC).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.OptionD).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.OptionE).HasMaxLength(2000);
+            entity.Property(x => x.CorrectOption).HasMaxLength(1).IsRequired();
+            entity.Property(x => x.Explanation).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.SourceExcerpt).HasMaxLength(4000).IsRequired();
+            entity.Property(x => x.Status).HasConversion<int>();
+            entity.Property(x => x.Difficulty).HasConversion<int>();
+            entity.Property(x => x.ReviewedByUserId).HasMaxLength(450);
+            entity.HasIndex(x => new { x.JobId, x.Status });
+            entity.HasIndex(x => x.PublishedQuestionId);
+
+            entity.HasOne(x => x.Job)
+                .WithMany(x => x.Drafts)
+                .HasForeignKey(x => x.JobId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.PublishedQuestion)
+                .WithMany()
+                .HasForeignKey(x => x.PublishedQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

@@ -17,6 +17,7 @@ import UploadFileOutlinedIcon from '@mui/icons-material/UploadFileOutlined'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import PrivacyTipOutlinedIcon from '@mui/icons-material/PrivacyTipOutlined'
 import MilitaryTechOutlinedIcon from '@mui/icons-material/MilitaryTechOutlined'
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined'
 import { Chip, List, ListItemButton, ListItemIcon, ListItemText, Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router'
@@ -41,6 +42,7 @@ const icons: Record<PageKey, ReactNode> = {
   supportTickets: <SupportAgentOutlinedIcon />,
   blog: <ArticleOutlinedIcon />,
   import: <UploadFileOutlinedIcon />,
+  aiQuestions: <AutoAwesomeOutlinedIcon />,
   consents: <PrivacyTipOutlinedIcon />,
   badges: <MilitaryTechOutlinedIcon />,
   login: <LoginOutlinedIcon />,

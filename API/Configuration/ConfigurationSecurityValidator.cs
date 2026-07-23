@@ -70,6 +70,7 @@ public static class ConfigurationSecurityValidator
         var allowProductionAutoMigrate = configuration.GetValue<bool>("Database:AllowProductionAutoMigrate");
         var emailEnabled = configuration.GetValue<bool>("Email:Enabled");
         var seedAdminEnabled = configuration.GetValue<bool>("SeedAdmin:Enabled");
+        var aiQuestionGenerationEnabled = configuration.GetValue<bool>("AiQuestionGeneration:Enabled");
         var allowedHosts = configuration["AllowedHosts"];
         var allowedOrigins = configuration
             .GetSection($"{CorsOptions.SectionName}:AllowedOrigins")
@@ -109,6 +110,15 @@ public static class ConfigurationSecurityValidator
         {
             ValidateRequiredSecret(errors, "SeedAdmin:Email", configuration["SeedAdmin:Email"], isDevelopment);
             ValidateRequiredSecret(errors, "SeedAdmin:Password", configuration["SeedAdmin:Password"], isDevelopment);
+        }
+
+        if (aiQuestionGenerationEnabled)
+        {
+            ValidateRequiredSecret(
+                errors,
+                "AiQuestionGeneration:ApiKey",
+                configuration["AiQuestionGeneration:ApiKey"],
+                isDevelopment);
         }
 
         ValidateCors(errors, allowedOrigins, isDevelopment);

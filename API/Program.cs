@@ -45,6 +45,7 @@ builder.Services.Configure<GamificationOptions>(builder.Configuration.GetSection
 builder.Services.Configure<ContactOptions>(builder.Configuration.GetSection(ContactOptions.SectionName));
 builder.Services.Configure<SeoOptions>(builder.Configuration.GetSection(SeoOptions.SectionName));
 builder.Services.Configure<BackgroundQueueOptions>(builder.Configuration.GetSection(BackgroundQueueOptions.SectionName));
+builder.Services.Configure<AiQuestionGenerationOptions>(builder.Configuration.GetSection(AiQuestionGenerationOptions.SectionName));
 
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
 if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
@@ -330,6 +331,18 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 3,
                 Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                AutoReplenishment = true
+            }));
+
+    options.AddPolicy("ai-generation", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: GetUserOrIpPartitionKey(httpContext),
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
                 QueueLimit = 0,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 AutoReplenishment = true
