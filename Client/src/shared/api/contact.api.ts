@@ -10,7 +10,7 @@ import { request } from './client'
 
 export const contactApi = {
   create: (payload: CreateContactMessagePayload) =>
-    request.post<ContactMessageResponse>('/api/contact', payload),
+    request.post<ContactMessageResponse>('/api/contact', payload, { skipAuth: true }),
   getAdminMessages: (params?: ContactMessageQuery) =>
     request.get<AdminContactMessageList>('/api/admin/contact-messages', { params }),
   getAdminMessage: (id: string) =>
