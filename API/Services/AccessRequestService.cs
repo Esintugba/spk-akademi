@@ -14,6 +14,7 @@ public enum AccessRequestError
     AlreadyHasAccess,
     DuplicateRequest,
     InvalidStatusTransition,
+    AccessChangedSinceApproval,
     NotFound
 }
 
@@ -36,6 +37,12 @@ public interface IAccessRequestService
         Guid id,
         string adminUserId,
         UpdateAccessRequestStatusDto dto,
+        CancellationToken cancellationToken = default);
+
+    Task<(AccessRequestError Error, AdminAccessRequestDto? Result)> CorrectDecisionAsync(
+        Guid id,
+        string adminUserId,
+        CorrectAccessRequestDecisionDto dto,
         CancellationToken cancellationToken = default);
 }
 
@@ -166,6 +173,7 @@ public class AccessRequestService(
         }
 
         var now = DateTime.UtcNow;
+        var previousStatus = request.Status;
         request.Status = dto.Status;
         request.AdminNote = dto.AdminNote?.Trim();
         request.ReviewedAt = now;
@@ -174,7 +182,7 @@ public class AccessRequestService(
 
         if (dto.Status == AccessRequestStatus.Approved)
         {
-            await approvalService.GrantPlanAccessAsync(request.StudentId, request.PlanId, cancellationToken);
+            await approvalService.GrantPlanAccessAsync(request, cancellationToken);
             logger.LogInformation(
                 "Access request approved and plan access granted. RequestId: {RequestId}, StudentId: {StudentId}, PlanId: {PlanId}, AdminUserId: {AdminUserId}",
                 request.Id,
@@ -192,6 +200,15 @@ public class AccessRequestService(
                 request.Status,
                 adminUserId);
         }
+
+        request.History.Add(new AccessRequestHistory
+        {
+            FromStatus = previousStatus,
+            ToStatus = dto.Status,
+            AdminNote = request.AdminNote,
+            ChangedByUserId = adminUserId,
+            ChangedAt = now
+        });
 
         await requestRepository.SaveAsync(cancellationToken);
 
@@ -214,6 +231,88 @@ public class AccessRequestService(
                     request.EmailSent = true;
                     await requestRepository.SaveAsync(cancellationToken);
                 }
+            }
+        }
+
+        return (AccessRequestError.None, ToAdminDto(request));
+    }
+
+    public async Task<(AccessRequestError Error, AdminAccessRequestDto? Result)> CorrectDecisionAsync(
+        Guid id,
+        string adminUserId,
+        CorrectAccessRequestDecisionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var request = await requestRepository.GetByIdAsync(id, cancellationToken);
+        if (request is null)
+        {
+            return (AccessRequestError.NotFound, null);
+        }
+
+        if (request.Status is not (AccessRequestStatus.Approved or AccessRequestStatus.Rejected)
+            || dto.Status == request.Status
+            || dto.Status is not (AccessRequestStatus.Approved or AccessRequestStatus.Rejected))
+        {
+            return (AccessRequestError.InvalidStatusTransition, null);
+        }
+
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        if (request.Status == AccessRequestStatus.Approved)
+        {
+            var reversalResult = await approvalService.RevokePlanAccessAsync(request, cancellationToken);
+            if (reversalResult == AccessApprovalReversalResult.AccessChangedSinceApproval)
+            {
+                return (AccessRequestError.AccessChangedSinceApproval, null);
+            }
+        }
+        else
+        {
+            await approvalService.GrantPlanAccessAsync(request, cancellationToken);
+        }
+
+        var now = DateTime.UtcNow;
+        var previousStatus = request.Status;
+        request.Status = dto.Status;
+        request.AdminNote = dto.AdminNote?.Trim();
+        request.ReviewedAt = now;
+        request.ReviewedByUserId = adminUserId;
+        request.UpdatedAt = now;
+        request.EmailSent = false;
+
+        request.History.Add(new AccessRequestHistory
+        {
+            FromStatus = previousStatus,
+            ToStatus = dto.Status,
+            AdminNote = request.AdminNote,
+            CorrectionReason = dto.CorrectionReason.Trim(),
+            IsCorrection = true,
+            ChangedByUserId = adminUserId,
+            ChangedAt = now
+        });
+
+        await requestRepository.SaveAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        logger.LogWarning(
+            "Access request decision corrected. RequestId: {RequestId}, FromStatus: {FromStatus}, ToStatus: {ToStatus}, AdminUserId: {AdminUserId}, Reason: {Reason}",
+            request.Id,
+            previousStatus,
+            request.Status,
+            adminUserId,
+            dto.CorrectionReason);
+
+        var student = request.Student ?? await userManager.FindByIdAsync(request.StudentId);
+        if (student?.Email is not null)
+        {
+            var template = dto.Status == AccessRequestStatus.Approved
+                ? EmailTemplates.AccessRequestApproved(request.Plan?.Name ?? "Paket")
+                : EmailTemplates.AccessRequestRejected(request.Plan?.Name ?? "Paket", request.AdminNote);
+
+            if (await SendStudentEmailIfEnabledAsync(student, template.Subject, template.Body, cancellationToken))
+            {
+                request.EmailSent = true;
+                await requestRepository.SaveAsync(cancellationToken);
             }
         }
 
@@ -272,5 +371,17 @@ public class AccessRequestService(
             request.RequestedAt,
             request.ReviewedAt,
             request.ReviewedBy?.Email,
-            request.EmailSent);
+            request.EmailSent,
+            request.History
+                .OrderByDescending(x => x.ChangedAt)
+                .Select(x => new AccessRequestHistoryDto(
+                    x.Id,
+                    x.FromStatus,
+                    x.ToStatus,
+                    x.AdminNote,
+                    x.CorrectionReason,
+                    x.IsCorrection,
+                    x.ChangedAt,
+                    x.ChangedBy?.Email))
+                .ToList());
 }

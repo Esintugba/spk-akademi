@@ -25,4 +25,8 @@ public class AccessRequest : BaseEntity
     public AppUser? ReviewedBy { get; set; }
 
     public bool EmailSent { get; set; }
+
+    public ICollection<AccessRequestHistory> History { get; set; } = [];
+
+    public ICollection<AccessRequestAccessGrant> AccessGrants { get; set; } = [];
 }

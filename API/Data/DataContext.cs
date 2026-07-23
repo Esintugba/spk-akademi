@@ -43,6 +43,8 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
     public DbSet<MaterialNote> MaterialNotes => Set<MaterialNote>();
 
     public DbSet<UserLicenseAccess> UserLicenseAccesses => Set<UserLicenseAccess>();
+    public DbSet<AccessRequestHistory> AccessRequestHistories => Set<AccessRequestHistory>();
+    public DbSet<AccessRequestAccessGrant> AccessRequestAccessGrants => Set<AccessRequestAccessGrant>();
     public DbSet<UserOnboardingState> UserOnboardingStates => Set<UserOnboardingState>();
 
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
@@ -662,6 +664,40 @@ public class DataContext(DbContextOptions<DataContext> options) : IdentityDbCont
                 .WithMany()
                 .HasForeignKey(x => x.ReviewedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AccessRequestHistory>(entity =>
+        {
+            entity.HasIndex(x => new { x.AccessRequestId, x.ChangedAt });
+            entity.Property(x => x.AdminNote).HasMaxLength(2000);
+            entity.Property(x => x.CorrectionReason).HasMaxLength(2000);
+            entity.Property(x => x.ChangedByUserId).HasMaxLength(450);
+
+            entity.HasOne(x => x.AccessRequest)
+                .WithMany(x => x.History)
+                .HasForeignKey(x => x.AccessRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ChangedBy)
+                .WithMany()
+                .HasForeignKey(x => x.ChangedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AccessRequestAccessGrant>(entity =>
+        {
+            entity.HasIndex(x => new { x.AccessRequestId, x.LicenseId });
+            entity.HasIndex(x => x.UserLicenseAccessId);
+
+            entity.HasOne(x => x.AccessRequest)
+                .WithMany(x => x.AccessGrants)
+                .HasForeignKey(x => x.AccessRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<License>()
+                .WithMany()
+                .HasForeignKey(x => x.LicenseId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ModerationHistory>(entity =>

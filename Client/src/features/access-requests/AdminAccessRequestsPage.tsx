@@ -4,6 +4,12 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Divider,
   FormControl,
   InputLabel,
   MenuItem,
@@ -28,11 +34,18 @@ import { accessRequestStatusColor, accessRequestStatusLabel } from './accessRequ
 
 const ADMIN_QUEUE_KEY = ['access-requests', 'admin'] as const
 
+function isFinalDecision(status: AccessRequestStatus) {
+  return status === AccessRequestStatus.Approved || status === AccessRequestStatus.Rejected
+}
+
 export function AdminAccessRequestsPage() {
   const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<AccessRequestStatus | ''>('')
   const [reviewedFilter, setReviewedFilter] = useState<'all' | 'yes' | 'no'>('all')
   const [adminNote, setAdminNote] = useState('')
+  const [correctionReason, setCorrectionReason] = useState('')
+  const [isCorrectionMode, setIsCorrectionMode] = useState(false)
+  const [approvalConfirmation, setApprovalConfirmation] = useState<'initial' | 'correction' | null>(null)
   const [selected, setSelected] = useState<AdminAccessRequestItem | null>(null)
 
   const query = useQuery({
@@ -46,22 +59,115 @@ export function AdminAccessRequestsPage() {
       }),
   })
 
+  function closeDetails() {
+    setSelected(null)
+    setAdminNote('')
+    setCorrectionReason('')
+    setIsCorrectionMode(false)
+    setApprovalConfirmation(null)
+  }
+
+  function openDetails(item: AdminAccessRequestItem) {
+    setSelected(item)
+    setAdminNote(item.adminNote ?? '')
+    setCorrectionReason('')
+    setIsCorrectionMode(false)
+  }
+
+  function startCorrection() {
+    setAdminNote('')
+    setCorrectionReason('')
+    setIsCorrectionMode(true)
+  }
+
+  function cancelCorrection() {
+    setAdminNote(selected?.adminNote ?? '')
+    setCorrectionReason('')
+    setIsCorrectionMode(false)
+  }
+
+  async function finishUpdate(message: string) {
+    await queryClient.invalidateQueries({ queryKey: ADMIN_QUEUE_KEY })
+    toast.success(message)
+    closeDetails()
+  }
+
   const updateMutation = useMutation({
     mutationFn: (payload: { id: string; status: AccessRequestStatus }) =>
       accessRequestApi.updateStatus(payload.id, {
         status: payload.status,
         adminNote: adminNote.trim() || undefined,
       }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ADMIN_QUEUE_KEY })
-      toast.success('Başvuru durumu güncellendi.')
-      setSelected(null)
-      setAdminNote('')
-    },
+    onSuccess: () => finishUpdate('Başvuru durumu güncellendi.'),
     onError: (error: Error) => {
       toast.error(error.message || 'Güncelleme başarısız.')
     },
   })
+
+  const correctionMutation = useMutation({
+    mutationFn: (payload: { id: string; status: AccessRequestStatus }) =>
+      accessRequestApi.correctDecision(payload.id, {
+        status: payload.status,
+        adminNote: adminNote.trim() || undefined,
+        correctionReason: correctionReason.trim(),
+      }),
+    onSuccess: () => finishUpdate('Başvuru kararı ve ilgili erişimler güvenli biçimde düzeltildi.'),
+    onError: (error: Error) => {
+      toast.error(error.message || 'Karar düzeltilemedi.')
+    },
+  })
+
+  const isBusy = updateMutation.isPending || correctionMutation.isPending
+  const selectedIsFinal = selected ? isFinalDecision(selected.status) : false
+  const correctionTarget = selected?.status === AccessRequestStatus.Approved
+    ? AccessRequestStatus.Rejected
+    : AccessRequestStatus.Approved
+
+  function submitInitialDecision(status: AccessRequestStatus) {
+    if (!selected) return
+
+    if (status === AccessRequestStatus.Rejected && !adminNote.trim()) {
+      toast.error('Ret işlemi için admin notu zorunludur.')
+      return
+    }
+
+    if (status === AccessRequestStatus.Approved) {
+      setApprovalConfirmation('initial')
+      return
+    }
+
+    updateMutation.mutate({ id: selected.id, status })
+  }
+
+  function submitCorrection() {
+    if (!selected || !correctionReason.trim()) {
+      toast.error('Karar düzeltme gerekçesi zorunludur.')
+      return
+    }
+
+    if (correctionTarget === AccessRequestStatus.Rejected && !adminNote.trim()) {
+      toast.error('Ret işlemi için admin notu zorunludur.')
+      return
+    }
+
+    if (correctionTarget === AccessRequestStatus.Approved) {
+      setApprovalConfirmation('correction')
+      return
+    }
+
+    correctionMutation.mutate({ id: selected.id, status: correctionTarget })
+  }
+
+  function confirmApproval() {
+    if (!selected || !approvalConfirmation) return
+
+    if (approvalConfirmation === 'correction') {
+      correctionMutation.mutate({ id: selected.id, status: AccessRequestStatus.Approved })
+    } else {
+      updateMutation.mutate({ id: selected.id, status: AccessRequestStatus.Approved })
+    }
+    setApprovalConfirmation(null)
+  }
 
   return (
     <Stack spacing={3}>
@@ -99,47 +205,147 @@ export function AdminAccessRequestsPage() {
       </Stack>
 
       {selected && (
-        <Paper sx={{ borderRadius: 3, p: 2 }} variant="outlined">
-          <Typography sx={{ fontWeight: 700, mb: 1 }}>
-            {selected.studentEmail} — {selected.planName}
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 2 }} variant="body2">
-            {selected.message || 'Mesaj yok'}
-          </Typography>
-          <TextField
-            fullWidth
-            label="Admin notu"
-            rows={2}
-            multiline
-            onChange={(e) => setAdminNote(e.target.value)}
-            sx={{ mb: 2 }}
-            value={adminNote}
-          />
-          <Stack direction="row" spacing={1}>
-            <Button
-              color="success"
-              disabled={updateMutation.isPending}
-              onClick={() => updateMutation.mutate({ id: selected.id, status: AccessRequestStatus.Approved })}
-              variant="contained"
-            >
-              Onayla
-            </Button>
-            <Button
-              color="error"
-              disabled={updateMutation.isPending}
-              onClick={() => updateMutation.mutate({ id: selected.id, status: AccessRequestStatus.Rejected })}
-              variant="outlined"
-            >
-              Reddet
-            </Button>
-            <Button
-              disabled={updateMutation.isPending}
-              onClick={() => updateMutation.mutate({ id: selected.id, status: AccessRequestStatus.Waitlisted })}
-              variant="outlined"
-            >
-              Bekleme listesi
-            </Button>
-            <Button onClick={() => setSelected(null)}>Kapat</Button>
+        <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
+          <Stack spacing={2}>
+            <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1} sx={{ justifyContent: 'space-between' }}>
+              <Box>
+                <Typography sx={{ fontWeight: 800 }}>
+                  {selected.studentEmail} — {selected.planName}
+                </Typography>
+                <Typography color="text.secondary" variant="body2">
+                  Başvuru mesajı: {selected.message || 'Mesaj yok'}
+                </Typography>
+              </Box>
+              <Chip
+                color={accessRequestStatusColor(selected.status)}
+                label={accessRequestStatusLabel(selected.status)}
+                size="small"
+              />
+            </Stack>
+
+            {selectedIsFinal ? (
+              <>
+                <Divider />
+                <Stack spacing={0.5}>
+                  <Typography sx={{ fontWeight: 700 }}>Karar ayrıntıları</Typography>
+                  <Typography variant="body2">
+                    Admin notu: {selected.adminNote || 'Not eklenmemiş'}
+                  </Typography>
+                  <Typography color="text.secondary" variant="body2">
+                    İnceleyen: {selected.reviewedByEmail || 'Bilinmiyor'} ·{' '}
+                    {selected.reviewedAt ? new Date(selected.reviewedAt).toLocaleString('tr-TR') : 'Tarih yok'}
+                  </Typography>
+                </Stack>
+
+                {!isCorrectionMode ? (
+                  <Stack direction="row" spacing={1}>
+                    <Button onClick={startCorrection} variant="contained">
+                      Kararı düzelt
+                    </Button>
+                    <Button onClick={closeDetails}>Kapat</Button>
+                  </Stack>
+                ) : (
+                  <Stack spacing={2}>
+                    <Alert severity="warning">
+                      Karar {accessRequestStatusLabel(correctionTarget).toLocaleLowerCase('tr-TR')} olarak değiştirilecek.
+                      Bu işlem denetim geçmişine kaydedilir.
+                    </Alert>
+                    <TextField
+                      fullWidth
+                      label="Karar düzeltme gerekçesi"
+                      required
+                      rows={2}
+                      multiline
+                      onChange={(e) => setCorrectionReason(e.target.value)}
+                      value={correctionReason}
+                    />
+                    <TextField
+                      fullWidth
+                      label={correctionTarget === AccessRequestStatus.Rejected ? 'Admin notu (zorunlu)' : 'Admin notu'}
+                      required={correctionTarget === AccessRequestStatus.Rejected}
+                      rows={2}
+                      multiline
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      value={adminNote}
+                    />
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        color={correctionTarget === AccessRequestStatus.Rejected ? 'error' : 'success'}
+                        disabled={isBusy}
+                        onClick={submitCorrection}
+                        variant="contained"
+                      >
+                        {correctionTarget === AccessRequestStatus.Rejected ? 'Reddet olarak düzelt' : 'Onayla olarak düzelt'}
+                      </Button>
+                      <Button disabled={isBusy} onClick={cancelCorrection}>
+                        Vazgeç
+                      </Button>
+                    </Stack>
+                  </Stack>
+                )}
+
+                <Divider />
+                <Stack spacing={1}>
+                  <Typography sx={{ fontWeight: 700 }}>Denetim geçmişi</Typography>
+                  {selected.history.length === 0 ? (
+                    <Typography color="text.secondary" variant="body2">
+                      Bu eski başvuru için kayıtlı karar geçmişi bulunmuyor.
+                    </Typography>
+                  ) : selected.history.map((entry) => (
+                    <Box key={entry.id} sx={{ bgcolor: 'action.hover', borderRadius: 2, p: 1.5 }}>
+                      <Typography sx={{ fontWeight: 700 }} variant="body2">
+                        {accessRequestStatusLabel(entry.fromStatus)} → {accessRequestStatusLabel(entry.toStatus)}
+                        {entry.isCorrection ? ' · Düzeltme' : ''}
+                      </Typography>
+                      <Typography color="text.secondary" variant="caption">
+                        {new Date(entry.changedAt).toLocaleString('tr-TR')} · {entry.changedByEmail || 'Bilinmeyen admin'}
+                      </Typography>
+                      {entry.correctionReason && (
+                        <Typography variant="body2">Gerekçe: {entry.correctionReason}</Typography>
+                      )}
+                      {entry.adminNote && <Typography variant="body2">Admin notu: {entry.adminNote}</Typography>}
+                    </Box>
+                  ))}
+                </Stack>
+              </>
+            ) : (
+              <>
+                <TextField
+                  fullWidth
+                  label="Admin notu"
+                  rows={2}
+                  multiline
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  value={adminNote}
+                />
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  <Button
+                    color="success"
+                    disabled={isBusy}
+                    onClick={() => submitInitialDecision(AccessRequestStatus.Approved)}
+                    variant="contained"
+                  >
+                    Onayla
+                  </Button>
+                  <Button
+                    color="error"
+                    disabled={isBusy}
+                    onClick={() => submitInitialDecision(AccessRequestStatus.Rejected)}
+                    variant="outlined"
+                  >
+                    Reddet
+                  </Button>
+                  <Button
+                    disabled={isBusy}
+                    onClick={() => submitInitialDecision(AccessRequestStatus.Waitlisted)}
+                    variant="outlined"
+                  >
+                    Bekleme listesi
+                  </Button>
+                  <Button onClick={closeDetails}>Kapat</Button>
+                </Stack>
+              </>
+            )}
           </Stack>
         </Paper>
       )}
@@ -184,8 +390,8 @@ export function AdminAccessRequestsPage() {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Button onClick={() => setSelected(item)} size="small">
-                      İşlem
+                    <Button onClick={() => openDetails(item)} size="small">
+                      {isFinalDecision(item.status) ? 'Detay / Düzeltme' : 'İşlem'}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -194,6 +400,22 @@ export function AdminAccessRequestsPage() {
           </Table>
         </TableContainer>
       )}
+
+      <Dialog open={approvalConfirmation !== null} onClose={() => !isBusy && setApprovalConfirmation(null)}>
+        <DialogTitle>Erişim onayını doğrulayın</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {selected?.studentEmail} kullanıcısına “{selected?.planName}” planındaki lisans erişimleri verilecek.
+            Bu işlem kullanıcıya onay e-postası gönderebilir.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={isBusy} onClick={() => setApprovalConfirmation(null)}>Vazgeç</Button>
+          <Button color="success" disabled={isBusy} onClick={confirmApproval} variant="contained">
+            Evet, erişimi onayla
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   )
 }

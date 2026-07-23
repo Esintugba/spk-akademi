@@ -21,6 +21,21 @@ public record UpdateAccessRequestStatusDto(
     AccessRequestStatus Status,
     string? AdminNote);
 
+public record CorrectAccessRequestDecisionDto(
+    AccessRequestStatus Status,
+    string? AdminNote,
+    string CorrectionReason);
+
+public record AccessRequestHistoryDto(
+    Guid Id,
+    AccessRequestStatus FromStatus,
+    AccessRequestStatus ToStatus,
+    string? AdminNote,
+    string? CorrectionReason,
+    bool IsCorrection,
+    DateTime ChangedAt,
+    string? ChangedByEmail);
+
 public record AdminAccessRequestDto(
     Guid Id,
     string StudentId,
@@ -34,7 +49,8 @@ public record AdminAccessRequestDto(
     DateTime RequestedAt,
     DateTime? ReviewedAt,
     string? ReviewedByEmail,
-    bool EmailSent);
+    bool EmailSent,
+    IReadOnlyList<AccessRequestHistoryDto> History);
 
 public record AdminAccessRequestListDto(
     IReadOnlyList<AdminAccessRequestDto> Items,

@@ -28,6 +28,18 @@ export interface AdminAccessRequestItem extends AccessRequestItem {
   studentEmail: string
   studentDisplayName: string | null
   reviewedByEmail: string | null
+  history: AccessRequestHistoryItem[]
+}
+
+export interface AccessRequestHistoryItem {
+  id: string
+  fromStatus: AccessRequestStatus
+  toStatus: AccessRequestStatus
+  adminNote: string | null
+  correctionReason: string | null
+  isCorrection: boolean
+  changedAt: string
+  changedByEmail: string | null
 }
 
 export interface AdminAccessRequestList {
@@ -51,4 +63,8 @@ export interface AccessRequestQuery {
 export interface UpdateAccessRequestStatusPayload {
   status: AccessRequestStatus
   adminNote?: string
+}
+
+export interface CorrectAccessRequestDecisionPayload extends UpdateAccessRequestStatusPayload {
+  correctionReason: string
 }

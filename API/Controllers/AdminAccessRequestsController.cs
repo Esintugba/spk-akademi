@@ -44,4 +44,34 @@ public class AdminAccessRequestsController(
             _ => Ok(result)
         };
     }
+
+    [HttpPatch("{id:guid}/decision")]
+    public async Task<ActionResult<AdminAccessRequestDto>> CorrectDecision(
+        Guid id,
+        CorrectAccessRequestDecisionDto dto,
+        CancellationToken cancellationToken)
+    {
+        var adminId = userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(adminId))
+        {
+            return Unauthorized();
+        }
+
+        var (error, result) = await accessRequestService.CorrectDecisionAsync(
+            id,
+            adminId,
+            dto,
+            cancellationToken);
+
+        return error switch
+        {
+            AccessRequestError.NotFound => NotFound(new { message = "Başvuru bulunamadı." }),
+            AccessRequestError.InvalidStatusTransition => BadRequest(new { message = "Bu karar belirtilen duruma düzeltilemez." }),
+            AccessRequestError.AccessChangedSinceApproval => Conflict(new
+            {
+                message = "Onaydan sonra lisans erişimi elle değiştirilmiş. Başka bir erişimi yanlışlıkla kaldırmamak için düzeltme durduruldu."
+            }),
+            _ => Ok(result)
+        };
+    }
 }

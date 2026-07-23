@@ -46,6 +46,9 @@ public class AccessRequestRepository(DataContext context) : IAccessRequestReposi
             .Include(x => x.Student)
             .Include(x => x.Plan)
             .Include(x => x.ReviewedBy)
+            .Include(x => x.History)
+                .ThenInclude(x => x.ChangedBy)
+            .Include(x => x.AccessGrants)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
     public Task<AccessRequest?> GetPendingForStudentAndPlanAsync(
@@ -90,6 +93,8 @@ public class AccessRequestRepository(DataContext context) : IAccessRequestReposi
             .Include(x => x.Student)
             .Include(x => x.Plan)
             .Include(x => x.ReviewedBy)
+            .Include(x => x.History)
+                .ThenInclude(x => x.ChangedBy)
             .AsQueryable();
 
         if (query.Status.HasValue)

@@ -5,6 +5,7 @@ import type {
   AdminAccessRequestList,
   CreateAccessRequestPayload,
   UpdateAccessRequestStatusPayload,
+  CorrectAccessRequestDecisionPayload,
 } from '../../models/accessRequest'
 import { request } from './client'
 
@@ -16,4 +17,6 @@ export const accessRequestApi = {
     request.get<AdminAccessRequestList>('/api/admin/access-requests', { params }),
   updateStatus: (id: string, payload: UpdateAccessRequestStatusPayload) =>
     request.patch<AdminAccessRequestItem>(`/api/admin/access-requests/${id}/status`, payload),
+  correctDecision: (id: string, payload: CorrectAccessRequestDecisionPayload) =>
+    request.patch<AdminAccessRequestItem>(`/api/admin/access-requests/${id}/decision`, payload),
 }
