@@ -155,7 +155,7 @@ builder.Services.AddScoped<IContentModerationService, ContentModerationService>(
 builder.Services.AddScoped<IProgressService, ProgressService>();
 builder.Services.AddScoped<IStudentExperienceService, StudentExperienceService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 ConfigurationSecurityValidator.ThrowIfInvalid(builder.Configuration, builder.Environment);
 

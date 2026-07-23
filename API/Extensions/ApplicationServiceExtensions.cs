@@ -12,7 +12,9 @@ namespace API.Extensions;
 
 public static class ApplicationServiceExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddAutoMapper(_ => { }, typeof(GamificationMappingProfile).Assembly);
 
@@ -150,7 +152,10 @@ public static class ApplicationServiceExtensions
         services.AddSingleton<AiQuestionGenerationJobQueue>();
         services.AddSingleton<IAiQuestionGenerationJobQueue>(
             sp => sp.GetRequiredService<AiQuestionGenerationJobQueue>());
-        services.AddHostedService(sp => sp.GetRequiredService<AiQuestionGenerationJobQueue>());
+        if (configuration.GetValue<bool>($"{AiQuestionGenerationOptions.SectionName}:Enabled"))
+        {
+            services.AddHostedService(sp => sp.GetRequiredService<AiQuestionGenerationJobQueue>());
+        }
         services.AddSingleton<ILeaderboardCache, LeaderboardCache>();
 
         return services;

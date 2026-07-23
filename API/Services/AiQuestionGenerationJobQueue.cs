@@ -25,7 +25,20 @@ public class AiQuestionGenerationJobQueue(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RecoverInterruptedJobsAsync(stoppingToken);
+        try
+        {
+            await RecoverInterruptedJobsAsync(stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "AI question generation recovery failed. The web host will remain available, but AI generation requires a healthy database migration.");
+        }
 
         await foreach (var item in channel.Reader.ReadAllAsync(stoppingToken))
         {

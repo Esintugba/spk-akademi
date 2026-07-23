@@ -7,6 +7,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       Database__Provider: Sqlite
+      Database__AutoMigrate: ${Database__AutoMigrate:-true}
+      Database__AllowProductionAutoMigrate: ${Database__AllowProductionAutoMigrate:-true}
       ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:-Data Source=/data/spk.db}
       ForwardedHeaders__Enabled: ${ForwardedHeaders__Enabled:-false}
       ForwardedHeaders__KnownProxies__0: ${ForwardedHeaders__KnownProxies__0:-}
