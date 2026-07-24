@@ -1,4 +1,5 @@
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined'
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined'
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -206,6 +207,22 @@ export function AdminImportPage() {
 
       {importMode === 'questions' && (
         <>
+      <Alert
+        action={(
+          <Button
+            color="inherit"
+            onClick={downloadQuestionImportTemplate}
+            size="small"
+            startIcon={<DownloadOutlinedIcon />}
+          >
+            CSV şablonunu indir
+          </Button>
+        )}
+        severity="info"
+      >
+        Sorular yalnızca alt konulara bağlanır. Yeni şablonda Course, MainTopic ve SubTopic alanlarını birlikte kullanın.
+      </Alert>
+
       <Paper
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
@@ -227,7 +244,7 @@ export function AdminImportPage() {
         <CloudUploadOutlinedIcon color="primary" sx={{ fontSize: 44 }} />
         <Typography sx={{ fontWeight: 800 }}>{file ? file.name : 'Dosyayı buraya sürükleyin veya seçin'}</Typography>
         <Typography color="text.secondary" variant="body2">
-          Desteklenen formatlar: CSV, JSON. Maksimum 10 MB.
+          Desteklenen formatlar: XLSX, CSV, JSON. Maksimum 10 MB.
         </Typography>
         <Button component="label" variant="outlined">
           Dosya seç
@@ -290,6 +307,7 @@ export function AdminImportPage() {
             </Alert>
           )}
 
+          <TopicPathTable rows={preview.rows} />
           <ErrorTable errors={preview.errors} />
           <DuplicateTable
             decisions={duplicateDecisionsByRow}
@@ -456,6 +474,42 @@ function ErrorTable({ errors }: { errors: ImportPreview['errors'] }) {
   )
 }
 
+function TopicPathTable({ rows }: { rows: ImportPreview['rows'] }) {
+  if (rows.length === 0) {
+    return null
+  }
+
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Satır</TableCell>
+            <TableCell>Ders</TableCell>
+            <TableCell>Ana konu</TableCell>
+            <TableCell>Alt konu</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.slice(0, 100).map((row) => {
+            const mainTopic = row.mainTopic || (row.subTopic && row.topic ? row.topic : '')
+            const subTopic = row.subTopic || row.topic || ''
+
+            return (
+              <TableRow key={row.rowNumber}>
+                <TableCell>{row.rowNumber}</TableCell>
+                <TableCell>{row.course || '-'}</TableCell>
+                <TableCell>{mainTopic || '-'}</TableCell>
+                <TableCell>{subTopic || '-'}</TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
 function MaterialDocumentsTable({ documents }: { documents: MaterialImportResult['documents'] }) {
   if (documents.length === 0) {
     return <Alert severity="info">Import edilen materyal yok.</Alert>
@@ -570,4 +624,47 @@ function buildDuplicateDecisions(
     matchedQuestionId: decisions[duplicate.rowNumber as number]?.matchedQuestionId ?? duplicate.matchedQuestionId,
     action: decisions[duplicate.rowNumber as number]?.action ?? DuplicateImportAction.Skip,
   }))
+}
+
+function downloadQuestionImportTemplate() {
+  const headers = [
+    'Course',
+    'MainTopic',
+    'SubTopic',
+    'QuestionText',
+    'OptionA',
+    'OptionB',
+    'OptionC',
+    'OptionD',
+    'OptionE',
+    'CorrectOption',
+    'Explanation',
+    'Difficulty',
+    'ExamYear',
+    'ExamType',
+  ]
+  const example = [
+    'Ders adını paneldeki şekliyle yazın',
+    'Ana konu adını yazın',
+    'Alt konu adını yazın',
+    'En az 10 karakterlik soru metni',
+    'A seçeneği',
+    'B seçeneği',
+    '',
+    '',
+    '',
+    'A',
+    'İsteğe bağlı açıklama',
+    'Medium',
+    '',
+    '',
+  ]
+  const escapeCsvCell = (value: string) => `"${value.replace(/"/g, '""')}"`
+  const csv = `\uFEFF${headers.map(escapeCsvCell).join(',')}\r\n${example.map(escapeCsvCell).join(',')}\r\n`
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = 'soru-import-sablonu.csv'
+  anchor.click()
+  URL.revokeObjectURL(url)
 }

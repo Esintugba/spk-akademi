@@ -28,8 +28,8 @@ public class ImportValidationService(
             .ToListAsync(cancellationToken);
         var topics = await context.Topics
             .AsNoTracking()
+            .Include(x => x.ParentTopic)
             .Include(x => x.Course)
-            .Select(x => new { x.Id, x.Title, CourseName = x.Course!.Name })
             .ToListAsync(cancellationToken);
 
         var errors = new List<ImportErrorDto>();
@@ -45,22 +45,28 @@ public class ImportValidationService(
                 error.ErrorMessage,
                 JsonSerializer.Serialize(row))));
 
-            var courseExists = courses.Any(x => string.Equals(x.Name, row.Course.Trim(), StringComparison.OrdinalIgnoreCase));
+            var courseExists = !string.IsNullOrWhiteSpace(row.Course)
+                && courses.Any(x => string.Equals(x.Name, row.Course.Trim(), StringComparison.OrdinalIgnoreCase));
             if (!courseExists)
             {
-                missingCourses.Add(row.Course);
-                errors.Add(new ImportErrorDto(row.RowNumber, "Course", "Ders bulunamadı.", JsonSerializer.Serialize(row)));
+                if (!string.IsNullOrWhiteSpace(row.Course))
+                {
+                    missingCourses.Add(row.Course);
+                    errors.Add(new ImportErrorDto(row.RowNumber, "Course", "Ders bulunamadı.", JsonSerializer.Serialize(row)));
+                }
+
                 continue;
             }
 
-            var topicExists = topics.Any(x =>
-                string.Equals(x.CourseName, row.Course.Trim(), StringComparison.OrdinalIgnoreCase)
-                && string.Equals(x.Title, row.Topic.Trim(), StringComparison.OrdinalIgnoreCase));
-
-            if (!topicExists)
+            var topicResolution = QuestionImportTopicResolver.Resolve(row, topics);
+            if (!topicResolution.IsSuccess && topicResolution.ErrorMessage is not null)
             {
-                missingTopics.Add($"{row.Course} / {row.Topic}");
-                errors.Add(new ImportErrorDto(row.RowNumber, "Topic", "Konu bulunamadı.", JsonSerializer.Serialize(row)));
+                missingTopics.Add(topicResolution.Path.DisplayName);
+                errors.Add(new ImportErrorDto(
+                    row.RowNumber,
+                    "SubTopic",
+                    topicResolution.ErrorMessage,
+                    JsonSerializer.Serialize(row)));
             }
         }
 

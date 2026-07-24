@@ -9,7 +9,13 @@ public class QuestionImportRowValidator : AbstractValidator<QuestionImportRowDto
     {
         RuleFor(x => x.QuestionText).NotEmpty().MinimumLength(10).MaximumLength(4000);
         RuleFor(x => x.CorrectOption).NotEmpty().Must(x => "ABCDE".Contains(x.Trim().ToUpperInvariant()));
-        RuleFor(x => x.Topic).NotEmpty().MaximumLength(250);
+        RuleFor(x => x)
+            .Must(HasSubTopic)
+            .WithName("SubTopic")
+            .WithMessage("'SubTopic' must not be empty. Yeni şablonda SubTopic, eski şablonda Topic alanını doldurun.");
+        RuleFor(x => x.MainTopic).MaximumLength(250);
+        RuleFor(x => x.SubTopic).MaximumLength(250);
+        RuleFor(x => x.Topic).MaximumLength(250);
         RuleFor(x => x.Course).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Explanation).MaximumLength(4000);
         RuleFor(x => x.ExamYear).InclusiveBetween(1990, 2100).When(x => x.ExamYear.HasValue);
@@ -29,6 +35,9 @@ public class QuestionImportRowValidator : AbstractValidator<QuestionImportRowDto
 
     private static bool HasAtLeastTwoOptions(QuestionImportRowDto row) =>
         GetOptions(row).Count(x => !string.IsNullOrWhiteSpace(x.Value)) >= 2;
+
+    private static bool HasSubTopic(QuestionImportRowDto row) =>
+        !string.IsNullOrWhiteSpace(row.SubTopic) || !string.IsNullOrWhiteSpace(row.Topic);
 
     private static bool HasCorrectOptionText(QuestionImportRowDto row)
     {

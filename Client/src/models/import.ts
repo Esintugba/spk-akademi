@@ -35,7 +35,10 @@ export interface QuestionImportRow {
   optionE?: string | null
   correctOption: string
   explanation?: string | null
-  topic: string
+  /** Eski şablon desteği: SubTopic yoksa alt konu, SubTopic varsa ana konu kabul edilir. */
+  topic?: string | null
+  mainTopic?: string | null
+  subTopic?: string | null
   course: string
   difficulty?: string | null
   examYear?: number | null

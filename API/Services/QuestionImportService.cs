@@ -136,15 +136,21 @@ public class QuestionImportService(
                 .ToHashSet();
 
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-            var topics = await context.Topics.Include(x => x.Course).ToListAsync(cancellationToken);
+            var topics = await context.Topics
+                .Include(x => x.Course)
+                .Include(x => x.ParentTopic)
+                .ToListAsync(cancellationToken);
+            var resolvedTopicsByRow = rows
+                .Where(row => !invalidRows.Contains(row.RowNumber))
+                .ToDictionary(
+                    row => row.RowNumber,
+                    row => ResolveImportTopic(row, topics));
 
             foreach (var chunk in importRows.Chunk(250))
             {
                 var questions = chunk.Select(row =>
                 {
-                    var topic = topics.First(x =>
-                        string.Equals(x.Title, row.Topic.Trim(), StringComparison.OrdinalIgnoreCase)
-                        && string.Equals(x.Course!.Name, row.Course.Trim(), StringComparison.OrdinalIgnoreCase));
+                    var topic = resolvedTopicsByRow[row.RowNumber];
 
                     return new Question
                     {
@@ -181,9 +187,7 @@ public class QuestionImportService(
                     continue;
                 }
 
-                var topic = topics.First(x =>
-                    string.Equals(x.Title, row.Topic.Trim(), StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(x.Course!.Name, row.Course.Trim(), StringComparison.OrdinalIgnoreCase));
+                var topic = resolvedTopicsByRow[row.RowNumber];
 
                 question.TopicId = topic.Id;
                 question.Text = row.QuestionText.Trim();
@@ -299,6 +303,17 @@ public class QuestionImportService(
                 IsCorrect = x.Item1 == correct
             })
             .ToList();
+    }
+
+    private static Topic ResolveImportTopic(
+        QuestionImportRowDto row,
+        IReadOnlyCollection<Topic> topics)
+    {
+        var resolution = QuestionImportTopicResolver.Resolve(row, topics);
+        return resolution.Topic
+            ?? throw new InvalidOperationException(
+                resolution.ErrorMessage
+                ?? $"Satır {row.RowNumber} için alt konu çözümlenemedi.");
     }
 
     private static QuestionDifficulty ParseDifficulty(string? value) =>
