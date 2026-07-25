@@ -1,4 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded'
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded'
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
@@ -6,7 +9,10 @@ import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined'
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded'
-import { Box, Button, Card, CardContent, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Document, Page, pdfjs } from 'react-pdf'
+import 'react-pdf/dist/Page/AnnotationLayer.css'
+import 'react-pdf/dist/Page/TextLayer.css'
 import type { Course, SourceDocument, SourceDocumentText } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
@@ -15,10 +21,131 @@ import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
 
+pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
+
 interface SourceDocumentsPageProps {
   courses: Course[]
   sourceDocuments: SourceDocument[]
   onChanged: () => Promise<void>
+}
+
+interface PdfPreview {
+  file: Blob
+  title: string
+  url: string
+}
+
+function AdminPdfPreview({ preview }: { preview: PdfPreview }) {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageCount, setPageCount] = useState(0)
+  const [pageWidth, setPageWidth] = useState(760)
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    setPage(1)
+    setPageCount(0)
+    setLoadError('')
+  }, [preview.file])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+
+    const updatePageWidth = () => {
+      setPageWidth(Math.max(280, Math.min(1100, viewport.clientWidth - 48)))
+    }
+
+    updatePageWidth()
+    const observer = new ResizeObserver(updatePageWidth)
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [])
+
+  const goToPage = (nextPage: number) => {
+    setPage(Math.min(Math.max(1, nextPage), Math.max(1, pageCount)))
+  }
+
+  return (
+    <Stack sx={{ height: '78vh', minHeight: 460 }}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: 'center',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          flex: '0 0 auto',
+          justifyContent: 'center',
+          minHeight: 58,
+          px: 2,
+        }}
+      >
+        <IconButton aria-label="Önceki sayfa" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+          <ChevronLeftRoundedIcon />
+        </IconButton>
+        <Typography sx={{ fontWeight: 800, minWidth: 110, textAlign: 'center' }}>
+          {page} / {pageCount || '—'}
+        </Typography>
+        <IconButton aria-label="Sonraki sayfa" disabled={!pageCount || page >= pageCount} onClick={() => goToPage(page + 1)}>
+          <ChevronRightRoundedIcon />
+        </IconButton>
+      </Stack>
+
+      <Box
+        ref={viewportRef}
+        sx={{
+          alignItems: 'flex-start',
+          bgcolor: '#eef2f6',
+          display: 'flex',
+          flex: '1 1 auto',
+          justifyContent: 'center',
+          minHeight: 0,
+          overflow: 'auto',
+          p: 3,
+        }}
+      >
+        <Document
+          file={preview.file}
+          loading={
+            <Stack spacing={1.5} sx={{ alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
+              <CircularProgress size={34} />
+              <Typography color="text.secondary">PDF hazırlanıyor…</Typography>
+            </Stack>
+          }
+          onLoadSuccess={({ numPages }) => {
+            setPageCount(numPages)
+            setPage((current) => Math.min(Math.max(1, current), numPages))
+          }}
+          onLoadError={(error) => setLoadError(error.message || 'PDF dosyası yüklenemedi.')}
+          error={
+            <Stack spacing={2} sx={{ maxWidth: 520, pt: 6 }}>
+              <Alert severity="error">{loadError || 'PDF dosyası yüklenemedi.'}</Alert>
+              <Button component="a" href={preview.url} rel="noreferrer" target="_blank" variant="outlined">
+                PDF&apos;i yeni sekmede aç
+              </Button>
+            </Stack>
+          }
+        >
+          <Box
+            sx={{
+              bgcolor: 'background.paper',
+              boxShadow: '0 16px 44px rgba(15, 23, 42, 0.18)',
+              lineHeight: 0,
+            }}
+          >
+            <Page
+              pageNumber={page}
+              renderAnnotationLayer
+              renderTextLayer
+              width={pageWidth}
+              loading={<Box sx={{ bgcolor: 'background.paper', height: 620, width: pageWidth }} />}
+            />
+          </Box>
+        </Document>
+      </Box>
+    </Stack>
+  )
 }
 
 export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: SourceDocumentsPageProps) {
@@ -30,7 +157,7 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
   const [search, setSearch] = useState('')
   const [detailDocument, setDetailDocument] = useState<SourceDocument | null>(null)
   const [textPreview, setTextPreview] = useState<SourceDocumentText | null>(null)
-  const [pdfPreview, setPdfPreview] = useState<{ title: string; url: string } | null>(null)
+  const [pdfPreview, setPdfPreview] = useState<PdfPreview | null>(null)
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
@@ -159,7 +286,7 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
         if (current?.url) {
           URL.revokeObjectURL(current.url)
         }
-        return { title: document.title, url }
+        return { file, title: document.title, url }
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PDF görüntülenemedi.')
@@ -308,17 +435,17 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(pdfPreview)} onClose={closePdfPreview} maxWidth="lg" fullWidth>
-        <DialogTitle>{pdfPreview?.title ?? 'PDF'}</DialogTitle>
-        <DialogContent>
-          {pdfPreview?.url && (
-            <Box
-              component="iframe"
-              src={pdfPreview.url}
-              title={pdfPreview.title}
-              sx={{ border: 0, borderRadius: 2, height: '78vh', width: '100%' }}
-            />
-          )}
+      <Dialog open={Boolean(pdfPreview)} onClose={closePdfPreview} maxWidth="xl" fullWidth>
+        <DialogTitle sx={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', pr: 1 }}>
+          <Typography component="span" sx={{ fontSize: 20, fontWeight: 900 }}>
+            {pdfPreview?.title ?? 'PDF'}
+          </Typography>
+          <IconButton aria-label="PDF önizlemesini kapat" onClick={closePdfPreview}>
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: '0 !important' }}>
+          {pdfPreview && <AdminPdfPreview preview={pdfPreview} />}
         </DialogContent>
       </Dialog>
     </Stack>
