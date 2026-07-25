@@ -3,7 +3,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import { Alert, Autocomplete, Box, Button, Checkbox, Chip, FormControlLabel, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material'
-import { ContentAccessLevel, QuestionDifficulty, ReviewStatus, type Course, type CreateTrialExam, type License, type Question, type Topic, type TrialExamSummary } from '../../models'
+import { ContentAccessLevel, ReviewStatus, TrialExamDifficulty, type Course, type CreateTrialExam, type License, type Question, type Topic, type TrialExamSummary } from '../../models'
 import { api } from '../../shared/api'
 import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminFormDrawer } from '../common/AdminFormDrawer'
@@ -32,7 +32,7 @@ const initialForm: CreateTrialExam = {
   isFree: true,
   isPublished: false,
   isFeatured: false,
-  difficultyLevel: QuestionDifficulty.Medium,
+  difficultyLevel: TrialExamDifficulty.Medium,
   tags: '',
   popularityScore: 0,
   reviewStatus: ReviewStatus.PendingReview,
@@ -41,11 +41,13 @@ const initialForm: CreateTrialExam = {
   autoSelectQuestions: true,
 }
 
-function difficultyLabel(value: QuestionDifficulty) {
+function difficultyLabel(value: TrialExamDifficulty) {
   switch (value) {
-    case QuestionDifficulty.Easy:
+    case TrialExamDifficulty.All:
+      return 'Tümü'
+    case TrialExamDifficulty.Easy:
       return 'Kolay'
-    case QuestionDifficulty.Hard:
+    case TrialExamDifficulty.Hard:
       return 'Zor'
     default:
       return 'Orta'
@@ -377,10 +379,11 @@ export function TrialExamsPage({ courses, licenses, questions, topics, trialExam
                 />
               </Box>
               <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-                <TextField fullWidth label="Zorluk" select value={form.difficultyLevel} onChange={(event) => setForm((current) => ({ ...current, difficultyLevel: Number(event.target.value) as QuestionDifficulty }))}>
-                  <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
-                  <MenuItem value={QuestionDifficulty.Medium}>Orta</MenuItem>
-                  <MenuItem value={QuestionDifficulty.Hard}>Zor</MenuItem>
+                <TextField fullWidth label="Zorluk" select value={form.difficultyLevel} onChange={(event) => setForm((current) => ({ ...current, difficultyLevel: Number(event.target.value) as TrialExamDifficulty }))}>
+                  <MenuItem value={TrialExamDifficulty.All}>Tümü</MenuItem>
+                  <MenuItem value={TrialExamDifficulty.Easy}>Kolay</MenuItem>
+                  <MenuItem value={TrialExamDifficulty.Medium}>Orta</MenuItem>
+                  <MenuItem value={TrialExamDifficulty.Hard}>Zor</MenuItem>
                 </TextField>
                 <TextField fullWidth label="Popülerlik skoru" type="number" value={form.popularityScore} slotProps={{ htmlInput: { min: 0, step: 0.1 } }} onChange={(event) => setForm((current) => ({ ...current, popularityScore: Number(event.target.value) }))} />
               </Stack>

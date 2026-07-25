@@ -6,6 +6,15 @@ export const QuestionDifficulty = {
 
 export type QuestionDifficulty = (typeof QuestionDifficulty)[keyof typeof QuestionDifficulty]
 
+export const TrialExamDifficulty = {
+  All: 0,
+  Easy: 1,
+  Medium: 2,
+  Hard: 3,
+} as const
+
+export type TrialExamDifficulty = (typeof TrialExamDifficulty)[keyof typeof TrialExamDifficulty]
+
 export interface StudentQuizProgress {
   completed: boolean
   inProgress: boolean
@@ -23,7 +32,7 @@ export interface QuizCatalogItem {
   licenseId: string | null
   questionCount: number
   duration: number
-  difficultyLevel: QuestionDifficulty
+  difficultyLevel: TrialExamDifficulty
   attemptCount: number
   averageScore: number
   completionRate: number
@@ -49,7 +58,7 @@ export interface FeaturedQuiz {
   licenseName: string | null
   questionCount: number
   duration: number
-  difficultyLevel: QuestionDifficulty
+  difficultyLevel: TrialExamDifficulty
   popularityScore: number
   averageScore: number
   isFree: boolean

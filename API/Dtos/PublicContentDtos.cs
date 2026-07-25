@@ -40,5 +40,5 @@ public record PublicTrialExamSummaryDto(
     int QuestionCount,
     bool IsFree,
     bool IsFeatured,
-    QuestionDifficulty DifficultyLevel,
+    TrialExamDifficulty DifficultyLevel,
     string? Tags);

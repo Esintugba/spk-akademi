@@ -4,6 +4,13 @@ export enum QuestionDifficulty {
   Hard = 3,
 }
 
+export enum TrialExamDifficulty {
+  All = 0,
+  Easy = 1,
+  Medium = 2,
+  Hard = 3,
+}
+
 export enum QuestionType {
   Definition = 1,
   Concept = 2,

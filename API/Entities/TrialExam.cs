@@ -22,7 +22,7 @@ public class TrialExam : ModeratedEntity
 
     public bool IsFeatured { get; set; }
 
-    public QuestionDifficulty DifficultyLevel { get; set; } = QuestionDifficulty.Medium;
+    public TrialExamDifficulty DifficultyLevel { get; set; } = TrialExamDifficulty.Medium;
 
     public string? Tags { get; set; }
 

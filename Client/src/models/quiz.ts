@@ -1,4 +1,4 @@
-import type { ContentAccessLevel, QuestionDifficulty, QuestionType, QuizMode, ReviewStatus } from './enums'
+import type { ContentAccessLevel, QuestionDifficulty, QuestionType, QuizMode, ReviewStatus, TrialExamDifficulty } from './enums'
 import type { UnlockedBadge } from './gamification'
 
 export interface StartQuiz {
@@ -78,7 +78,7 @@ export interface TrialExamSummary {
   isFree: boolean
   isPublished: boolean
   isFeatured: boolean
-  difficultyLevel: QuestionDifficulty
+  difficultyLevel: TrialExamDifficulty
   tags?: string | null
   popularityScore: number
   assignedQuestionCount: number
@@ -105,7 +105,7 @@ export interface CreateTrialExam {
   isFree: boolean
   isPublished: boolean
   isFeatured: boolean
-  difficultyLevel: QuestionDifficulty
+  difficultyLevel: TrialExamDifficulty
   tags?: string | null
   popularityScore: number
   reviewStatus: ReviewStatus

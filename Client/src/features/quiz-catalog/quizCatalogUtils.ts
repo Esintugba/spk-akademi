@@ -1,10 +1,12 @@
-import { QuestionDifficulty, type QuizCatalogItem, type StudentQuizProgress } from '../../models/quizCatalog'
+import { TrialExamDifficulty, type QuizCatalogItem, type StudentQuizProgress } from '../../models/quizCatalog'
 
-export function difficultyLabel(value: QuestionDifficulty) {
+export function difficultyLabel(value: TrialExamDifficulty) {
   switch (value) {
-    case QuestionDifficulty.Easy:
+    case TrialExamDifficulty.All:
+      return 'Tümü'
+    case TrialExamDifficulty.Easy:
       return 'Kolay'
-    case QuestionDifficulty.Hard:
+    case TrialExamDifficulty.Hard:
       return 'Zor'
     default:
       return 'Orta'

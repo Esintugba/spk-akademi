@@ -320,15 +320,15 @@ public class QuizCatalogService(
             attempt.StartedAt);
     }
 
-    private static bool TryParseDifficulty(string? value, out QuestionDifficulty difficulty)
+    private static bool TryParseDifficulty(string? value, out TrialExamDifficulty difficulty)
     {
         if (Enum.TryParse(value, true, out difficulty))
         {
             return true;
         }
 
-        return int.TryParse(value, out var numeric) && Enum.IsDefined(typeof(QuestionDifficulty), numeric)
-            ? (difficulty = (QuestionDifficulty)numeric) == (QuestionDifficulty)numeric
+        return int.TryParse(value, out var numeric) && Enum.IsDefined(typeof(TrialExamDifficulty), numeric)
+            ? (difficulty = (TrialExamDifficulty)numeric) == (TrialExamDifficulty)numeric
             : false;
     }
 
