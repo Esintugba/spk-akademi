@@ -1,5 +1,6 @@
 using System.Text;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 namespace API.Services;
 
@@ -18,8 +19,17 @@ public class PdfPigTextExtractor : IPdfTextExtractor
                 textBuilder.AppendLine();
             }
 
+            var pageText = ContentOrderTextExtractor.GetText(
+                page,
+                new ContentOrderTextExtractor.Options
+                {
+                    NegativeGapAsWhitespace = true,
+                    ReplaceWhitespaceWithSpace = true,
+                    SeparateParagraphsWithDoubleNewline = true
+                });
+
             textBuilder.AppendLine($"--- Page {page.Number} ---");
-            textBuilder.AppendLine(page.Text);
+            textBuilder.AppendLine(PdfTextNormalizer.Normalize(pageText));
         }
 
         return Task.FromResult(new PdfTextExtractionResult(

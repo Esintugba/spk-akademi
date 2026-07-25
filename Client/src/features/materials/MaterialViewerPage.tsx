@@ -4,6 +4,7 @@ import {
   Button,
   Chip,
   Divider,
+  Drawer,
   IconButton,
   MenuItem,
   Paper,
@@ -17,6 +18,7 @@ import {
 } from '@mui/material'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import BookmarkAddOutlinedIcon from '@mui/icons-material/BookmarkAddOutlined'
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import FullscreenOutlinedIcon from '@mui/icons-material/FullscreenOutlined'
 import NavigateBeforeOutlinedIcon from '@mui/icons-material/NavigateBeforeOutlined'
 import NavigateNextOutlinedIcon from '@mui/icons-material/NavigateNextOutlined'
@@ -24,6 +26,8 @@ import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import VerticalSplitOutlinedIcon from '@mui/icons-material/VerticalSplitOutlined'
+import ZoomInOutlinedIcon from '@mui/icons-material/ZoomInOutlined'
+import ZoomOutOutlinedIcon from '@mui/icons-material/ZoomOutOutlined'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
@@ -53,6 +57,11 @@ const highlightColorCss: Record<MaterialHighlightColor, string> = {
 
 type ViewerMode = 'pdf' | 'text' | 'split'
 
+const splitViewerPanelHeight = {
+  lg: 'clamp(680px, calc(100vh - 160px), 1080px)',
+  xs: '75vh',
+} as const
+
 export function MaterialViewerPage() {
   const { materialId } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -67,8 +76,10 @@ export function MaterialViewerPage() {
 
   const [numPages, setNumPages] = useState(0)
   const [page, setPage] = useState(1)
-  const [scale, setScale] = useState(1.25)
+  const [scale, setScale] = useState(1)
+  const [pdfContainerWidth, setPdfContainerWidth] = useState(0)
   const [viewerMode, setViewerMode] = useState<ViewerMode>('pdf')
+  const [isStudyPanelOpen, setIsStudyPanelOpen] = useState(false)
   const [viewerModeInitialized, setViewerModeInitialized] = useState(false)
   const [textSearch, setTextSearch] = useState('')
   const [pdfError, setPdfError] = useState('')
@@ -87,6 +98,18 @@ export function MaterialViewerPage() {
   const extractedTextQuery = useMaterialExtractedText(materialId, viewerMode !== 'pdf')
   const notesQuery = useMaterialNotes(materialId)
   const bookmarksQuery = useMaterialBookmarks(materialId)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateWidth = () => setPdfContainerWidth(container.clientWidth)
+    updateWidth()
+
+    const resizeObserver = new ResizeObserver(updateWidth)
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [viewerMode, viewerQuery.data])
 
   const focusPendingSelection = useCallback(() => {
     const pending = pendingFocusRef.current
@@ -333,6 +356,20 @@ export function MaterialViewerPage() {
     setPage(Math.min(Math.max(1, nextPage), Math.max(1, numPages || viewerQuery.data?.pageCount || 1)))
   }
 
+  function handleViewerKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+      event.preventDefault()
+      goToPage(page - 1)
+    }
+
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+      event.preventDefault()
+      goToPage(page + 1)
+    }
+  }
+
   function goToSavedItem(nextPage: number, note?: MaterialNote) {
     const targetPage = Math.min(
       Math.max(1, nextPage),
@@ -340,6 +377,7 @@ export function MaterialViewerPage() {
     )
 
     setViewerMode('pdf')
+    setIsStudyPanelOpen(false)
     pendingFocusRef.current = note?.selectedText
       ? { noteId: note.id, selectedText: note.selectedText }
       : null
@@ -390,6 +428,46 @@ export function MaterialViewerPage() {
     return <Alert severity="error">PDF görüntüleyici verisi alınamadı.</Alert>
   }
 
+  const totalPageCount = Math.max(1, numPages || viewer.pageCount || 1)
+  const renderTextPageNavigation = () => (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{
+        alignItems: 'center',
+        bgcolor: 'background.default',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 999,
+        justifyContent: 'center',
+        mx: 'auto',
+        px: 1,
+        py: 0.75,
+        width: 'fit-content',
+      }}
+    >
+      <Button
+        disabled={page <= 1}
+        onClick={() => goToPage(page - 1)}
+        size="small"
+        startIcon={<NavigateBeforeOutlinedIcon />}
+      >
+        Önceki
+      </Button>
+      <Typography sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', fontWeight: 800, minWidth: 86, textAlign: 'center' }}>
+        {page} / {totalPageCount}
+      </Typography>
+      <Button
+        disabled={page >= totalPageCount}
+        endIcon={<NavigateNextOutlinedIcon />}
+        onClick={() => goToPage(page + 1)}
+        size="small"
+      >
+        Sonraki
+      </Button>
+    </Stack>
+  )
+
   return (
     <Stack spacing={2.5}>
       <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
@@ -406,21 +484,19 @@ export function MaterialViewerPage() {
           </Box>
 
           <Stack direction="row" spacing={1}>
-            <IconButton disabled={page <= 1} onClick={() => goToPage(page - 1)}>
-              <NavigateBeforeOutlinedIcon />
-            </IconButton>
-            <IconButton
-              disabled={page >= Math.max(1, numPages || viewer.pageCount || 1)}
-              onClick={() => goToPage(page + 1)}
-            >
-              <NavigateNextOutlinedIcon />
-            </IconButton>
             <Button
               onClick={() => createBookmarkMutation.mutate()}
               startIcon={<BookmarkAddOutlinedIcon />}
               variant="outlined"
             >
               Yer İşareti Ekle
+            </Button>
+            <Button
+              onClick={() => setIsStudyPanelOpen(true)}
+              startIcon={<NoteAddOutlinedIcon />}
+              variant="outlined"
+            >
+              Notlar ve İşaretler
             </Button>
           </Stack>
         </Stack>
@@ -494,7 +570,9 @@ export function MaterialViewerPage() {
           display: 'grid',
           gap: 2.5,
           gridTemplateColumns: {
-            lg: viewerMode === 'split' ? 'minmax(0, 1.15fr) minmax(360px, 0.85fr)' : 'minmax(0, 1.7fr) minmax(320px, 1fr)',
+            lg: viewerMode === 'split'
+              ? 'minmax(0, 1.15fr) minmax(360px, 0.85fr)'
+              : 'minmax(0, 1fr)',
             xs: 'minmax(0, 1fr)',
           },
         }}
@@ -502,19 +580,125 @@ export function MaterialViewerPage() {
         <Paper
           ref={containerRef}
           tabIndex={-1}
+          onKeyDown={handleViewerKeyDown}
           onMouseUpCapture={onMouseUpCapture}
           sx={{
+            bgcolor: '#eef2f7',
             borderRadius: 3,
             display: viewerMode === 'text' ? 'none' : 'block',
             height: viewerMode === 'split'
-              ? { lg: 'clamp(560px, calc(100vh - 220px), 860px)', xs: '72vh' }
-              : 'auto',
-            maxHeight: viewerMode === 'split' ? 'none' : { md: 'calc(100vh - 220px)', xs: '72vh' },
+              ? splitViewerPanelHeight
+              : { md: 'clamp(680px, calc(100vh - 160px), 1080px)', xs: '75vh' },
             overflow: 'auto',
             position: 'relative',
+            scrollbarGutter: 'stable both-edges',
+            '&:fullscreen': {
+              bgcolor: '#e8edf3',
+              borderRadius: 0,
+              height: '100vh',
+              maxHeight: 'none',
+              p: 2,
+            },
           }}
           variant="outlined"
         >
+          <Box
+            sx={{
+              alignItems: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+              minHeight: 62,
+              px: 1,
+              pointerEvents: 'none',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+            }}
+          >
+            <Paper
+              elevation={0}
+              sx={{
+                alignItems: 'center',
+                backdropFilter: 'blur(14px)',
+                bgcolor: 'rgba(255,255,255,0.92)',
+                border: '1px solid rgba(148,163,184,0.35)',
+                borderRadius: 999,
+                boxShadow: '0 10px 32px rgba(15,23,42,0.18)',
+                display: 'flex',
+                gap: 0.5,
+                maxWidth: '100%',
+                minHeight: 46,
+                overflowX: 'auto',
+                px: 0.75,
+                py: 0.5,
+                pointerEvents: 'auto',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+                '& .MuiIconButton-root': {
+                  flex: '0 0 auto',
+                  height: 34,
+                  width: 34,
+                },
+                '& .MuiTypography-root': {
+                  flex: '0 0 auto',
+                },
+              }}
+            >
+              <IconButton
+                aria-label="Önceki sayfa"
+                disabled={page <= 1}
+                onClick={() => goToPage(page - 1)}
+                size="small"
+              >
+                <NavigateBeforeOutlinedIcon />
+              </IconButton>
+              <Typography
+                sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', fontWeight: 800, minWidth: 72, textAlign: 'center' }}
+              >
+                {page} / {Math.max(1, numPages || viewer.pageCount || 1)}
+              </Typography>
+              <IconButton
+                aria-label="Sonraki sayfa"
+                disabled={page >= Math.max(1, numPages || viewer.pageCount || 1)}
+                onClick={() => goToPage(page + 1)}
+                size="small"
+              >
+                <NavigateNextOutlinedIcon />
+              </IconButton>
+              <Divider flexItem orientation="vertical" sx={{ mx: 0.5 }} />
+              <IconButton
+                aria-label="Uzaklaştır"
+                disabled={scale <= 0.6}
+                onClick={() => setScale((current) => Math.max(0.6, Number((current - 0.1).toFixed(1))))}
+                size="small"
+              >
+                <ZoomOutOutlinedIcon fontSize="small" />
+              </IconButton>
+              <Typography
+                sx={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', fontWeight: 700, minWidth: 42, textAlign: 'center' }}
+              >
+                %{Math.round(scale * 100)}
+              </Typography>
+              <IconButton
+                aria-label="Yakınlaştır"
+                disabled={scale >= 2.2}
+                onClick={() => setScale((current) => Math.min(2.2, Number((current + 0.1).toFixed(1))))}
+                size="small"
+              >
+                <ZoomInOutlinedIcon fontSize="small" />
+              </IconButton>
+              <Divider flexItem orientation="vertical" sx={{ mx: 0.5 }} />
+              <IconButton
+                aria-label="Notlar ve işaretleri aç"
+                onClick={() => setIsStudyPanelOpen(true)}
+                size="small"
+                title="Notlar ve işaretler"
+              >
+                <NoteAddOutlinedIcon fontSize="small" />
+              </IconButton>
+            </Paper>
+          </Box>
+
           {viewer.watermarkText && (
             <Box
               sx={{
@@ -534,7 +718,18 @@ export function MaterialViewerPage() {
             </Box>
           )}
 
-          <Box sx={{ alignItems: 'center', display: 'flex', flexDirection: 'column', gap: 2, minWidth: 'max-content', p: 2 }}>
+          <Box
+            sx={{
+              alignItems: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              minWidth: '100%',
+              p: 2,
+              pt: 3,
+              width: 'fit-content',
+            }}
+          >
             <Document
               file={pdfFileUrl}
               loading={<Skeleton height={520} variant="rounded" />}
@@ -556,7 +751,14 @@ export function MaterialViewerPage() {
                 </Stack>
               }
             >
-              <Box sx={{ bgcolor: 'background.paper', boxShadow: '0 8px 24px rgba(15,23,42,0.10)' }}>
+              <Box
+                sx={{
+                  bgcolor: 'background.paper',
+                  border: '1px solid rgba(148,163,184,0.24)',
+                  boxShadow: '0 18px 48px rgba(15,23,42,0.16)',
+                  lineHeight: 0,
+                }}
+              >
                 <Page
                   inputRef={pageElementRef}
                   onRenderTextLayerSuccess={focusPendingSelection}
@@ -564,6 +766,7 @@ export function MaterialViewerPage() {
                   renderAnnotationLayer
                   renderTextLayer
                   scale={scale}
+                  width={pdfContainerWidth > 0 ? Math.max(320, pdfContainerWidth - 52) : undefined}
                   customTextRenderer={customTextRenderer}
                   loading={<Skeleton height={520} variant="rounded" width={720} />}
                 />
@@ -578,7 +781,7 @@ export function MaterialViewerPage() {
             sx={{
               borderRadius: 3,
               height: viewerMode === 'split'
-                ? { lg: 'clamp(560px, calc(100vh - 220px), 860px)', xs: '72vh' }
+                ? splitViewerPanelHeight
                 : 'auto',
               minHeight: viewerMode === 'split' ? 0 : 520,
               overflow: viewerMode === 'split' ? 'auto' : 'hidden',
@@ -588,6 +791,12 @@ export function MaterialViewerPage() {
             }}
             variant="outlined"
           >
+            {!textSearch.trim() && (
+              <Box sx={{ mb: 2 }}>
+                {renderTextPageNavigation()}
+              </Box>
+            )}
+
             {extractedTextQuery.isLoading ? (
               <Stack spacing={1.5}>
                 <Skeleton height={34} variant="rounded" />
@@ -632,10 +841,55 @@ export function MaterialViewerPage() {
                 ))}
               </Stack>
             )}
+
+            {!textSearch.trim() && !extractedTextQuery.isLoading && !extractedTextQuery.isError && (
+              <Box sx={{ mt: 2 }}>
+                {renderTextPageNavigation()}
+              </Box>
+            )}
           </Paper>
         )}
 
-        <Stack spacing={2.5} sx={viewerMode === 'split' ? { gridColumn: { lg: '1 / -1' } } : undefined}>
+        <Drawer
+          anchor="right"
+          onClose={() => setIsStudyPanelOpen(false)}
+          open={isStudyPanelOpen}
+          slotProps={{
+            paper: {
+              sx: {
+                bgcolor: 'background.default',
+                width: { sm: 420, xs: '100%' },
+              },
+            },
+          }}
+        >
+          <Box sx={{ minHeight: '100%', overflowY: 'auto' }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+                bgcolor: 'background.paper',
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                justifyContent: 'space-between',
+                px: 2.5,
+                py: 2,
+                position: 'sticky',
+                top: 0,
+                zIndex: 2,
+              }}
+            >
+              <Box>
+                <Typography sx={{ fontWeight: 900 }} variant="h6">Notlar ve İşaretler</Typography>
+                <Typography color="text.secondary" variant="body2">Sayfa {page} üzerinde çalışıyorsun.</Typography>
+              </Box>
+              <IconButton aria-label="Paneli kapat" onClick={() => setIsStudyPanelOpen(false)}>
+                <CloseOutlinedIcon />
+              </IconButton>
+            </Stack>
+
+            <Stack spacing={2} sx={{ p: 2.5 }}>
           <Paper sx={{ borderRadius: 3, p: 2.5 }} variant="outlined">
             <Typography sx={{ fontWeight: 900, mb: 1.5 }} variant="subtitle1">
               Notlar / Vurgular
@@ -755,7 +1009,9 @@ export function MaterialViewerPage() {
               </Typography>
             )}
           </Paper>
-        </Stack>
+            </Stack>
+          </Box>
+        </Drawer>
       </Box>
     </Stack>
   )

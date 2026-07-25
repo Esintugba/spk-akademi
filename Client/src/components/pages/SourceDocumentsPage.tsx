@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined'
+import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined'
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded'
@@ -134,6 +135,20 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
     }
   }
 
+  async function handleTextReextract(document: SourceDocument) {
+    setBusyId(document.id)
+    setError('')
+    try {
+      const text = await api.extractSourceDocumentText(document.id)
+      setTextPreview(text)
+      await onChanged()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF metni yeniden çıkarılamadı.')
+    } finally {
+      setBusyId('')
+    }
+  }
+
   async function handlePdf(document: SourceDocument) {
     setBusyId(document.id)
     setError('')
@@ -206,6 +221,13 @@ export function SourceDocumentsPage({ courses, sourceDocuments, onChanged }: Sou
                           <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} onClick={() => setDetailDocument(document)}><InfoOutlinedIcon fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="PDF"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} disabled={busyId === document.id} onClick={() => void handlePdf(document)}><PictureAsPdfOutlinedIcon fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Metin"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} disabled={busyId === document.id} onClick={() => handleText(document)}><TextSnippetOutlinedIcon fontSize="small" /></IconButton></Tooltip>
+                          {document.textExtractedAt && (
+                            <Tooltip title="Metni yeniden çıkar">
+                              <IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} disabled={busyId === document.id} onClick={() => handleTextReextract(document)}>
+                                <RefreshOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0, height: 32, width: 32 }} color="error" disabled={busyId === document.id} onClick={() => handleDelete(document)}><DeleteOutlineIcon fontSize="small" /></IconButton></Tooltip>
                         </Stack>
                       </Stack>
