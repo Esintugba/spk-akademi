@@ -134,6 +134,7 @@ public class QuestionImportService(
             var skippedDuplicateRows = duplicateByRow.Keys
                 .Where(rowNumber => !invalidRows.Contains(rowNumber) && ResolveDuplicateAction(rowNumber, duplicateDecisions) == DuplicateImportAction.Skip)
                 .ToHashSet();
+            var failedOverwriteRows = new HashSet<int>();
 
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
             var topics = await context.Topics
@@ -183,7 +184,7 @@ public class QuestionImportService(
 
                 if (question is null)
                 {
-                    skippedDuplicateRows.Add(row.RowNumber);
+                    failedOverwriteRows.Add(row.RowNumber);
                     continue;
                 }
 
@@ -208,8 +209,10 @@ public class QuestionImportService(
 
             await transaction.CommitAsync(cancellationToken);
 
-            job.SuccessfulRows = importRows.Count + overwriteRows.Count - skippedDuplicateRows.Count(row => overwriteRows.Any(x => x.RowNumber == row));
-            job.FailedRows = rows.Count - job.SuccessfulRows;
+            var overwrittenRows = overwriteRows.Count - failedOverwriteRows.Count;
+            job.SuccessfulRows = importRows.Count + overwrittenRows;
+            job.SkippedRows = skippedDuplicateRows.Count;
+            job.FailedRows = invalidRows.Count + failedOverwriteRows.Count;
             job.Status = job.FailedRows == 0 ? ImportJobStatus.Completed : ImportJobStatus.PartiallyCompleted;
             job.CompletedAt = DateTime.UtcNow;
             job.Summary = JsonSerializer.Serialize(new
@@ -221,7 +224,7 @@ public class QuestionImportService(
                 {
                     Skipped = skippedDuplicateRows.Count,
                     CreatedNew = importRows.Count(x => duplicateByRow.ContainsKey(x.RowNumber)),
-                    Overwritten = overwriteRows.Count - skippedDuplicateRows.Count(row => overwriteRows.Any(x => x.RowNumber == row))
+                    Overwritten = overwrittenRows
                 }
             });
 
@@ -236,19 +239,13 @@ public class QuestionImportService(
                 });
             }
 
-            foreach (var duplicate in preview.Duplicates)
+            foreach (var rowNumber in failedOverwriteRows)
             {
-                if (!duplicate.RowNumber.HasValue || !skippedDuplicateRows.Contains(duplicate.RowNumber.Value))
-                {
-                    continue;
-                }
-
                 job.Errors.Add(new ImportError
                 {
-                    RowNumber = duplicate.RowNumber ?? 0,
+                    RowNumber = rowNumber,
                     ColumnName = "Duplicate",
-                    ErrorMessage = $"{duplicate.MatchType} duplicate: {duplicate.SimilarityScore:P1}",
-                    RawData = duplicate.MatchedQuestionText
+                    ErrorMessage = "Üzerine yazılacak eşleşen soru bulunamadı."
                 });
             }
 
@@ -360,6 +357,7 @@ public class QuestionImportService(
             job.Status,
             job.TotalRows,
             job.SuccessfulRows,
+            job.SkippedRows,
             job.FailedRows,
             job.StartedAt,
             job.CompletedAt,

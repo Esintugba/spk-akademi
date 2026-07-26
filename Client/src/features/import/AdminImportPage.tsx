@@ -35,7 +35,7 @@ const statusLabels: Record<ImportJobStatus, string> = {
   [ImportJobStatus.Processing]: 'İşleniyor',
   [ImportJobStatus.Completed]: 'Tamamlandı',
   [ImportJobStatus.Failed]: 'Başarısız',
-  [ImportJobStatus.PartiallyCompleted]: 'İsmen tamamlandı',
+  [ImportJobStatus.PartiallyCompleted]: 'Kısmen tamamlandı',
 }
 
 const duplicateLabels: Record<DuplicateMatchType, string> = {
@@ -128,7 +128,7 @@ export function AdminImportPage() {
       return 0
     }
 
-    return Math.round(((job.successfulRows + job.failedRows) / job.totalRows) * 100)
+    return Math.round(((job.successfulRows + job.skippedRows + job.failedRows) / job.totalRows) * 100)
   }, [jobQuery.data])
 
   function handleFile(nextFile: File | undefined) {
@@ -326,7 +326,7 @@ export function AdminImportPage() {
             </Stack>
             <LinearProgress value={progress} variant="determinate" />
             <Typography color="text.secondary" variant="body2">
-              Başarılı: {jobQuery.data.successfulRows} | Hatalı: {jobQuery.data.failedRows} | Toplam: {jobQuery.data.totalRows}
+              Başarılı: {jobQuery.data.successfulRows} | Atlanan: {jobQuery.data.skippedRows} | Hatalı: {jobQuery.data.failedRows} | Toplam: {jobQuery.data.totalRows}
             </Typography>
             {jobQuery.data.errors.length > 0 && <ErrorTable errors={jobQuery.data.errors} />}
           </Stack>

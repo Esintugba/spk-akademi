@@ -826,6 +826,9 @@ namespace API.Migrations.PostgresTypeProbe
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<int>("SkippedRows")
+                        .HasColumnType("integer");
+
                     b.Property<string>("StoredFilePath")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

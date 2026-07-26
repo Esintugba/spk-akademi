@@ -53,6 +53,7 @@ public record ImportJobDto(
     ImportJobStatus Status,
     int TotalRows,
     int SuccessfulRows,
+    int SkippedRows,
     int FailedRows,
     DateTime? StartedAt,
     DateTime? CompletedAt,

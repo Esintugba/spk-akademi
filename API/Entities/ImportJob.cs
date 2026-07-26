@@ -12,6 +12,8 @@ public class ImportJob : BaseEntity
 
     public int SuccessfulRows { get; set; }
 
+    public int SkippedRows { get; set; }
+
     public int FailedRows { get; set; }
 
     public DateTime? StartedAt { get; set; }

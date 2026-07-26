@@ -86,6 +86,7 @@ export interface ImportJob {
   status: ImportJobStatus
   totalRows: number
   successfulRows: number
+  skippedRows: number
   failedRows: number
   startedAt: string | null
   completedAt: string | null
