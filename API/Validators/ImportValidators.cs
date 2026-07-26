@@ -1,4 +1,5 @@
 using API.Dtos;
+using API.Services;
 using FluentValidation;
 
 namespace API.Validators;
@@ -18,6 +19,9 @@ public class QuestionImportRowValidator : AbstractValidator<QuestionImportRowDto
         RuleFor(x => x.Topic).MaximumLength(250);
         RuleFor(x => x.Course).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Explanation).MaximumLength(4000);
+        RuleFor(x => x.Difficulty)
+            .Must(QuestionImportDifficultyParser.IsSupported)
+            .WithMessage("Difficulty; Kolay, Orta, Zor veya Easy, Medium, Hard olmalıdır.");
         RuleFor(x => x.ExamYear).InclusiveBetween(1990, 2100).When(x => x.ExamYear.HasValue);
 
         RuleFor(x => x)

@@ -317,7 +317,7 @@ public class QuestionImportService(
     }
 
     private static QuestionDifficulty ParseDifficulty(string? value) =>
-        Enum.TryParse<QuestionDifficulty>(value, true, out var difficulty) ? difficulty : QuestionDifficulty.Medium;
+        QuestionImportDifficultyParser.ParseOrDefault(value);
 
     private static ExamType? ParseExamType(string? value) =>
         Enum.TryParse<ExamType>(value, true, out var examType) ? examType : null;
