@@ -93,6 +93,28 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     [topics],
   )
 
+  const listSummary = useMemo(() => {
+    const totalTopics = new Set(questions.map((question) => question.topicId)).size
+    const visibleTopics = new Set(filteredQuestions.map((question) => question.topicId)).size
+    const hasActiveFilters = Boolean(
+      search.trim() ||
+      topicFilter ||
+      difficultyFilter ||
+      reviewStatusFilter ||
+      pastExamFilter,
+    )
+
+    return {
+      hasActiveFilters,
+      questionLabel: hasActiveFilters
+        ? `${filteredQuestions.length} / ${questions.length} soru`
+        : `${questions.length} soru`,
+      topicLabel: hasActiveFilters
+        ? `${visibleTopics} / ${totalTopics} konu`
+        : `${totalTopics} konu`,
+    }
+  }, [difficultyFilter, filteredQuestions, pastExamFilter, questions, reviewStatusFilter, search, topicFilter])
+
   function getTopicTitle(id: string) {
     return topics.find((topic) => topic.id === id)?.title ?? 'Konu bulunamadı'
   }
@@ -250,7 +272,25 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
       {error && <ErrorBanner message={error} />}
 
       <Box>
-        <AdminSurface title="Soru listesi">
+        <AdminSurface
+          title="Soru listesi"
+          headerActions={(
+            <Stack direction="row" spacing={1} sx={{ alignSelf: { sm: 'auto', xs: 'flex-end' } }}>
+              <Chip
+                color={listSummary.hasActiveFilters ? 'primary' : 'default'}
+                label={listSummary.questionLabel}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                color={listSummary.hasActiveFilters ? 'primary' : 'default'}
+                label={listSummary.topicLabel}
+                size="small"
+                variant="outlined"
+              />
+            </Stack>
+          )}
+        >
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
               <TextField fullWidth label="Soru ara" value={search} onChange={(event) => setSearch(event.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> } }} />
