@@ -1,5 +1,9 @@
 import { Box, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
+import {
+  hasQuestionExplanationHtml,
+  sanitizeQuestionExplanationHtml,
+} from '../../utils/questionExplanationHtml'
 
 interface FormattedQuestionExplanationProps {
   text: string
@@ -16,6 +20,23 @@ export function FormattedQuestionExplanation({
   variant = 'body1',
 }: FormattedQuestionExplanationProps) {
   const normalizedText = text.replace(/\r\n?/g, '\n').trim()
+
+  if (hasQuestionExplanationHtml(normalizedText)) {
+    return (
+      <Box
+        dangerouslySetInnerHTML={{ __html: sanitizeQuestionExplanationHtml(normalizedText) }}
+        sx={{
+          fontSize: variant === 'body2' ? '0.875rem' : '1rem',
+          lineHeight: 1.75,
+          overflowWrap: 'anywhere',
+          '& div, & p': { mb: 1, mt: 0 },
+          '& div:last-child, & p:last-child': { mb: 0 },
+          '& ol, & ul': { display: 'grid', gap: 1, mb: 0, mt: 1, pl: 3.5 },
+        }}
+      />
+    )
+  }
+
   const inlineStructure = extractInlineStructure(normalizedText)
 
   if (inlineStructure) {

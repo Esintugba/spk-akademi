@@ -7,6 +7,7 @@ import type { TrialAttemptDetail } from '../../models'
 import { api } from '../../shared/api'
 import { EmptyState } from '../common/EmptyState'
 import { StudentPageHero } from '../common/StudentPageHero'
+import { FormattedQuestionExplanation } from '../common/FormattedQuestionExplanation'
 
 export function TrialAttemptDetailPage() {
   const { attemptId } = useParams()
@@ -101,7 +102,7 @@ export function TrialAttemptDetailPage() {
               </Stack>
               <Typography color="text.secondary">Seçilen seçenek: {answer.selectedOptionId || 'Boş bırakıldı'}</Typography>
               <Typography color="text.secondary">Doğru seçenek: {answer.correctOptionId}</Typography>
-              <Typography sx={{ whiteSpace: 'pre-line' }}>{answer.explanation}</Typography>
+              <FormattedQuestionExplanation text={answer.explanation} />
             </Stack>
           </Paper>
         ))}

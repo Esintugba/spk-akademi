@@ -13,6 +13,8 @@ import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
 import { FormattedQuestionExplanation } from '../common/FormattedQuestionExplanation'
+import { RichTextEditor } from '../common/RichTextEditor'
+import { getQuestionExplanationPlainText } from '../../utils/questionExplanationHtml'
 
 interface QuestionsPageProps {
   questions: Question[]
@@ -192,7 +194,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
 
     if (!topicId) return 'Alt konu seçmelisin.'
     if (text.trim().length < 10) return 'Soru metni en az 10 karakter olmalı.'
-    if (explanation.trim().length < 10) return 'Açıklama en az 10 karakter olmalı.'
+    if (getQuestionExplanationPlainText(explanation).trim().length < 10) return 'Açıklama en az 10 karakter olmalı.'
     if (isPastExamQuestion && (!Number.isInteger(parsedExamYear) || parsedExamYear < minPastExamYear || parsedExamYear > currentYear)) {
       return `Çıkmış soru yılı ${minPastExamYear}-${currentYear} arasında olmalı.`
     }
@@ -352,7 +354,9 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                         </Stack>
                       </Stack>
                       <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere' }}>{question.text}</Typography>
-                      <Typography color="text.secondary" sx={{ mt: 1, overflowWrap: 'anywhere' }}>{question.explanation}</Typography>
+                      <Box color="text.secondary" sx={{ mt: 1 }}>
+                        <FormattedQuestionExplanation text={question.explanation} variant="body2" />
+                      </Box>
                       <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">{question.sourceReference || 'Kaynak belirtilmedi'}</Typography>
                     </CardContent>
                   </Card>
@@ -444,7 +448,12 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                 </Stack>
               ))}
             </Stack>
-            <TextField fullWidth label="Açıklama" rows={3} multiline required value={explanation} onChange={(event) => setExplanation(event.target.value)} />
+            <RichTextEditor
+              label="Açıklama"
+              required
+              value={explanation}
+              onChange={setExplanation}
+            />
             <TextField fullWidth label="Kaynak referansı" value={sourceReference} onChange={(event) => setSourceReference(event.target.value)} />
             <TextField fullWidth label="Kaynak metin" rows={3} multiline value={sourceText} onChange={(event) => setSourceText(event.target.value)} />
             <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
