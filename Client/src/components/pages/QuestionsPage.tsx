@@ -12,6 +12,7 @@ import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
+import { FormattedQuestionExplanation } from '../common/FormattedQuestionExplanation'
 
 interface QuestionsPageProps {
   questions: Question[]
@@ -469,7 +470,10 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
                   </Typography>
                 ))}
               </Stack>
-              <Typography><strong>Açıklama:</strong> {detailQuestion.explanation}</Typography>
+              <Box>
+                <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Açıklama:</Typography>
+                <FormattedQuestionExplanation text={detailQuestion.explanation} />
+              </Box>
               <Typography><strong>Kaynak:</strong> {detailQuestion.sourceReference || 'Yok'}</Typography>
             </Stack>
           )}

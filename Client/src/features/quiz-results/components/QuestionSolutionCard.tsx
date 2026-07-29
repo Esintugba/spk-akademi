@@ -14,6 +14,7 @@ import { memo } from 'react'
 import { QuestionDifficulty } from '../../../models/enums'
 import type { QuizResultDetailAnswer } from '../../../models/quizResult'
 import { useQuizResultStore } from '../../../stores/quizResultStore'
+import { FormattedQuestionExplanation } from '../../../components/common/FormattedQuestionExplanation'
 
 function difficultyLabel(value: QuestionDifficulty) {
   switch (value) {
@@ -115,9 +116,7 @@ function QuestionSolutionCardComponent({ answer, index }: QuestionSolutionCardPr
             </Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0 }}>
-            <Typography sx={{ whiteSpace: 'pre-line' }} variant="body2">
-              {answer.explanation.explanation}
-            </Typography>
+            <FormattedQuestionExplanation text={answer.explanation.explanation} variant="body2" />
             {answer.explanation.solutionNote && (
               <Typography color="text.secondary" sx={{ mt: 1.5, whiteSpace: 'pre-line' }} variant="body2">
                 <strong>Çözüm notu:</strong> {answer.explanation.solutionNote}
