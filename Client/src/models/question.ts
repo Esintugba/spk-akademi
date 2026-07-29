@@ -54,7 +54,7 @@ export interface CreateQuestionOption {
 }
 
 export interface UpdateQuestionOption extends CreateQuestionOption {
-  id: string
+  id?: string | null
 }
 
 export interface UpdateQuestion extends Omit<CreateQuestion, 'options'> {

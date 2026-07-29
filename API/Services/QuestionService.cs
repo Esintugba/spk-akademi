@@ -142,10 +142,13 @@ public class QuestionService(
             return QuestionServiceOutcome<bool>.Fail(validation.Value.Error, validation.Value.Message);
         }
 
-        var optionIds = dto.Options.Select(option => option.Id).ToList();
-        if (optionIds.Distinct().Count() != optionIds.Count ||
-            optionIds.Count != question.Options.Count ||
-            question.Options.Any(option => !optionIds.Contains(option.Id)))
+        var existingOptionIds = dto.Options
+            .Where(option => option.Id.HasValue)
+            .Select(option => option.Id!.Value)
+            .ToList();
+        if (existingOptionIds.Distinct().Count() != existingOptionIds.Count ||
+            existingOptionIds.Count != question.Options.Count ||
+            question.Options.Any(option => !existingOptionIds.Contains(option.Id)))
         {
             return QuestionServiceOutcome<bool>.Fail(
                 QuestionServiceError.InvalidOption,
@@ -171,11 +174,22 @@ public class QuestionService(
         var optionsById = question.Options.ToDictionary(option => option.Id);
         foreach (var optionDto in dto.Options)
         {
-            var option = optionsById[optionDto.Id];
-            option.Label = optionDto.Label;
-            option.Text = optionDto.Text;
-            option.IsCorrect = optionDto.IsCorrect;
-            option.UpdatedAt = DateTime.UtcNow;
+            if (optionDto.Id.HasValue)
+            {
+                var option = optionsById[optionDto.Id.Value];
+                option.Label = optionDto.Label;
+                option.Text = optionDto.Text;
+                option.IsCorrect = optionDto.IsCorrect;
+                option.UpdatedAt = DateTime.UtcNow;
+                continue;
+            }
+
+            question.Options.Add(new QuestionOption
+            {
+                Label = optionDto.Label,
+                Text = optionDto.Text,
+                IsCorrect = optionDto.IsCorrect
+            });
         }
 
         await questions.SaveChangesAsync(cancellationToken);

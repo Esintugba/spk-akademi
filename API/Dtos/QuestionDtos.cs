@@ -73,7 +73,7 @@ public record UpdateQuestionDto(
     IReadOnlyList<UpdateQuestionOptionDto> Options);
 
 public record UpdateQuestionOptionDto(
-    Guid Id,
+    Guid? Id,
     string Label,
     string Text,
     bool IsCorrect);

@@ -24,6 +24,7 @@ const defaultOptions: CreateQuestionOption[] = [
   { label: 'B', text: '', isCorrect: false },
   { label: 'C', text: '', isCorrect: false },
   { label: 'D', text: '', isCorrect: false },
+  { label: 'E', text: '', isCorrect: false },
 ]
 
 const minPastExamYear = 1990
@@ -170,7 +171,16 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setExamYear(question.examYear?.toString() ?? '')
     setExamType(question.examType ?? '')
     setExamSession(question.examSession ?? '')
-    setOptions(question.options.map((option) => ({ id: option.id, label: option.label, text: option.text, isCorrect: option.isCorrect })))
+    const editableOptions: EditableQuestionOption[] = question.options.map((option) => ({
+      id: option.id,
+      label: option.label,
+      text: option.text,
+      isCorrect: option.isCorrect,
+    }))
+    if (editableOptions.length === 4 && !editableOptions.some((option) => option.label.toLocaleUpperCase('tr-TR') === 'E')) {
+      editableOptions.push({ label: 'E', text: '', isCorrect: false })
+    }
+    setOptions(editableOptions)
     setFieldError('')
     setIsFormDrawerOpen(true)
   }
@@ -228,7 +238,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
         await api.updateQuestion(editingQuestion.id, {
           ...payload,
           options: options.map((option) => ({
-            id: option.id as string,
+            id: option.id ?? null,
             label: option.label,
             text: option.text.trim(),
             isCorrect: option.isCorrect,
