@@ -172,6 +172,7 @@ public class QuestionService(
         question.UpdatedAt = DateTime.UtcNow;
 
         var optionsById = question.Options.ToDictionary(option => option.Id);
+        var newOptions = new List<QuestionOption>();
         foreach (var optionDto in dto.Options)
         {
             if (optionDto.Id.HasValue)
@@ -184,13 +185,15 @@ public class QuestionService(
                 continue;
             }
 
-            question.Options.Add(new QuestionOption
+            newOptions.Add(new QuestionOption
             {
+                QuestionId = question.Id,
                 Label = optionDto.Label,
                 Text = optionDto.Text,
                 IsCorrect = optionDto.IsCorrect
             });
         }
+        questions.AddOptions(newOptions);
 
         await questions.SaveChangesAsync(cancellationToken);
         licenseCatalogCache.Invalidate();

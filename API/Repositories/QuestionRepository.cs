@@ -21,6 +21,8 @@ public interface IQuestionRepository
 
     Task AddAsync(Question question, CancellationToken cancellationToken = default);
 
+    void AddOptions(IEnumerable<QuestionOption> options);
+
     void RemoveOptions(IEnumerable<QuestionOption> options);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
@@ -77,6 +79,9 @@ public class QuestionRepository(DataContext context) : IQuestionRepository
 
     public async Task AddAsync(Question question, CancellationToken cancellationToken = default) =>
         await context.Questions.AddAsync(question, cancellationToken);
+
+    public void AddOptions(IEnumerable<QuestionOption> options) =>
+        context.QuestionOptions.AddRange(options);
 
     public void RemoveOptions(IEnumerable<QuestionOption> options) =>
         context.QuestionOptions.RemoveRange(options);
