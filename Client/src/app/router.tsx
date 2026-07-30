@@ -184,14 +184,13 @@ function StudyNotesRoute() {
 }
 
 function QuestionsRoute() {
-  const questionsQuery = useQuestions()
   const topicsQuery = useTopics()
   const { reloadQuestions } = useAdminCatalogInvalidation()
 
-  if (questionsQuery.isLoading || topicsQuery.isLoading) return <RouteDataFallback />
-  if (questionsQuery.isError || topicsQuery.isError) return <RouteDataError />
+  if (topicsQuery.isLoading) return <RouteDataFallback />
+  if (topicsQuery.isError) return <RouteDataError />
 
-  return <QuestionsPage questions={questionsQuery.data ?? []} topics={topicsQuery.data ?? []} onChanged={reloadQuestions} />
+  return <QuestionsPage topics={topicsQuery.data ?? []} onChanged={reloadQuestions} />
 }
 
 function SourceDocumentsRoute() {

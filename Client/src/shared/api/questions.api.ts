@@ -1,8 +1,10 @@
-import type { CreateQuestion, PastExamAnalytics, PastExamQuestionListResponse, Question, UpdateQuestion } from '../../models'
+import type { CreateQuestion, PastExamAnalytics, PastExamQuestionListResponse, Question, QuestionListQuery, QuestionListResponse, UpdateQuestion } from '../../models'
 import { request } from './client'
 
 export const questionsApi = {
   getAll: (topicId?: string) => request.get<Question[]>('/api/questions', { params: { topicId } }),
+  getPage: (params: QuestionListQuery) =>
+    request.get<QuestionListResponse>('/api/questions/paged', { params }),
   getByReviewStatus: (reviewStatus?: number, topicId?: string) =>
     request.get<Question[]>('/api/questions', { params: { reviewStatus, topicId } }),
   getById: (id: string) => request.get<Question>(`/api/questions/${id}`),

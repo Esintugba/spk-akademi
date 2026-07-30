@@ -1,12 +1,13 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import AddRoundedIcon from '@mui/icons-material/AddRounded'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
-import { Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
-import { ContentAccessLevel, ExamSession, ExamType, QuestionDifficulty, QuestionType, ReviewStatus, TopicType, type CreateQuestionOption, type Question, type Topic } from '../../models'
+import { Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, InputAdornment, MenuItem, Pagination, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from '@mui/material'
+import { ContentAccessLevel, ExamSession, ExamType, QuestionDifficulty, QuestionType, ReviewStatus, TopicType, type CreateQuestionOption, type Question, type QuestionListItem, type Topic } from '../../models'
 import { api } from '../../shared/api'
+import { useQuestionPage } from '../../shared/hooks'
 import { AdminPageHero } from '../common/AdminPageHero'
 import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
@@ -17,7 +18,6 @@ import { RichTextEditor } from '../common/RichTextEditor'
 import { getQuestionExplanationPlainText } from '../../utils/questionExplanationHtml'
 
 interface QuestionsPageProps {
-  questions: Question[]
   topics: Topic[]
   onChanged: () => Promise<void>
 }
@@ -34,7 +34,9 @@ const minPastExamYear = 1990
 
 type EditableQuestionOption = CreateQuestionOption & { id?: string }
 
-export function QuestionsPage({ questions, topics, onChanged }: QuestionsPageProps) {
+const pageSize = 24
+
+export function QuestionsPage({ topics, onChanged }: QuestionsPageProps) {
   const [topicId, setTopicId] = useState('')
   const [text, setText] = useState('')
   const [explanation, setExplanation] = useState('')
@@ -49,48 +51,48 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   const [options, setOptions] = useState<EditableQuestionOption[]>(defaultOptions)
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null)
   const [detailQuestion, setDetailQuestion] = useState<Question | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Question | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<QuestionListItem | null>(null)
   const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false)
   const [topicFilter, setTopicFilter] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [reviewStatusFilter, setReviewStatusFilter] = useState('')
   const [pastExamFilter, setPastExamFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [error, setError] = useState('')
   const [fieldError, setFieldError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [busyId, setBusyId] = useState('')
 
-  const filteredQuestions = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('tr-TR')
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim())
+      setPage(1)
+    }, 400)
+    return () => window.clearTimeout(timeoutId)
+  }, [search])
 
-    return questions.filter((question) => {
-      const topic = topics.find((item) => item.id === question.topicId)
-      const matchesTopic = !topicFilter || question.topicId === topicFilter
-      const matchesDifficulty = !difficultyFilter || question.difficulty === Number(difficultyFilter)
-      const matchesReviewStatus = !reviewStatusFilter || question.reviewStatus === Number(reviewStatusFilter)
-      const matchesPastExam =
-        !pastExamFilter ||
-        (pastExamFilter === 'past' && question.isPastExamQuestion) ||
-        (pastExamFilter === 'standard' && !question.isPastExamQuestion)
-      const matchesSearch =
-        !term ||
-        [
-          question.text,
-          question.explanation,
-          question.sourceReference ?? '',
-          topic?.title ?? '',
-          question.examYear?.toString() ?? '',
-          question.examType != null ? ExamType[question.examType] : '',
-          question.examSession != null ? ExamSession[question.examSession] : '',
-        ]
-          .join(' ')
-          .toLocaleLowerCase('tr-TR')
-          .includes(term)
+  const questionsQuery = useQuestionPage({
+    topicId: topicFilter || undefined,
+    difficulty: difficultyFilter ? Number(difficultyFilter) as QuestionDifficulty : undefined,
+    reviewStatus: reviewStatusFilter ? Number(reviewStatusFilter) as ReviewStatus : undefined,
+    isPastExamQuestion: pastExamFilter ? pastExamFilter === 'past' : undefined,
+    search: debouncedSearch || undefined,
+    page,
+    pageSize,
+  })
+  const questions = questionsQuery.data?.items ?? []
+  const totalCount = questionsQuery.data?.totalCount ?? 0
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
+  const topicTitleById = useMemo(
+    () => new Map(topics.map((topic) => [topic.id, topic.title])),
+    [topics],
+  )
 
-      return matchesTopic && matchesDifficulty && matchesReviewStatus && matchesPastExam && matchesSearch
-    })
-  }, [difficultyFilter, pastExamFilter, questions, reviewStatusFilter, search, topicFilter, topics])
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount)
+  }, [page, pageCount])
 
   const subTopics = useMemo(
     () => topics.filter((topic) => topic.type === TopicType.SubTopic || topic.parentTopicId),
@@ -98,10 +100,8 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
   )
 
   const listSummary = useMemo(() => {
-    const totalTopics = new Set(questions.map((question) => question.topicId)).size
-    const visibleTopics = new Set(filteredQuestions.map((question) => question.topicId)).size
     const hasActiveFilters = Boolean(
-      search.trim() ||
+      debouncedSearch ||
       topicFilter ||
       difficultyFilter ||
       reviewStatusFilter ||
@@ -110,25 +110,21 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
 
     return {
       hasActiveFilters,
-      questionLabel: hasActiveFilters
-        ? `${filteredQuestions.length} / ${questions.length} soru`
-        : `${questions.length} soru`,
-      topicLabel: hasActiveFilters
-        ? `${visibleTopics} / ${totalTopics} konu`
-        : `${totalTopics} konu`,
+      questionLabel: `${totalCount} soru`,
+      pageLabel: totalCount > 0 ? `${page} / ${pageCount} sayfa` : '0 sayfa',
     }
-  }, [difficultyFilter, filteredQuestions, pastExamFilter, questions, reviewStatusFilter, search, topicFilter])
+  }, [debouncedSearch, difficultyFilter, page, pageCount, pastExamFilter, reviewStatusFilter, topicFilter, totalCount])
 
-  function getTopicTitle(id: string) {
-    return topics.find((topic) => topic.id === id)?.title ?? 'Konu bulunamadı'
-  }
-
-  function getPastExamLabel(question: Question) {
+  function getPastExamLabel(question: Question | QuestionListItem) {
     const parts: string[] = []
     if (question.examYear) parts.push(String(question.examYear))
     if (question.examType != null) parts.push(ExamType[question.examType])
     if (question.examSession != null) parts.push(ExamSession[question.examSession])
     return parts.join(' ') || 'Sınav bilgisi yok'
+  }
+
+  function getTopicTitle(id: string) {
+    return topicTitleById.get(id) ?? 'Konu bulunamadı'
   }
 
   function updateOption(index: number, value: string) {
@@ -161,31 +157,52 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
     setIsFormDrawerOpen(true)
   }
 
-  function startEdit(question: Question) {
-    setEditingQuestion(question)
-    setTopicId(question.topicId)
-    setText(question.text)
-    setExplanation(question.explanation)
-    setSourceReference(question.sourceReference ?? '')
-    setSourceText(question.sourceText ?? '')
-    setDifficulty(question.difficulty)
-    setType(question.type)
-    setIsPastExamQuestion(question.isPastExamQuestion)
-    setExamYear(question.examYear?.toString() ?? '')
-    setExamType(question.examType ?? '')
-    setExamSession(question.examSession ?? '')
-    const editableOptions: EditableQuestionOption[] = question.options.map((option) => ({
-      id: option.id,
-      label: option.label,
-      text: option.text,
-      isCorrect: option.isCorrect,
-    }))
-    if (editableOptions.length === 4 && !editableOptions.some((option) => option.label.toLocaleUpperCase('tr-TR') === 'E')) {
-      editableOptions.push({ label: 'E', text: '', isCorrect: false })
+  async function startEdit(questionItem: QuestionListItem) {
+    setBusyId(questionItem.id)
+    setError('')
+    try {
+      const question = await api.getQuestion(questionItem.id)
+      setEditingQuestion(question)
+      setTopicId(question.topicId)
+      setText(question.text)
+      setExplanation(question.explanation)
+      setSourceReference(question.sourceReference ?? '')
+      setSourceText(question.sourceText ?? '')
+      setDifficulty(question.difficulty)
+      setType(question.type)
+      setIsPastExamQuestion(question.isPastExamQuestion)
+      setExamYear(question.examYear?.toString() ?? '')
+      setExamType(question.examType ?? '')
+      setExamSession(question.examSession ?? '')
+      const editableOptions: EditableQuestionOption[] = question.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+        text: option.text,
+        isCorrect: option.isCorrect,
+      }))
+      if (editableOptions.length === 4 && !editableOptions.some((option) => option.label.toLocaleUpperCase('tr-TR') === 'E')) {
+        editableOptions.push({ label: 'E', text: '', isCorrect: false })
+      }
+      setOptions(editableOptions)
+      setFieldError('')
+      setIsFormDrawerOpen(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Soru detayı alınamadı.')
+    } finally {
+      setBusyId('')
     }
-    setOptions(editableOptions)
-    setFieldError('')
-    setIsFormDrawerOpen(true)
+  }
+
+  async function showDetail(questionItem: QuestionListItem) {
+    setBusyId(questionItem.id)
+    setError('')
+    try {
+      setDetailQuestion(await api.getQuestion(questionItem.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Soru detayı alınamadı.')
+    } finally {
+      setBusyId('')
+    }
   }
 
   function validateForm() {
@@ -297,7 +314,7 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
               />
               <Chip
                 color={listSummary.hasActiveFilters ? 'primary' : 'default'}
-                label={listSummary.topicLabel}
+                label={listSummary.pageLabel}
                 size="small"
                 variant="outlined"
               />
@@ -307,62 +324,93 @@ export function QuestionsPage({ questions, topics, onChanged }: QuestionsPagePro
           <Stack spacing={2}>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
               <TextField fullWidth label="Soru ara" value={search} onChange={(event) => setSearch(event.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> } }} />
-              <TextField fullWidth label="Konu filtresi" select value={topicFilter} onChange={(event) => setTopicFilter(event.target.value)}>
+              <TextField fullWidth label="Konu filtresi" select value={topicFilter} onChange={(event) => {
+                setTopicFilter(event.target.value)
+                setPage(1)
+              }}>
                 <MenuItem value="">Tümü</MenuItem>
                 {topics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.parentTopicId ? `  - ${topic.title}` : topic.title}</MenuItem>)}
               </TextField>
             </Stack>
             <Stack direction={{ md: 'row', xs: 'column' }} spacing={2}>
-              <TextField fullWidth label="Zorluk filtresi" select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)}>
+              <TextField fullWidth label="Zorluk filtresi" select value={difficultyFilter} onChange={(event) => {
+                setDifficultyFilter(event.target.value)
+                setPage(1)
+              }}>
                 <MenuItem value="">Tümü</MenuItem>
                 <MenuItem value={QuestionDifficulty.Easy}>Kolay</MenuItem>
                 <MenuItem value={QuestionDifficulty.Medium}>Orta</MenuItem>
                 <MenuItem value={QuestionDifficulty.Hard}>Zor</MenuItem>
               </TextField>
-              <TextField fullWidth label="Onay durumu" select value={reviewStatusFilter} onChange={(event) => setReviewStatusFilter(event.target.value)}>
+              <TextField fullWidth label="Onay durumu" select value={reviewStatusFilter} onChange={(event) => {
+                setReviewStatusFilter(event.target.value)
+                setPage(1)
+              }}>
                 <MenuItem value="">Tümü</MenuItem>
                 <MenuItem value={ReviewStatus.Draft}>Draft</MenuItem>
                 <MenuItem value={ReviewStatus.PendingReview}>Pending</MenuItem>
                 <MenuItem value={ReviewStatus.Approved}>Approved</MenuItem>
                 <MenuItem value={ReviewStatus.Rejected}>Rejected</MenuItem>
               </TextField>
-              <TextField fullWidth label="Soru kaynağı" select value={pastExamFilter} onChange={(event) => setPastExamFilter(event.target.value)}>
+              <TextField fullWidth label="Soru kaynağı" select value={pastExamFilter} onChange={(event) => {
+                setPastExamFilter(event.target.value)
+                setPage(1)
+              }}>
                 <MenuItem value="">Tümü</MenuItem>
                 <MenuItem value="past">Çıkmış sorular</MenuItem>
                 <MenuItem value="standard">Standart sorular</MenuItem>
               </TextField>
             </Stack>
 
-            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
-              {filteredQuestions.length === 0 ? (
+            {questionsQuery.isError && (
+              <ErrorBanner message={questionsQuery.error instanceof Error ? questionsQuery.error.message : 'Sorular yüklenemedi.'} />
+            )}
+            {questionsQuery.isLoading ? (
+              <Box sx={{ display: 'grid', placeItems: 'center', py: 8 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { md: 'repeat(2, minmax(0, 1fr))', xs: '1fr' } }}>
+              {questions.length === 0 ? (
                 <EmptyState title="Soru yok" description="Filtreleri temizleyebilir veya soru ekleyebilirsin." />
               ) : (
-                filteredQuestions.map((question) => (
+                questions.map((question) => (
                   <Card key={question.id} sx={{ borderRadius: 3, minWidth: 0, overflow: 'hidden' }} variant="outlined">
                     <CardContent sx={{ minWidth: 0 }}>
                       <Stack direction="row" sx={{ alignItems: 'flex-start', gap: 1, justifyContent: 'space-between', minWidth: 0 }}>
                         <Stack direction="row" spacing={1} sx={{ flex: '1 1 auto', flexWrap: 'wrap', gap: 1, minWidth: 0, '& .MuiChip-root': { maxWidth: '100%' }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}>
-                          <Chip color="primary" label={`${question.options.length} şık`} size="small" />
-                          <Chip label={getTopicTitle(question.topicId)} size="small" />
+                          <Chip color="primary" label={`${question.optionCount} şık`} size="small" />
+                          <Chip label={question.topicTitle || 'Konu bulunamadı'} size="small" />
                           {question.isPastExamQuestion && <Chip color="warning" label="Çıkmış Soru" size="small" />}
                           {question.isPastExamQuestion && <Chip label={getPastExamLabel(question)} size="small" variant="outlined" />}
                         </Stack>
                         <Stack direction="row" spacing={0.5} sx={{ flex: '0 0 auto', flexWrap: 'nowrap' }}>
-                          <Tooltip title="Detay"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => setDetailQuestion(question)}><InfoOutlinedIcon /></IconButton></Tooltip>
-                          <Tooltip title="Düzenle"><IconButton size="small" sx={{ flexShrink: 0 }} onClick={() => startEdit(question)}><EditOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Detay"><IconButton disabled={busyId === question.id} size="small" sx={{ flexShrink: 0 }} onClick={() => void showDetail(question)}><InfoOutlinedIcon /></IconButton></Tooltip>
+                          <Tooltip title="Düzenle"><IconButton disabled={busyId === question.id} size="small" sx={{ flexShrink: 0 }} onClick={() => void startEdit(question)}><EditOutlinedIcon /></IconButton></Tooltip>
                           <Tooltip title="Sil"><IconButton size="small" sx={{ flexShrink: 0 }} color="error" disabled={busyId === question.id} onClick={() => setDeleteTarget(question)}><DeleteOutlineIcon /></IconButton></Tooltip>
                         </Stack>
                       </Stack>
                       <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere' }}>{question.text}</Typography>
-                      <Box color="text.secondary" sx={{ mt: 1 }}>
-                        <FormattedQuestionExplanation text={question.explanation} variant="body2" />
-                      </Box>
                       <Typography color="text.secondary" sx={{ mt: 2 }} variant="body2">{question.sourceReference || 'Kaynak belirtilmedi'}</Typography>
                     </CardContent>
                   </Card>
                 ))
               )}
-            </Box>
+              </Box>
+            )}
+            {pageCount > 1 && (
+              <Stack direction="row" sx={{ justifyContent: 'center', pt: 1 }}>
+                <Pagination
+                  color="primary"
+                  count={pageCount}
+                  disabled={questionsQuery.isFetching}
+                  onChange={(_, value) => setPage(value)}
+                  page={page}
+                  showFirstButton
+                  showLastButton
+                />
+              </Stack>
+            )}
           </Stack>
         </AdminSurface>
       </Box>

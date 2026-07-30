@@ -22,6 +22,40 @@ export interface Question {
   options: QuestionOption[]
 }
 
+export interface QuestionListItem {
+  id: string
+  topicId: string
+  topicTitle: string
+  text: string
+  difficulty: QuestionDifficulty
+  type: QuestionType
+  isPastExamQuestion: boolean
+  examYear?: number | null
+  examType?: ExamType | null
+  examSession?: ExamSession | null
+  sourceReference?: string | null
+  reviewStatus: ReviewStatus
+  accessLevel: ContentAccessLevel
+  optionCount: number
+}
+
+export interface QuestionListResponse {
+  items: QuestionListItem[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface QuestionListQuery {
+  topicId?: string
+  difficulty?: QuestionDifficulty
+  reviewStatus?: ReviewStatus
+  isPastExamQuestion?: boolean
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
 export interface QuestionOption {
   id: string
   label: string

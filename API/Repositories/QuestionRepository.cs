@@ -1,4 +1,5 @@
 using API.Data;
+using API.Dtos;
 using API.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,12 @@ public interface IQuestionRepository
     Task<IReadOnlyList<Question>> GetQuestionsAsync(
         Guid? topicId,
         ReviewStatus? reviewStatus,
+        CancellationToken cancellationToken = default);
+
+    Task<(IReadOnlyList<QuestionListItemDto> Items, int TotalCount)> GetQuestionPageAsync(
+        QuestionListQueryDto query,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken = default);
 
     Task<Question?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -30,6 +37,73 @@ public interface IQuestionRepository
 
 public class QuestionRepository(DataContext context) : IQuestionRepository
 {
+    public async Task<(IReadOnlyList<QuestionListItemDto> Items, int TotalCount)> GetQuestionPageAsync(
+        QuestionListQueryDto query,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var questions = context.Questions
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .AsQueryable();
+
+        if (query.TopicId.HasValue)
+        {
+            questions = questions.Where(x => x.TopicId == query.TopicId.Value);
+        }
+
+        if (query.Difficulty.HasValue)
+        {
+            questions = questions.Where(x => x.Difficulty == query.Difficulty.Value);
+        }
+
+        if (query.ReviewStatus.HasValue)
+        {
+            questions = questions.Where(x => x.ReviewStatus == query.ReviewStatus.Value);
+        }
+
+        if (query.IsPastExamQuestion.HasValue)
+        {
+            questions = questions.Where(x => x.IsPastExamQuestion == query.IsPastExamQuestion.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.Trim();
+            questions = questions.Where(x =>
+                x.Text.Contains(term)
+                || x.Explanation.Contains(term)
+                || (x.SourceReference != null && x.SourceReference.Contains(term))
+                || (x.Topic != null && x.Topic.Title.Contains(term)));
+        }
+
+        var totalCount = await questions.CountAsync(cancellationToken);
+        var items = await questions
+            .OrderByDescending(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new QuestionListItemDto(
+                x.Id,
+                x.TopicId,
+                x.Topic != null ? x.Topic.Title : string.Empty,
+                x.Text,
+                x.Difficulty,
+                x.Type,
+                x.IsPastExamQuestion,
+                x.ExamYear,
+                x.ExamType,
+                x.ExamSession,
+                x.SourceReference,
+                x.ReviewStatus,
+                x.AccessLevel,
+                x.Options.Count))
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<IReadOnlyList<Question>> GetQuestionsAsync(
         Guid? topicId,
         ReviewStatus? reviewStatus,

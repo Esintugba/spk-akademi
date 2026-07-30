@@ -23,6 +23,37 @@ public record QuestionDto(
     string? ReviewComment,
     IReadOnlyList<QuestionOptionDto> Options);
 
+public record QuestionListItemDto(
+    Guid Id,
+    Guid TopicId,
+    string TopicTitle,
+    string Text,
+    QuestionDifficulty Difficulty,
+    QuestionType Type,
+    bool IsPastExamQuestion,
+    int? ExamYear,
+    ExamType? ExamType,
+    ExamSession? ExamSession,
+    string? SourceReference,
+    ReviewStatus ReviewStatus,
+    ContentAccessLevel AccessLevel,
+    int OptionCount);
+
+public record QuestionListResponseDto(
+    IReadOnlyList<QuestionListItemDto> Items,
+    int TotalCount,
+    int Page,
+    int PageSize);
+
+public record QuestionListQueryDto(
+    Guid? TopicId,
+    QuestionDifficulty? Difficulty,
+    ReviewStatus? ReviewStatus,
+    bool? IsPastExamQuestion,
+    string? Search,
+    int Page = 1,
+    int PageSize = 24);
+
 public record QuestionFilterDto(
     Guid? TopicId,
     ReviewStatus? ReviewStatus);

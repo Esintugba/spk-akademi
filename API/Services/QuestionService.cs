@@ -32,6 +32,12 @@ public sealed class QuestionServiceOutcome<T>
 
 public interface IQuestionService
 {
+    Task<QuestionListResponseDto> GetQuestionPageAsync(
+        QuestionListQueryDto query,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<QuestionDto>> GetQuestionsAsync(
         Guid? topicId,
         ReviewStatus? reviewStatus,
@@ -59,6 +65,20 @@ public class QuestionService(
     IQuestionRepository questions,
     ILicenseCatalogCache licenseCatalogCache) : IQuestionService
 {
+    public async Task<QuestionListResponseDto> GetQuestionPageAsync(
+        QuestionListQueryDto query,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var (items, totalCount) = await questions.GetQuestionPageAsync(
+            query,
+            page,
+            pageSize,
+            cancellationToken);
+        return new QuestionListResponseDto(items, totalCount, page, pageSize);
+    }
+
     public async Task<IReadOnlyList<QuestionDto>> GetQuestionsAsync(
         Guid? topicId,
         ReviewStatus? reviewStatus,

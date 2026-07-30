@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import type { QuestionListQuery } from '../../models'
 import {
   coursesApi,
   licensesApi,
@@ -14,7 +15,8 @@ export const adminCatalogQueryKeys = {
   courses: ['app-data', 'courses'] as const,
   topics: ['app-data', 'topics'] as const,
   studyNotes: ['app-data', 'study-notes'] as const,
-  questions: ['app-data', 'questions'] as const,
+  questions: ['app-data', 'questions', 'all'] as const,
+  questionPages: ['app-data', 'questions', 'paged'] as const,
   sourceDocuments: ['app-data', 'source-documents'] as const,
   trialExams: ['app-data', 'trial-exams'] as const,
 }
@@ -37,6 +39,14 @@ export function useStudyNotes() {
 
 export function useQuestions() {
   return useQuery({ queryFn: () => questionsApi.getAll(), queryKey: adminCatalogQueryKeys.questions })
+}
+
+export function useQuestionPage(filters: QuestionListQuery) {
+  return useQuery({
+    placeholderData: (previousData) => previousData,
+    queryFn: () => questionsApi.getPage(filters),
+    queryKey: [...adminCatalogQueryKeys.questionPages, filters],
+  })
 }
 
 export function useSourceDocuments() {
@@ -65,7 +75,7 @@ export function useAdminCatalogInvalidation() {
       ])
     },
     reloadStudyNotes: () => queryClient.invalidateQueries({ queryKey: adminCatalogQueryKeys.studyNotes }),
-    reloadQuestions: () => queryClient.invalidateQueries({ queryKey: adminCatalogQueryKeys.questions }),
+    reloadQuestions: () => queryClient.invalidateQueries({ queryKey: ['app-data', 'questions'] }),
     reloadSourceDocuments: () => queryClient.invalidateQueries({ queryKey: adminCatalogQueryKeys.sourceDocuments }),
     reloadTrialExams: () => queryClient.invalidateQueries({ queryKey: adminCatalogQueryKeys.trialExams }),
   }

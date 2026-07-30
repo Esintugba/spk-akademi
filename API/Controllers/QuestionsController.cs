@@ -11,6 +11,26 @@ namespace API.Controllers;
 [Route("api/questions")]
 public class QuestionsController(IQuestionService questionService) : ControllerBase
 {
+    [HttpGet("paged")]
+    public async Task<ActionResult<QuestionListResponseDto>> GetQuestionPage(
+        [FromQuery] QuestionListQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(query.Search) && query.Search.Trim().Length > 200)
+        {
+            return BadRequest("Arama metni en fazla 200 karakter olabilir.");
+        }
+
+        var page = Math.Max(query.Page, 1);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var response = await questionService.GetQuestionPageAsync(
+            query,
+            page,
+            pageSize,
+            cancellationToken);
+        return Ok(response);
+    }
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<QuestionDto>>> GetQuestions(
         [FromQuery] Guid? topicId,
