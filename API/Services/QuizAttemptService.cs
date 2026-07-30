@@ -4,6 +4,8 @@ using API.Entities;
 using API.Helpers;
 using API.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace API.Services;
 
@@ -607,21 +609,40 @@ public class QuizAttemptService(
                 var options = question.Options.AsEnumerable();
                 if (shuffleOptions)
                 {
-                    options = options.OrderBy(_ => Random.Shared.Next());
+                    options = options.OrderBy(option => GetStableOptionShuffleKey(attempt.Id, question.Id, option.Id));
                 }
                 else
                 {
                     options = options.OrderBy(option => option.Label);
                 }
 
+                var optionDtos = options
+                    .Select((option, index) => new QuizQuestionOptionDto(
+                        option.Id,
+                        shuffleOptions ? GetOptionLabel(index) : option.Label,
+                        option.Text))
+                    .ToList();
+
                 return new QuizQuestionDto(
                     question.Id,
                     question.Text,
                     question.Difficulty,
                     question.Type,
-                    options.Select(option => new QuizQuestionOptionDto(option.Id, option.Label, option.Text)).ToList());
+                    optionDtos);
             }).ToList());
     }
+
+    private static string GetStableOptionShuffleKey(Guid attemptId, Guid questionId, Guid optionId)
+    {
+        var input = $"{attemptId:N}:{questionId:N}:{optionId:N}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(hash);
+    }
+
+    private static string GetOptionLabel(int index) =>
+        index is >= 0 and < 26
+            ? ((char)('A' + index)).ToString()
+            : (index + 1).ToString();
 
     private static DateTime AsUtc(DateTime value) =>
         value.Kind == DateTimeKind.Utc
