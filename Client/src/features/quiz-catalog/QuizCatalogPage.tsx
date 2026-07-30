@@ -44,10 +44,12 @@ export function QuizCatalogPage({ courses, licenses, topics }: QuizCatalogPagePr
   const startMutation = useStartLicensedQuiz(() => setStartingQuizId(null))
 
   const quizzes = catalogQuery.data?.pages.flatMap((page) => page.items) ?? []
+  const virtualItemGap = 16
   const virtualizer = useVirtualizer({
     count: quizzes.length,
-    estimateSize: () => 235,
+    estimateSize: () => 300,
     getScrollElement: () => parentRef.current,
+    gap: virtualItemGap,
     overscan: 6,
   })
 
@@ -133,9 +135,12 @@ export function QuizCatalogPage({ courses, licenses, topics }: QuizCatalogPagePr
                   const quiz = quizzes[virtualItem.index]
                   return (
                     <Box
+                      ref={virtualizer.measureElement}
+                      data-index={virtualItem.index}
                       key={quiz.id}
                       sx={{
                         left: 0,
+                        pb: `${virtualItemGap}px`,
                         position: 'absolute',
                         top: 0,
                         transform: `translateY(${virtualItem.start}px)`,
