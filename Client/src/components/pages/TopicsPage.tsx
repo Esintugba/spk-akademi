@@ -12,7 +12,10 @@ import { AdminFormDrawer } from '../common/AdminFormDrawer'
 import { AdminSurface } from '../common/AdminSurface'
 import { EmptyState } from '../common/EmptyState'
 import { ErrorBanner } from '../common/ErrorBanner'
+import { FormattedQuestionExplanation } from '../common/FormattedQuestionExplanation'
+import { RichTextEditor } from '../common/RichTextEditor'
 import { isValidShortCode, shortCodeHelperText } from '../../utils/shortCode'
+import { getQuestionExplanationPlainText } from '../../utils/questionExplanationHtml'
 
 interface TopicsPageProps {
   courses: Course[]
@@ -261,9 +264,10 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
 
   function renderDetailRow(label: string, value?: string | null) {
     return (
-      <Typography sx={{ whiteSpace: 'pre-line' }}>
-        <strong>{label}:</strong> {value || 'Yok'}
-      </Typography>
+      <Box>
+        <Typography component="div" sx={{ fontWeight: 800 }}>{label}:</Typography>
+        {value ? <FormattedQuestionExplanation text={value} /> : <Typography>Yok</Typography>}
+      </Box>
     )
   }
 
@@ -354,8 +358,8 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
                       {renderTopicActions(topic)}
                     </Stack>
                     <Typography sx={{ fontSize: 18, fontWeight: 900, mt: 1.5, overflowWrap: 'anywhere', pl: topic.parentTopicId ? 2 : 0 }}>{topic.title}</Typography>
-                    <Typography color="text.secondary" sx={{ display: '-webkit-box', lineHeight: 1.55, mt: 1, overflow: 'hidden', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3 }}>
-                      {topic.summary || 'Kısa özet henüz girilmedi.'}
+                    <Typography color="text.secondary" sx={{ display: '-webkit-box', lineHeight: 1.55, mt: 1, overflow: 'hidden', whiteSpace: 'pre-line', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3 }}>
+                      {topic.summary ? getQuestionExplanationPlainText(topic.summary) : 'Kısa özet henüz girilmedi.'}
                     </Typography>
                     <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1.75, minWidth: 0, '& .MuiChip-root': { maxWidth: '100%' }, '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}>
                       <Chip label={getCourseName(topic.courseId)} size="small" />
@@ -410,12 +414,12 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
                 onChange={(event) => setForm((current) => ({ ...current, order: onlyDigits(event.target.value) }))}
               />
             </Stack>
-            <TextField fullWidth label={summaryLabel} rows={3} multiline value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} />
-            <TextField fullWidth label={importantPointsLabel} rows={3} multiline value={form.importantPoints} onChange={(event) => setForm((current) => ({ ...current, importantPoints: event.target.value }))} />
-            <TextField fullWidth label={commonMistakesLabel} rows={3} multiline value={form.commonMistakes} onChange={(event) => setForm((current) => ({ ...current, commonMistakes: event.target.value }))} />
-            <TextField fullWidth label={formulasLabel} rows={3} multiline value={form.formulas} onChange={(event) => setForm((current) => ({ ...current, formulas: event.target.value }))} />
-            <TextField fullWidth label={examNotesLabel} rows={3} multiline value={form.examNotes} onChange={(event) => setForm((current) => ({ ...current, examNotes: event.target.value }))} />
-            <TextField fullWidth label="Kritik eşikler" rows={3} multiline value={form.criticalThresholds} onChange={(event) => setForm((current) => ({ ...current, criticalThresholds: event.target.value }))} />
+            <RichTextEditor label={summaryLabel} value={form.summary} onChange={(value) => setForm((current) => ({ ...current, summary: value }))} />
+            <RichTextEditor label={importantPointsLabel} value={form.importantPoints} onChange={(value) => setForm((current) => ({ ...current, importantPoints: value }))} />
+            <RichTextEditor label={commonMistakesLabel} value={form.commonMistakes} onChange={(value) => setForm((current) => ({ ...current, commonMistakes: value }))} />
+            <RichTextEditor label={formulasLabel} value={form.formulas} onChange={(value) => setForm((current) => ({ ...current, formulas: value }))} />
+            <RichTextEditor label={examNotesLabel} value={form.examNotes} onChange={(value) => setForm((current) => ({ ...current, examNotes: value }))} />
+            <RichTextEditor label="Kritik eşikler" value={form.criticalThresholds} onChange={(value) => setForm((current) => ({ ...current, criticalThresholds: value }))} />
             <Stack direction={{ sm: 'row', xs: 'column' }} spacing={1.25}>
               <Button disabled={isSaving || courses.length === 0} type="submit" variant="contained">{isSaving ? 'Kaydediliyor' : editingTopic ? 'Değişiklikleri kaydet' : 'Konu ekle'}</Button>
               {editingTopic && <Button onClick={() => setIsFormDrawerOpen(false)}>Vazgeç</Button>}

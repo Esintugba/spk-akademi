@@ -44,10 +44,12 @@ import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetSt
 import { Link as RouterLink } from 'react-router'
 import { toast } from 'react-toastify'
 import { EmptyState } from '../../components/common/EmptyState'
+import { FormattedQuestionExplanation } from '../../components/common/FormattedQuestionExplanation'
 import { StudentPageHero } from '../../components/common/StudentPageHero'
 import { StudyStatus, TopicType } from '../../models'
 import type { Course, CourseProgress, CourseTopicProgress, Topic, TopicPreference } from '../../models'
 import { topicPreferencesApi } from '../../shared/api'
+import { getQuestionExplanationPlainText } from '../../utils/questionExplanationHtml'
 import { studentContentQueryKeys, useMyTopicsData } from './hooks/useStudentContentDiscovery'
 
 interface MainTopicGroup {
@@ -704,8 +706,8 @@ export function MyTopicsPage() {
                       <Collapse in={!collapsedMainTopicIds.has(mainTopic.id)} timeout="auto" unmountOnExit>
                         <Stack spacing={2}>
                           {mainTopic.summary && (
-                            <Typography color="text.secondary" sx={{ lineHeight: 1.7 }} variant="body2">
-                              {mainTopic.summary.length > 160 ? `${mainTopic.summary.slice(0, 160)}...` : mainTopic.summary}
+                            <Typography color="text.secondary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-line' }} variant="body2">
+                              {getTopicSummaryPreview(mainTopic.summary)}
                             </Typography>
                           )}
 
@@ -883,8 +885,8 @@ export function MyTopicsPage() {
                         />
                       </Stack>
                       {subTopic.summary && (
-                        <Typography color="text.secondary" sx={{ lineHeight: 1.7 }} variant="body2">
-                          {subTopic.summary.length > 160 ? `${subTopic.summary.slice(0, 160)}...` : subTopic.summary}
+                        <Typography color="text.secondary" sx={{ lineHeight: 1.7, whiteSpace: 'pre-line' }} variant="body2">
+                          {getTopicSummaryPreview(subTopic.summary)}
                         </Typography>
                       )}
                       <TopicProgressSummary
@@ -990,13 +992,7 @@ function TopicPreviewDialog({
             {sections.map((section) => (
               <Paper key={section.title} sx={{ borderRadius: 2.5, p: 2 }} variant="outlined">
                 <Typography sx={{ fontWeight: 900, mb: 1 }}>{section.title}</Typography>
-                <Typography
-                  color="text.secondary"
-                  sx={{ lineHeight: 1.8, whiteSpace: 'pre-wrap' }}
-                  variant="body2"
-                >
-                  {section.content}
-                </Typography>
+                <FormattedQuestionExplanation text={section.content} variant="body2" />
               </Paper>
             ))}
           </Stack>
@@ -1718,6 +1714,11 @@ function topicProgressDetail(progress: CourseTopicProgress | undefined, question
   if (answeredCount === 0) return `${questionCount} soru`
 
   return `${questionCount} soru · ${answeredCount} cevap · %${Math.round(progress?.successRate ?? 0)} başarı`
+}
+
+function getTopicSummaryPreview(value: string) {
+  const plainText = getQuestionExplanationPlainText(value).trim()
+  return plainText.length > 160 ? `${plainText.slice(0, 160)}...` : plainText
 }
 
 function formatTopicDate(value?: string | null) {

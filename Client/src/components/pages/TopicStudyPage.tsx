@@ -18,7 +18,9 @@ import {
 import { Link as RouterLink, useParams } from 'react-router'
 import { QuestionDifficulty, QuestionType, TopicType, type TopicStudyPageData } from '../../models'
 import { api } from '../../shared/api'
+import { getQuestionExplanationPlainText } from '../../utils/questionExplanationHtml'
 import { EmptyState } from '../common/EmptyState'
+import { FormattedQuestionExplanation } from '../common/FormattedQuestionExplanation'
 import { StudentPageHero } from '../common/StudentPageHero'
 
 export function TopicStudyPage() {
@@ -156,34 +158,34 @@ export function TopicStudyPage() {
         <Stack spacing={3}>
           <Paper sx={{ borderRadius: 3, p: 3 }} variant="outlined">
             <Typography variant="h2">Konu Özeti</Typography>
-            <Typography color="text.secondary" sx={{ lineHeight: 1.8, mt: 1.5, whiteSpace: 'pre-line' }}>
-              {data.summary || 'Bu konu için henüz özet eklenmedi.'}
-            </Typography>
+            <Box sx={{ color: 'text.secondary', mt: 1.5 }}>
+              {data.summary ? <FormattedQuestionExplanation text={data.summary} /> : <Typography>Bu konu için henüz özet eklenmedi.</Typography>}
+            </Box>
 
             {(data.importantPoints || data.commonMistakes || data.formulas) && (
               <Stack spacing={2} sx={{ mt: 3 }}>
                 {data.importantPoints && (
                   <Box>
                     <Typography sx={{ fontWeight: 700 }}>Önemli Noktalar</Typography>
-                    <Typography color="text.secondary" sx={{ mt: 0.75, whiteSpace: 'pre-line' }}>
-                      {data.importantPoints}
-                    </Typography>
+                    <Box sx={{ color: 'text.secondary', mt: 0.75 }}>
+                      <FormattedQuestionExplanation text={data.importantPoints} />
+                    </Box>
                   </Box>
                 )}
                 {data.commonMistakes && (
                   <Box>
                     <Typography sx={{ fontWeight: 700 }}>Sık Yapılan Hatalar</Typography>
-                    <Typography color="text.secondary" sx={{ mt: 0.75, whiteSpace: 'pre-line' }}>
-                      {data.commonMistakes}
-                    </Typography>
+                    <Box sx={{ color: 'text.secondary', mt: 0.75 }}>
+                      <FormattedQuestionExplanation text={data.commonMistakes} />
+                    </Box>
                   </Box>
                 )}
                 {data.formulas && (
                   <Box>
                     <Typography sx={{ fontWeight: 700 }}>Formüller ve Hatırlatmalar</Typography>
-                    <Typography color="text.secondary" sx={{ mt: 0.75, whiteSpace: 'pre-line' }}>
-                      {data.formulas}
-                    </Typography>
+                    <Box sx={{ color: 'text.secondary', mt: 0.75 }}>
+                      <FormattedQuestionExplanation text={data.formulas} />
+                    </Box>
                   </Box>
                 )}
               </Stack>
@@ -253,7 +255,7 @@ export function TopicStudyPage() {
                           }}
                           variant="body2"
                         >
-                          {subTopic.summary || 'Bu alt konu için henüz kısa açıklama eklenmedi.'}
+                          {subTopic.summary ? getQuestionExplanationPlainText(subTopic.summary) : 'Bu alt konu için henüz kısa açıklama eklenmedi.'}
                         </Typography>
 
                         <Box
