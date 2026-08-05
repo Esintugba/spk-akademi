@@ -259,6 +259,14 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
     )
   }
 
+  function renderDetailRow(label: string, value?: string | null) {
+    return (
+      <Typography sx={{ whiteSpace: 'pre-line' }}>
+        <strong>{label}:</strong> {value || 'Yok'}
+      </Typography>
+    )
+  }
+
   const isSubTopicForm = form.type === TopicType.SubTopic
   const summaryLabel = isSubTopicForm ? 'Tanım' : 'Ana konu özeti'
   const importantPointsLabel = isSubTopicForm ? 'Soru çözüm ipuçları' : 'Önemli noktalar'
@@ -427,12 +435,12 @@ export function TopicsPage({ courses, topics, onChanged }: TopicsPageProps) {
               <Typography><strong>Kısa kod:</strong> {detailTopic.slug}</Typography>
               <Typography><strong>Alt konu sayısı:</strong> {detailTopic.subTopicCount ?? 0}</Typography>
               <Typography><strong>Soru sayısı:</strong> {detailTopic.questionCount}</Typography>
-              <Typography><strong>Özet:</strong> {detailTopic.summary || 'Yok'}</Typography>
-              <Typography><strong>Önemli noktalar:</strong> {detailTopic.importantPoints || 'Yok'}</Typography>
-              <Typography><strong>Sık hatalar:</strong> {detailTopic.commonMistakes || 'Yok'}</Typography>
-              <Typography><strong>Formüller:</strong> {detailTopic.formulas || 'Yok'}</Typography>
-              <Typography><strong>Sınav notları:</strong> {detailTopic.examNotes || 'Yok'}</Typography>
-              <Typography><strong>Kritik eşikler:</strong> {detailTopic.criticalThresholds || 'Yok'}</Typography>
+              {renderDetailRow('Özet', detailTopic.summary)}
+              {renderDetailRow('Önemli noktalar', detailTopic.importantPoints)}
+              {renderDetailRow('Sık hatalar', detailTopic.commonMistakes)}
+              {renderDetailRow('Formüller', detailTopic.formulas)}
+              {renderDetailRow('Sınav notları', detailTopic.examNotes)}
+              {renderDetailRow('Kritik eşikler', detailTopic.criticalThresholds)}
             </Stack>
           )}
         </DialogContent>
